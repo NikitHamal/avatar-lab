@@ -1856,8 +1856,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
           <motion.footer
             className={`state-playback-footer${statePlayerExpanded ? ' is-expanded' : ''}`}
             style={{ y: playbackFooterY }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
           >
             <div className="state-playback-drag-handle-slot">
               <motion.div style={{ y: playbackHandleCounterY }}>
