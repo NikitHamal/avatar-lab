@@ -12,7 +12,7 @@ import { type BodyNode } from '@/features/avatar/body'
 import { poseFromExpression, renderAvatar, type Expression } from '@/features/avatar/geometry'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
 
-export type Mode = 'manual' | 'expressions' | 'states' | 'export'
+export type Mode = 'avatars' | 'manual' | 'expressions' | 'states' | 'export'
 export type ExportFormat = 'react' | 'javascript'
 export type SnapshotFormat = 'svg' | 'png'
 export type PlaybackStatus = 'playing' | 'paused' | 'stopped'

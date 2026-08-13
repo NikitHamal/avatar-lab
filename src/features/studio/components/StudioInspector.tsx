@@ -63,13 +63,11 @@ import {
 import { defaultExpression } from '@/features/avatar/presets'
 import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
-import { AvatarDrawer } from '@/features/studio/components/AvatarDrawer'
+import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
-import { useState } from 'react'
 
 export function StudioInspector({ controller }: { controller: StudioController }) {
-  const [avatarDrawerOpen, setAvatarDrawerOpen] = useState(false)
   const {
     activateAvatar,
     activeAvatar,
@@ -208,7 +206,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     workspaceBackButtonRef,
   } = controller
   return (
-    <Drawer open={avatarDrawerOpen} onOpenChange={setAvatarDrawerOpen}>
+    <Drawer>
       <main
         className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen ? ' state-player-active' : ''}`}
       >
@@ -330,11 +328,13 @@ export function StudioInspector({ controller }: { controller: StudioController }
                   {t(
                     mode === 'manual'
                       ? 'Pose'
-                      : mode === 'expressions'
-                        ? 'Expressions'
-                        : mode === 'states'
-                          ? 'Animations'
-                          : 'Exporter'
+                      : mode === 'avatars'
+                        ? 'Avatars'
+                        : mode === 'expressions'
+                          ? 'Expressions'
+                          : mode === 'states'
+                            ? 'Animations'
+                            : 'Exporter'
                   )}
                 </h1>
               </header>
@@ -1229,6 +1229,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 )}
               </div>
             )}
+            {!editorPageOpen && mode === 'avatars' && <AvatarPage controller={controller} />}
 
             {!sequenceEditing && !editing && bodyEditing && (
               <footer className="workspace-footer">
@@ -1921,9 +1922,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
               className="mobile-mode-tab mobile-avatar-tab"
               variant="ghost"
               type="button"
-              aria-pressed={avatarDrawerOpen}
+              aria-pressed={mode === 'avatars'}
               aria-label={t('Choisir un avatar')}
-              onClick={() => setAvatarDrawerOpen(true)}
+              onClick={() => setMode('avatars')}
             >
               <ExpressionPreview
                 expression={expressions[0] ?? defaultExpression}
@@ -1957,7 +1958,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
             ))}
           </nav>
         )}
-        <AvatarDrawer controller={controller} onOpenChange={setAvatarDrawerOpen} />
       </main>
     </Drawer>
   )

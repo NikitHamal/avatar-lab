@@ -1,5 +1,5 @@
 import { Copy, Pencil, Plus, Trash2 } from 'lucide-react'
-import { motion, useDragControls } from 'motion/react'
+import { motion } from 'motion/react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -9,20 +9,12 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer'
 import { defaultAvatarEyes } from '@/features/avatar/avatars'
 import { ExpressionPreview } from '@/features/avatar/components/ExpressionWorkspace'
 import { defaultExpression } from '@/features/avatar/presets'
 import type { StudioController } from '@/features/studio/useStudioController'
 
-export function AvatarDrawer({
-  controller,
-  onOpenChange,
-}: {
-  controller: StudioController
-  onOpenChange: (open: boolean) => void
-}) {
-  const drawerDragControls = useDragControls()
+export function AvatarPage({ controller }: { controller: StudioController }) {
   const {
     activateAvatar,
     activeAvatarId,
@@ -46,38 +38,12 @@ export function AvatarDrawer({
   } = controller
 
   return (
-    <DrawerContent
-      className="avatar-drawer"
-      render={
-        <motion.div
-          drag="y"
-          dragControls={drawerDragControls}
-          dragListener={false}
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={{ top: 0, bottom: 0.7 }}
-          dragMomentum={false}
-          onDragEnd={(_, info) => {
-            if (info.offset.y > 70 || info.velocity.y > 600) onOpenChange(false)
-          }}
-        />
-      }
-    >
-      <button
-        className="drawer-handle"
-        type="button"
-        aria-label="Close avatar picker"
-        onPointerDown={event => drawerDragControls.start(event)}
-      >
-        <span />
-      </button>
-      <div className="avatar-drawer-heading">
-        <div>
-          <DrawerTitle>Avatars</DrawerTitle>
-          <DrawerDescription>{t('Double-clic pour modifier')}</DrawerDescription>
-        </div>
-        <span>{avatars.length}</span>
-      </div>
+    <div className="panel-stack avatar-page">
       <section className="avatar-shelf" aria-label={t('Choisir un avatar')}>
+        <div className="avatar-shelf-heading">
+          <strong>{t('Double-clic pour modifier')}</strong>
+          <span>{avatars.length}</span>
+        </div>
         <div className="avatar-grid">
           {avatars.map(avatar => (
             <motion.div
@@ -125,7 +91,6 @@ export function AvatarDrawer({
                       onDoubleClick={() => {
                         setFocusAvatarName(false)
                         activateAvatar(avatar.id, true)
-                        onOpenChange(false)
                       }}
                     >
                       <ExpressionPreview
@@ -145,7 +110,6 @@ export function AvatarDrawer({
                     onClick={() => {
                       setFocusAvatarName(false)
                       activateAvatar(avatar.id, true)
-                      onOpenChange(false)
                     }}
                   >
                     <Pencil /> {t('Modifier')}
@@ -159,7 +123,6 @@ export function AvatarDrawer({
                     disabled={avatars.length <= 1}
                     onClick={() => {
                       activateAvatar(avatar.id, false, true)
-                      onOpenChange(false)
                       setDeleteAvatarOpen(true)
                     }}
                   >
@@ -172,16 +135,13 @@ export function AvatarDrawer({
           <Button
             variant="outline"
             className="avatar-add creation-card"
-            onClick={() => {
-              createNewAvatar()
-              onOpenChange(false)
-            }}
+            onClick={createNewAvatar}
             aria-label={t('Nouvel avatar')}
           >
             <Plus />
           </Button>
         </div>
       </section>
-    </DrawerContent>
+    </div>
   )
 }

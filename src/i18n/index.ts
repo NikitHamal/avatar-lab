@@ -41,6 +41,7 @@ const english: Record<string, string> = {
   'Ouvrez cette démo directement, ou servez le dossier localement pour importer avatar.js depuis un autre module.':
     'Open this demo directly, or serve the folder locally to import avatar.js from another module.',
   'Langue de l’interface': 'Interface language',
+  'Redimensionner l’aperçu et l’éditeur': 'Resize preview and editor',
   'Nom de l’avatar': 'Avatar name',
   sélecteur: 'picker',
   hexadécimal: 'hex value',

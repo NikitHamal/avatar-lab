@@ -14,6 +14,7 @@ export const chinese: Record<string, string> = {
   'Ouvrez cette démo directement, ou servez le dossier localement pour importer avatar.js depuis un autre module.':
     '可直接打开此演示，或在本地启动该目录，以便从其他模块导入 avatar.js。',
   'Langue de l’interface': '界面语言',
+  'Redimensionner l’aperçu et l’éditeur': '调整预览和编辑器大小',
   'Nom de l’avatar': '头像名称',
   sélecteur: '选择器',
   hexadécimal: '十六进制值',
