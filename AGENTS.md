@@ -8,11 +8,11 @@ Read `CONTEXT.md` before changing behavior or persistence semantics.
 ## Commands
 
 ```bash
-yarn dev
-yarn typecheck
-yarn test
-yarn build
-yarn check
+pnpm dev
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm check
 ```
 
 ## Engineering rules
@@ -22,9 +22,9 @@ yarn check
 - Preserve the split between durable React state and high-frequency Motion values.
 - Do not use `useMemo`, `useCallback` or `memo`; React Compiler handles memoization.
 - Add or update focused tests for domain behavior.
-- Run `yarn typecheck` and the relevant test file while working, then `yarn check` before committing.
-- `src/standaloneEngine.generated.ts` is generated. Update it with `yarn engine`, never by hand.
-- Keep English, French and Simplified Chinese copy synchronized across `src/i18n.ts` and `src/i18n.zh.ts`.
+- Run `pnpm typecheck` and the relevant test file while working, then `pnpm check` before committing.
+- `src/features/export/standaloneEngine.generated.ts` is generated. Update it with `pnpm engine`, never by hand.
+- Keep English, French and Simplified Chinese copy synchronized across `src/i18n/index.ts` and `src/i18n/zh.ts`.
 - Preserve project JSON compatibility only with the current pre-release schema unless a migration is explicitly requested.
 
 ## UI conventions

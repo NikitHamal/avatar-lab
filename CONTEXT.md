@@ -56,14 +56,16 @@ manipulation pauses it.
 - The primary body shape carries the facial coordinate system and eyes.
 - Secondary primitives have independent local dimensions, position and rotation.
 - Expressions remain compatible across body surfaces because they operate in the common facial frame.
-- `geometry.ts` and the exported procedural engine stay independent from React.
-- `defaultStudioDocument.json` is the current schema baseline; pre-release legacy migrations are not required.
+- `features/avatar/geometry.ts` and the exported procedural engine stay independent from React.
+- `features/studio/defaultStudioDocument.json` is the current schema baseline; pre-release legacy migrations are not required.
 - Live editing may update the preview, but unsaved avatar/expression edits must remain reversible.
 
 ## Architecture boundaries
 
 - Pure geometry and document logic live in framework-independent TypeScript modules.
-- `App.tsx` coordinates UI and application state; avoid moving domain calculations into components.
+- `features/studio/useStudioController.ts` coordinates durable UI state and application operations.
+- `features/studio/components/StudioView.tsx` composes the stage, inspector and dialogs.
+- Keep domain calculations out of React components and controller hooks.
 - Motion values own frame-by-frame visual updates; React state owns durable editor state.
 - Exports receive explicit avatar, expression and animation data rather than reading browser storage.
 - The generated standalone engine is committed and checked for freshness in local validation.

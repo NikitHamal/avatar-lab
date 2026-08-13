@@ -1,11 +1,6 @@
 dist/
 node_modules/
-.yarn/
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
+pnpm-debug.log*
 *.local
 .DS_Store
 coverage/

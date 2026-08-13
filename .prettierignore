@@ -1,6 +1,8 @@
 dist/
 node_modules/
 legacy/
-src/defaultStudioDocument.json
-src/standaloneEngine.generated.ts
-yarn.lock
+public/favicon.svg
+public/robots.txt
+src/features/studio/defaultStudioDocument.json
+src/features/export/standaloneEngine.generated.ts
+pnpm-lock.yaml
