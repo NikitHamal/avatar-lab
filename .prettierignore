@@ -1,6 +1,7 @@
 dist/
 node_modules/
 legacy/
+LICENSE
 public/favicon.svg
 public/robots.txt
 src/features/studio/defaultStudioDocument.json

@@ -2,6 +2,7 @@
   "name": "bible-strong-avatar-lab",
   "version": "0.1.0",
   "description": "A browser-based studio for designing procedural 2D avatars, expressions and reusable animations.",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.21.0",

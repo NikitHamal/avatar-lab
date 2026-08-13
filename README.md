@@ -158,3 +158,17 @@ Keep domain calculations outside React components, preserve the separation betwe
 English, French, and Simplified Chinese interface copy must stay synchronized across `src/i18n/index.ts` and `src/i18n/zh.ts`.
 
 For the domain vocabulary, invariants, and architecture boundaries, read [CONTEXT.md](./CONTEXT.md).
+
+## License
+
+Bible Strong Avatar Lab is licensed under the [GNU Affero General Public License v3.0](./LICENSE).
+
+You may use, study, modify, and redistribute the project. If you distribute the application or a modified version, you must notably:
+
+- make the corresponding source code available;
+- preserve the copyright and license notices;
+- distribute derivative work under the GNU AGPL v3.0;
+- make the corresponding source available when a modified version is offered to users over a network, including as a hosted web service;
+- document significant changes made to the project.
+
+See the `LICENSE` file for the complete and legally authoritative terms.
