@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://bible-strong.app/sitemap.xml
+Sitemap: https://avatars.bible-strong.app/sitemap.xml

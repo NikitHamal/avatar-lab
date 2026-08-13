@@ -2,7 +2,7 @@
 
 Bible Strong Avatar Lab is a browser-based authoring studio for procedural 2D avatars. It combines 3D-inspired geometry with SVG rendering so you can construct a character, define its neutral appearance, create expressions, compose reusable animations, and export the result without depending on the Studio UI.
 
-Website: [bible-strong.app](https://bible-strong.app) · Source: [GitHub](https://github.com/smontlouis/bible-strong-avatar-lab)
+Website: [avatars.bible-strong.app](https://avatars.bible-strong.app) · Source: [GitHub](https://github.com/smontlouis/bible-strong-avatar-lab)
 
 The application runs entirely in the browser. Projects are stored locally and can be moved between browsers with JSON export/import; no account or backend is required.
 

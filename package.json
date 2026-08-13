@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A browser-based studio for designing procedural 2D avatars, expressions and reusable animations.",
   "author": "Stéphane Montlouis-Calixte",
-  "homepage": "https://bible-strong.app",
+  "homepage": "https://avatars.bible-strong.app",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/smontlouis/bible-strong-avatar-lab.git"
