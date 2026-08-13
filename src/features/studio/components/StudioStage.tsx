@@ -140,6 +140,13 @@ export function StudioStage({ controller }: { controller: StudioController }) {
           </Tooltip>
         </div>
       </TooltipProvider>
+      <p className="stage-credit">
+        Made with ❤️ by{' '}
+        <a href="https://x.com/_smontlouis" target="_blank" rel="noreferrer">
+          @_smontlouis
+        </a>
+        .
+      </p>
     </motion.section>
   )
 }

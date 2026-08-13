@@ -33,13 +33,12 @@ export function StudioIdentity({ className = '', language, setLanguage, t }: Stu
           <span>GitHub</span>
         </a>
         <span className="identity-divider" aria-hidden="true" />
-        <span aria-hidden="true">{language === 'en' ? '🇬🇧' : language === 'fr' ? '🇫🇷' : '🇨🇳'}</span>
         <Select
           value={language}
           items={[
-            { value: 'en', label: 'English' },
-            { value: 'fr', label: 'Français' },
-            { value: 'zh-CN', label: '中文' },
+            { value: 'en', label: '🇬🇧' },
+            { value: 'fr', label: '🇫🇷' },
+            { value: 'zh-CN', label: '🇨🇳' },
           ]}
           onValueChange={next => next && setLanguage(next as StudioLanguage)}
         >
@@ -47,9 +46,9 @@ export function StudioIdentity({ className = '', language, setLanguage, t }: Stu
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="fr">Français</SelectItem>
-            <SelectItem value="zh-CN">中文</SelectItem>
+            <SelectItem value="en">🇬🇧</SelectItem>
+            <SelectItem value="fr">🇫🇷</SelectItem>
+            <SelectItem value="zh-CN">🇨🇳</SelectItem>
           </SelectContent>
         </Select>
       </div>
