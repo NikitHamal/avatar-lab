@@ -1,0 +1,6 @@
+dist/
+node_modules/
+legacy/
+src/defaultStudioDocument.json
+src/standaloneEngine.generated.ts
+yarn.lock
