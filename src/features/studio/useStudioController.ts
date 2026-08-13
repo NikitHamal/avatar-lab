@@ -41,7 +41,8 @@ import {
 } from '@/features/animation/sequences'
 import {
   ambientBodyOffset,
-  applyAmbientMotion,
+  ambientEyeOffset,
+  applyAmbientBodyMotion,
   hasAmbientMotion,
 } from '@/features/avatar/ambientMotion'
 import {
@@ -282,10 +283,14 @@ export function useStudioController() {
   const displayedPose = useRef<AvatarPose>(initialPose)
   const transitionFrame = useRef<number | null>(null)
   const ambientFrame = useRef<number | null>(null)
-  const ambientStartedAt = useRef(0)
-  const lastAmbientElapsed = useRef(0)
+  const eyeAmbientStartedAt = useRef(-1)
+  const bodyAmbientStartedAt = useRef(-1)
+  const lastEyeAmbientElapsed = useRef(0)
+  const lastBodyAmbientElapsed = useRef(0)
   const lastAmbientFrame = useRef(0)
-  const ambientSignature = useRef('none:none')
+  const eyeAmbientSignature = useRef('none')
+  const bodyAmbientSignature = useRef('none')
+  const lastAmbientStrength = useRef(1)
   const transitionTarget = useRef<Expression>({ ...initialExpression })
   const canonicalTarget = useRef<Expression>({ ...initialExpression })
   const retargetFrom = useRef<Expression | null>(null)
@@ -320,35 +325,68 @@ export function useStudioController() {
   const bodyColorAnimation = useRef<ReturnType<typeof animate> | null>(null)
   const eyeColorAnimation = useRef<ReturnType<typeof animate> | null>(null)
 
-  const paintPose = (pose: AvatarPose, blink?: number, frameTimeMs?: number) => {
+  const paintPose = (
+    pose: AvatarPose,
+    blink?: number,
+    frameTimeMs?: number,
+    ambientStrength?: number
+  ) => {
     displayedPose.current = pose
+    const resolvedAmbientStrength =
+      ambientStrength ?? (transitionFrame.current === null ? 1 : lastAmbientStrength.current)
+    lastAmbientStrength.current = resolvedAmbientStrength
     paintRenderedRotationGizmo(renderedRotationGizmo, pose.expression)
     const avatar = avatarsRef.current.find(item => item.id === activeAvatarIdRef.current)
-    const signature = `${pose.expression.eyeMotion}:${pose.expression.bodyMotion}`
-    if (signature !== ambientSignature.current) {
-      ambientSignature.current = signature
-      ambientStartedAt.current = -1
-      lastAmbientElapsed.current = 0
+    const eyeAmbientEnabled = !reduceMotion && pose.expression.eyeMotion !== 'none'
+    const bodyAmbientEnabled = !reduceMotion && pose.expression.bodyMotion !== 'none'
+    const eyeSignature = eyeAmbientEnabled ? pose.expression.eyeMotion : 'none'
+    const bodySignature = bodyAmbientEnabled ? pose.expression.bodyMotion : 'none'
+    if (eyeSignature !== eyeAmbientSignature.current) {
+      eyeAmbientSignature.current = eyeSignature
+      eyeAmbientStartedAt.current = -1
+      lastEyeAmbientElapsed.current = 0
     }
-    if (frameTimeMs !== undefined) {
-      if (ambientStartedAt.current < 0) ambientStartedAt.current = frameTimeMs
-      lastAmbientElapsed.current = frameTimeMs - ambientStartedAt.current
+    if (bodySignature !== bodyAmbientSignature.current) {
+      bodyAmbientSignature.current = bodySignature
+      bodyAmbientStartedAt.current = -1
+      lastBodyAmbientElapsed.current = 0
     }
-    const renderedExpression =
-      !reduceMotion && hasAmbientMotion(pose.expression)
-        ? applyAmbientMotion(pose.expression, lastAmbientElapsed.current)
-        : pose.expression
+    if (eyeAmbientEnabled && frameTimeMs !== undefined) {
+      if (eyeAmbientStartedAt.current < 0) eyeAmbientStartedAt.current = frameTimeMs
+      lastEyeAmbientElapsed.current = frameTimeMs - eyeAmbientStartedAt.current
+    }
+    if (bodyAmbientEnabled && frameTimeMs !== undefined) {
+      if (bodyAmbientStartedAt.current < 0) bodyAmbientStartedAt.current = frameTimeMs
+      lastBodyAmbientElapsed.current = frameTimeMs - bodyAmbientStartedAt.current
+    }
+    const renderedExpression = bodyAmbientEnabled
+      ? applyAmbientBodyMotion(
+          pose.expression,
+          lastBodyAmbientElapsed.current,
+          resolvedAmbientStrength
+        )
+      : pose.expression
+    const eyeOffset = eyeAmbientEnabled
+      ? ambientEyeOffset(pose.expression, lastEyeAmbientElapsed.current, resolvedAmbientStrength)
+      : { x: 0, y: 0 }
     const renderPose = avatar
       ? poseWithAvatarEyes(renderedExpression, avatar.eyes ?? defaultAvatarEyes)
       : poseFromExpression(renderedExpression)
     const geometry = renderAvatar(renderPose, surfaceRef.current, blink ?? blinkValue.get(), {
       includeWire: showWireRef.current || highlightRef.current === 'head',
       bodyNodes: bodyNodesRef.current,
+      eyeOffset,
     })
     paintRenderedScene(renderedScene, geometry)
     paintRenderedOffset(
       renderedScene,
-      ambientBodyOffset(pose.expression, lastAmbientElapsed.current)
+      bodyAmbientEnabled
+        ? ambientBodyOffset(
+            pose.expression,
+            lastBodyAmbientElapsed.current,
+            resolvedAmbientStrength
+          )
+        : { x: 0, y: 0 }
     )
   }
 
@@ -474,6 +512,7 @@ export function useStudioController() {
       stopTransition(true)
       stopColorTransitions()
       const durationMs = transitionSettings.transitionMs
+      lastAmbientStrength.current = 0
       const from = { ...current }
       const fromColors = {
         body: renderedColors.body.get(),
@@ -511,7 +550,7 @@ export function useStudioController() {
           body: interpolateHexColor(fromColors.body, targetColors.body, bounded(eased, 0, 1)),
           eyes: interpolateHexColor(fromColors.eyes, targetColors.eyes, bounded(eased, 0, 1)),
         })
-        paintPose(poseFromExpression(animated), undefined, time)
+        paintPose(poseFromExpression(animated), undefined, time, bounded(eased, 0, 1))
         if (
           modeRef.current === 'manual' &&
           time - lastInspectorFrame.current >= INSPECTOR_FRAME_MS
@@ -554,6 +593,12 @@ export function useStudioController() {
       return
     }
     transitionTarget.current = resolvedTarget
+    lastAmbientStrength.current = 0
+    const initialTransitionDistance = expressionFields.reduce(
+      (total, field) => total + Math.abs(resolvedTarget[field] - current[field]),
+      0
+    )
+    let transitionProgress = 0
     const tick = (time: number) => {
       const previousTime = lastTransitionTime.current ?? time
       const deltaTime = Math.min(Math.max((time - previousTime) / 1000, 1 / 240), 1 / 30)
@@ -585,6 +630,15 @@ export function useStudioController() {
         }
       }
       const target = transitionTarget.current
+      const remainingTransitionDistance = expressionFields.reduce(
+        (total, field) => total + Math.abs(target[field] - currentExpression[field]),
+        0
+      )
+      const geometricProgress =
+        initialTransitionDistance <= 0
+          ? 1
+          : 1 - remainingTransitionDistance / initialTransitionDistance
+      transitionProgress = Math.max(transitionProgress, bounded(geometricProgress, 0, 1))
       let settled = true
       const animated = { ...currentExpression }
       animated.eyeMotion = target.eyeMotion
@@ -609,7 +663,7 @@ export function useStudioController() {
         return
       }
 
-      paintPose(poseFromExpression(animated), undefined, time)
+      paintPose(poseFromExpression(animated), undefined, time, transitionProgress)
       if (modeRef.current === 'manual' && time - lastInspectorFrame.current >= INSPECTOR_FRAME_MS) {
         lastInspectorFrame.current = time
         setExpression(animated)

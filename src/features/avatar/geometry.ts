@@ -61,6 +61,7 @@ export type AvatarGeometry = {
 export type RenderAvatarOptions = {
   includeWire?: boolean
   bodyNodes?: BodyNode[]
+  eyeOffset?: Readonly<{ x: number; y: number }>
 }
 
 export type EyeEditorGeometry = {
@@ -552,15 +553,16 @@ const eyePoints = (
   pose: AvatarPose,
   surface: SurfaceConfig,
   side: -1 | 1,
-  blink: number
+  blink: number,
+  offset: Readonly<{ x: number; y: number }> = { x: 0, y: 0 }
 ): ProjectedSurfacePoint[] => {
   const expression = pose.expression
   const suffix = side < 0 ? 'Left' : 'Right'
   const width = expression[`width${suffix}`]
   const restingHeight = expression[`height${suffix}`]
   const height = 5 + (restingHeight - 5) * blink
-  const centerX = (side * expression.spacing) / 2 + expression[`positionX${suffix}`]
-  const centerY = expression[`positionY${suffix}`]
+  const centerX = (side * expression.spacing) / 2 + expression[`positionX${suffix}`] + offset.x
+  const centerY = expression[`positionY${suffix}`] + offset.y
   const angle = radians(side < 0 ? expression.leftAngle : expression.rightAngle)
   return roundedRectangle(width, height).map(([localX, localY]) => {
     const rotatedX = localX * Math.cos(angle) - localY * Math.sin(angle)
@@ -1230,8 +1232,8 @@ export const renderAvatar = (
   blink = 1,
   options: RenderAvatarOptions = {}
 ): AvatarGeometry => {
-  const leftSamples = eyePoints(pose, surface, -1, blink)
-  const rightSamples = eyePoints(pose, surface, 1, blink)
+  const leftSamples = eyePoints(pose, surface, -1, blink, options.eyeOffset)
+  const rightSamples = eyePoints(pose, surface, 1, blink, options.eyeOffset)
   const left = leftSamples.map(sample => sample.point)
   const right = rightSamples.map(sample => sample.point)
   const accessories = accessoryLayers(pose, options.bodyNodes ?? [])

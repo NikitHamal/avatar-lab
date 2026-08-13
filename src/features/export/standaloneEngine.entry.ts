@@ -1,2 +1,8 @@
 export { expressionFields, poseFromExpression, renderAvatar } from '../avatar/geometry'
-export { ambientBodyOffset, applyAmbientMotion, hasAmbientMotion } from '../avatar/ambientMotion'
+export {
+  ambientBodyOffset,
+  ambientEyeOffset,
+  applyAmbientBodyMotion,
+  applyAmbientMotion,
+  hasAmbientMotion,
+} from '../avatar/ambientMotion'

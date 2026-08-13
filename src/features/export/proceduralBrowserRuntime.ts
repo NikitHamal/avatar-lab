@@ -105,28 +105,38 @@ function mountAvatar(target, options = {}) {
   let pausedBlink = null;
   let pausedBlinkDelay = 0;
   let stepDueAt = null;
-  let ambientStartedAt = performance.now();
-  let ambientSignature = initialExpression.eyeMotion + ':' + initialExpression.bodyMotion;
+  let eyeAmbientStartedAt = performance.now();
+  let bodyAmbientStartedAt = performance.now();
+  let eyeAmbientSignature = initialExpression.eyeMotion;
+  let bodyAmbientSignature = initialExpression.bodyMotion;
+  let ambientStrength = 1;
   let lastAmbientFrame = 0;
 
   const applyMotion = expression => {
-    const signature = expression.eyeMotion + ':' + expression.bodyMotion;
-    if (signature !== ambientSignature) {
-      ambientSignature = signature;
-      ambientStartedAt = performance.now();
+    const now = performance.now();
+    if (expression.eyeMotion !== eyeAmbientSignature) {
+      eyeAmbientSignature = expression.eyeMotion;
+      eyeAmbientStartedAt = now;
+    }
+    if (expression.bodyMotion !== bodyAmbientSignature) {
+      bodyAmbientSignature = expression.bodyMotion;
+      bodyAmbientStartedAt = now;
     }
   };
   const render = (time = performance.now()) => {
-    const elapsed = time - ambientStartedAt;
-    const expression = AvatarProceduralEngine.hasAmbientMotion(currentPose.expression)
-      ? AvatarProceduralEngine.applyAmbientMotion(currentPose.expression, elapsed)
+    const eyeElapsed = time - eyeAmbientStartedAt;
+    const bodyElapsed = time - bodyAmbientStartedAt;
+    const expression = currentPose.expression.bodyMotion !== 'none'
+      ? AvatarProceduralEngine.applyAmbientBodyMotion(currentPose.expression, bodyElapsed, ambientStrength)
       : currentPose.expression;
+    const eyeOffset = AvatarProceduralEngine.ambientEyeOffset(currentPose.expression, eyeElapsed, ambientStrength);
     const renderedPose = AvatarProceduralEngine.poseFromExpression(expression);
     const geometry = AvatarProceduralEngine.renderAvatar(renderedPose, DATA.avatar.surface, blinkAmount, {
       includeWire: false,
       bodyNodes: DATA.avatar.bodyNodes,
+      eyeOffset,
     });
-    const offset = AvatarProceduralEngine.ambientBodyOffset(currentPose.expression, elapsed);
+    const offset = AvatarProceduralEngine.ambientBodyOffset(currentPose.expression, bodyElapsed, ambientStrength);
     motionLayer.setAttribute('transform', 'translate(' + offset.x + ' ' + offset.y + ')');
     ensurePaths(backLayer, geometry.backPaths, currentColors.body);
     ensurePaths(frontLayer, geometry.frontPaths, currentColors.body);
@@ -145,6 +155,7 @@ function mountAvatar(target, options = {}) {
     if (transitionState) {
       const linear = clamp01((time - transitionState.startedAt) / transitionState.durationMs);
       const eased = easeProgress(linear, transitionState.transition);
+      ambientStrength = clamp01(eased);
       const expression = { ...transitionState.fromPose.expression };
       AvatarProceduralEngine.expressionFields.forEach(field => {
         expression[field] = transitionState.fromPose.expression[field] +
@@ -161,6 +172,7 @@ function mountAvatar(target, options = {}) {
         currentPose = transitionState.toPose;
         currentColors = transitionState.toColors;
         transitionState = null;
+        ambientStrength = 1;
       }
     }
     if (blinkState) {
@@ -195,6 +207,7 @@ function mountAvatar(target, options = {}) {
     const targetPose = AvatarProceduralEngine.poseFromExpression(resolved);
     const targetColors = resolveColors(target);
     if (durationMs <= 0) {
+      ambientStrength = 1;
       transitionState = null;
       currentPose = targetPose;
       currentColors = targetColors;
@@ -212,6 +225,7 @@ function mountAvatar(target, options = {}) {
       transition,
       expressionId,
     };
+    ambientStrength = 0;
     requestTick();
   };
   const clearSchedule = () => {
