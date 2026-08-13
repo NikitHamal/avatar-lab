@@ -9,32 +9,40 @@ on the Studio UI.
 
 ## Ubiquitous language
 
-**Avatar**  
+### Avatar
+
 A reusable character whose body, colors and neutral eyes define its persistent visual identity.
 
-**Neutral appearance**  
+### Neutral appearance
+
 The persistent visual base of an Avatar before an Expression is applied. Avoid “default pose”.
 
-**Pose**  
+### Pose
+
 The Avatar's current temporary visual configuration. A Pose is not persisted directly.
 
-**Base behavior library**  
+### Base behavior library
+
 The immutable bundled collection of Expressions and Animations inherited by an Avatar that has not
 customized its behavior.
 
-**Avatar behavior library**  
+### Avatar behavior library
+
 The Avatar-owned collection of Expressions and Animations created atomically from the Base behavior
 library on that Avatar's first behavior mutation.
 
-**Expression**  
+### Expression
+
 A saved visual preset within the Base behavior library or one Avatar behavior library. Eye values
 are relative to the owning Avatar's Neutral appearance. Optional color overrides are temporary.
 
-**Animation**  
+### Animation
+
 A saved sequence of Expressions from the same behavior library, including transitions and blink
 behavior. Avoid “state” in user-facing copy.
 
-**Playback**  
+### Playback
+
 The active execution of one Animation. It exclusively controls the animated Pose until direct user
 manipulation pauses it.
 
