@@ -493,6 +493,7 @@ export function StudioLanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<StudioLanguage>(readStoredStudioLanguage)
 
   useEffect(() => {
+    document.documentElement.lang = language
     try {
       window.localStorage.setItem(STUDIO_LANGUAGE_STORAGE_KEY, language)
     } catch {

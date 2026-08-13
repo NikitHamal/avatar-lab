@@ -1,3 +1,5 @@
+import { Code2 } from 'lucide-react'
+
 import {
   Select,
   SelectContent,
@@ -20,6 +22,17 @@ export function StudioIdentity({ className = '', language, setLanguage, t }: Stu
         Bible Strong <em>Avatar Lab</em>
       </div>
       <div className="language-picker">
+        <a
+          className="source-link"
+          href="https://github.com/smontlouis/bible-strong-avatar-lab"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="GitHub"
+        >
+          <Code2 aria-hidden="true" />
+          <span>GitHub</span>
+        </a>
+        <span className="identity-divider" aria-hidden="true" />
         <span aria-hidden="true">{language === 'en' ? '🇬🇧' : language === 'fr' ? '🇫🇷' : '🇨🇳'}</span>
         <Select
           value={language}

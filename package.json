@@ -2,10 +2,19 @@
   "name": "bible-strong-avatar-lab",
   "version": "0.1.0",
   "description": "A browser-based studio for designing procedural 2D avatars, expressions and reusable animations.",
+  "author": "Stéphane Montlouis-Calixte",
+  "homepage": "https://bible-strong.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smontlouis/bible-strong-avatar-lab.git"
+  },
+  "bugs": {
+    "url": "https://github.com/smontlouis/bible-strong-avatar-lab/issues"
+  },
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.21.0",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -24,6 +33,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.31.0",

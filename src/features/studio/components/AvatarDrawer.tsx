@@ -1,5 +1,5 @@
 import { Copy, Pencil, Plus, Trash2 } from 'lucide-react'
-import { motion } from 'motion/react'
+import { motion, useDragControls } from 'motion/react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -9,7 +9,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { DrawerClose, DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer'
+import { DrawerContent, DrawerDescription, DrawerTitle } from '@/components/ui/drawer'
 import { defaultAvatarEyes } from '@/features/avatar/avatars'
 import { ExpressionPreview } from '@/features/avatar/components/ExpressionWorkspace'
 import { defaultExpression } from '@/features/avatar/presets'
@@ -22,6 +22,7 @@ export function AvatarDrawer({
   controller: StudioController
   onOpenChange: (open: boolean) => void
 }) {
+  const drawerDragControls = useDragControls()
   const {
     activateAvatar,
     activeAvatarId,
@@ -45,10 +46,30 @@ export function AvatarDrawer({
   } = controller
 
   return (
-    <DrawerContent className="avatar-drawer">
-      <DrawerClose className="drawer-handle" aria-label="Close avatar picker">
+    <DrawerContent
+      className="avatar-drawer"
+      render={
+        <motion.div
+          drag="y"
+          dragControls={drawerDragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={{ top: 0, bottom: 0.7 }}
+          dragMomentum={false}
+          onDragEnd={(_, info) => {
+            if (info.offset.y > 70 || info.velocity.y > 600) onOpenChange(false)
+          }}
+        />
+      }
+    >
+      <button
+        className="drawer-handle"
+        type="button"
+        aria-label="Close avatar picker"
+        onPointerDown={event => drawerDragControls.start(event)}
+      >
         <span />
-      </DrawerClose>
+      </button>
       <div className="avatar-drawer-heading">
         <div>
           <DrawerTitle>Avatars</DrawerTitle>

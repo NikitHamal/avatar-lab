@@ -222,6 +222,32 @@ input {
   font-size: 15px;
   line-height: 1;
 }
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #f6f7f8;
+  font-size: 10px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.source-link:hover {
+  color: white;
+}
+.source-link:focus-visible {
+  border-radius: 5px;
+  outline: 2px solid #7895ee;
+  outline-offset: 2px;
+}
+.source-link svg {
+  width: 14px;
+  height: 14px;
+}
+.identity-divider {
+  align-self: stretch;
+  width: 1px;
+  background: rgb(255 255 255 / 14%);
+}
 .language-picker [data-slot='select-trigger'] {
   width: auto;
   height: 24px;
@@ -1317,7 +1343,7 @@ p {
   min-width: 0;
   flex-direction: column;
   gap: 3px;
-  border-radius: 12px;
+  border-radius: 999px;
   color: #7b828e;
   font-size: 9px;
   font-weight: 750;
@@ -2385,6 +2411,9 @@ p {
   }
   .stage-identity .language-picker [data-slot='select-trigger'] {
     min-width: 68px;
+  }
+  .stage-identity .source-link > span {
+    display: none;
   }
   .avatar-wrap {
     width: min(42dvh, 78vw, 340px);
