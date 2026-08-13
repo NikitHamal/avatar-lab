@@ -3,17 +3,10 @@ import { motion } from 'motion/react'
 import { type CSSProperties } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { type StudioLanguage } from '@/i18n'
 
 import { AvatarCanvas } from '@/features/rendering/components/AvatarCanvas'
+import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
 
 export function StudioStage({ controller }: { controller: StudioController }) {
@@ -27,7 +20,6 @@ export function StudioStage({ controller }: { controller: StudioController }) {
     expression,
     freezeLivePreviewForManipulation,
     highlight,
-    language,
     linked,
     mode,
     persistEditedEyeExpression,
@@ -44,7 +36,6 @@ export function StudioStage({ controller }: { controller: StudioController }) {
     selectedBodyNodeId,
     selectedEyeSide,
     setEditing,
-    setLanguage,
     setSelectedEyeSide,
     showWire,
     snapshotFormat,
@@ -65,31 +56,12 @@ export function StudioStage({ controller }: { controller: StudioController }) {
         } as CSSProperties
       }
     >
-      <div className="brand">
-        <span className="brand-mark" />
-        Bible Strong <em>Avatar Lab</em>
-      </div>
-      <div className="language-picker">
-        <span aria-hidden="true">{language === 'en' ? '🇬🇧' : language === 'fr' ? '🇫🇷' : '🇨🇳'}</span>
-        <Select
-          value={language}
-          items={[
-            { value: 'en', label: 'English' },
-            { value: 'fr', label: 'Français' },
-            { value: 'zh-CN', label: '中文' },
-          ]}
-          onValueChange={next => next && setLanguage(next as StudioLanguage)}
-        >
-          <SelectTrigger aria-label={t('Langue de l’interface')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="fr">Français</SelectItem>
-            <SelectItem value="zh-CN">中文</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <StudioIdentity
+        className="stage-identity"
+        language={controller.language}
+        setLanguage={controller.setLanguage}
+        t={t}
+      />
       <AvatarCanvas
         expression={canvasExpression}
         avatarEyes={activeAvatarEyes}
@@ -138,9 +110,14 @@ export function StudioStage({ controller }: { controller: StudioController }) {
       )}
       <TooltipProvider>
         <div className="photo-capture-bar">
-          <Button className="photo-capture-button" type="button" onClick={takePicture}>
+          <Button
+            className="photo-capture-button"
+            type="button"
+            aria-label={t('Prendre une photo')}
+            onClick={takePicture}
+          >
             <Camera />
-            {t('Prendre une photo')}
+            <span className="photo-capture-label">{t('Prendre une photo')}</span>
             <span className="photo-format-badge">{snapshotFormat.toUpperCase()}</span>
           </Button>
           <Tooltip>

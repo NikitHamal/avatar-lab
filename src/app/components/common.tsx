@@ -109,7 +109,7 @@ export function ExportSection({
 }) {
   const { t } = useStudioLanguage()
   return (
-    <AccordionItem value={value} className="export-accordion-item">
+    <AccordionItem value={value} className={`export-accordion-item export-accordion-${value}`}>
       <AccordionTrigger className="export-accordion-trigger">
         <span>
           <strong>{t(title)}</strong>
