@@ -247,6 +247,18 @@ export function ExpressionWorkspace({
           </h1>
           <p>{t('L’avatar à gauche affiche cette expression en direct.')}</p>
         </div>
+        {editing.index === null && (
+          <Button
+            className="workspace-header-reset"
+            variant="outline"
+            size="icon"
+            type="button"
+            aria-label={t('Réinitialiser')}
+            onClick={() => onChange({ ...defaultExpression })}
+          >
+            <RotateCcw />
+          </Button>
+        )}
       </header>
       <div className="workspace-scroll">
         <div className="dialog-fields">

@@ -113,7 +113,7 @@ import {
 
 export function useStudioController() {
   const { language, setLanguage, t } = useStudioLanguage()
-  const [mode, setMode] = useState<Mode>('manual')
+  const [mode, setMode] = useState<Mode>('avatars')
   const [initialDocument] = useState(loadStudioDocument)
   const [documentStore] = useState(() => createStudioDocumentStore(initialDocument))
   const initialLibrary = initialDocument.library
@@ -830,6 +830,7 @@ export function useStudioController() {
     const snapshot = avatarEditSnapshot.current
     if (!snapshot) {
       setBodyEditing(false)
+      setMode('avatars')
       restoreStateAfterEditor()
       return
     }
@@ -837,6 +838,7 @@ export function useStudioController() {
     avatarsRef.current = snapshot.avatars
     setAvatars(snapshot.avatars)
     activateAvatar(snapshot.activeAvatarId, false, true)
+    setMode('avatars')
     restoreStateAfterEditor()
   }
 

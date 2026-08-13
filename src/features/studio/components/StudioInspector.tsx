@@ -1,7 +1,5 @@
 import {
   ArrowLeft,
-  ChevronDown,
-  ChevronUp,
   Copy,
   Download,
   FileCode2,
@@ -14,8 +12,8 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
-import { type CSSProperties } from 'react'
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
+import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
 
 import { Accordion } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
@@ -205,6 +203,66 @@ export function StudioInspector({ controller }: { controller: StudioController }
     updateWireVisibility,
     workspaceBackButtonRef,
   } = controller
+  const playbackFooterY = useMotionValue(0)
+  const playbackHandleY = useMotionValue(0)
+  const playbackHandleCounterY = useTransform(playbackHandleY, value => -value)
+  const playbackFooterDragOriginY = useRef(0)
+  const playbackDetailsRef = useRef<HTMLDivElement>(null)
+  const measuredSequenceIdRef = useRef<string | null>(null)
+  const [playbackFooterCollapsedOffset, setPlaybackFooterCollapsedOffset] = useState(0)
+  const playbackDetailsOpacity = useTransform(
+    playbackFooterY,
+    [0, Math.max(playbackFooterCollapsedOffset, 1)],
+    [1, 0]
+  )
+
+  useLayoutEffect(() => {
+    const details = playbackDetailsRef.current
+    if (!details || !activeSequence) return
+
+    const measure = () => {
+      const nextOffset = details.getBoundingClientRect().height
+      if (nextOffset <= 0) return
+
+      const firstMeasurement = measuredSequenceIdRef.current !== activeSequence.id
+      if (firstMeasurement) {
+        measuredSequenceIdRef.current = activeSequence.id
+        playbackFooterY.set(statePlayerExpanded ? 0 : nextOffset)
+      } else if (
+        playbackFooterCollapsedOffset > 0 &&
+        Math.abs(nextOffset - playbackFooterCollapsedOffset) > 0.5
+      ) {
+        const progress = Math.min(
+          1,
+          Math.max(0, playbackFooterY.get() / playbackFooterCollapsedOffset)
+        )
+        playbackFooterY.set(progress * nextOffset)
+      }
+      setPlaybackFooterCollapsedOffset(nextOffset)
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(details)
+    return () => observer.disconnect()
+  }, [
+    activeSequence,
+    language,
+    playbackFooterCollapsedOffset,
+    playbackFooterY,
+    statePlayerExpanded,
+  ])
+
+  const snapPlaybackFooter = (expanded: boolean) => {
+    setStatePlayerExpanded(expanded)
+    animate(playbackFooterY, expanded ? 0 : playbackFooterCollapsedOffset, {
+      type: 'spring',
+      stiffness: 440,
+      damping: 40,
+      duration: reduceMotion ? 0 : undefined,
+    })
+  }
+
   return (
     <Drawer>
       <main
@@ -323,20 +381,33 @@ export function StudioInspector({ controller }: { controller: StudioController }
           >
             {!editorPageOpen && (
               <header className="mode-page-header">
-                <p className="eyebrow">{activeAvatar.name}</p>
-                <h1>
-                  {t(
-                    mode === 'manual'
-                      ? 'Pose'
-                      : mode === 'avatars'
-                        ? 'Avatars'
-                        : mode === 'expressions'
-                          ? 'Expressions'
-                          : mode === 'states'
-                            ? 'Animations'
-                            : 'Exporter'
-                  )}
-                </h1>
+                <div>
+                  <p className="eyebrow">{activeAvatar.name}</p>
+                  <h1>
+                    {t(
+                      mode === 'manual'
+                        ? 'Pose'
+                        : mode === 'avatars'
+                          ? 'Avatars'
+                          : mode === 'expressions'
+                            ? 'Expressions'
+                            : mode === 'states'
+                              ? 'Animations'
+                              : 'Exporter'
+                    )}
+                  </h1>
+                </div>
+                {mode === 'manual' && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    type="button"
+                    aria-label={t('Réinitialiser')}
+                    onClick={() => transitionToExpression({ ...defaultExpression })}
+                  >
+                    <RotateCcw />
+                  </Button>
+                )}
               </header>
             )}
 
@@ -1215,14 +1286,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             aria-label={t('Afficher le maillage')}
                           />
                         </div>
-                        <Button
-                          className="reset"
-                          variant="outline"
-                          type="button"
-                          onClick={() => transitionToExpression({ ...defaultExpression })}
-                        >
-                          {t('Réinitialiser')}
-                        </Button>
                       </InspectorCard>
                     </ControlSection>
                   </>
@@ -1792,79 +1855,46 @@ export function StudioInspector({ controller }: { controller: StudioController }
         {activeSequence && !editorPageOpen && (
           <motion.footer
             className={`state-playback-footer${statePlayerExpanded ? ' is-expanded' : ''}`}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
+            style={{ y: playbackFooterY }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
           >
-            <Button
-              className="state-playback-expand"
-              variant="outline"
-              size="icon-sm"
-              type="button"
-              aria-expanded={statePlayerExpanded}
-              aria-label={t(
-                statePlayerExpanded
-                  ? 'Masquer les détails de l’animation'
-                  : 'Afficher les détails de l’animation'
-              )}
-              onClick={() => setStatePlayerExpanded(expanded => !expanded)}
-            >
-              {statePlayerExpanded ? <ChevronDown /> : <ChevronUp />}
-            </Button>
-            {statePlayerExpanded && (
-              <motion.div
-                className="state-playback-details"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <div className="state-playback-details-header">
-                  <div>
-                    <p className="eyebrow">{t('Détails de l’animation')}</p>
-                    <h2>{activeSequenceLabel}</h2>
-                    <p>
-                      {activeSequence.builtIn
-                        ? t(activeSequence.description)
-                        : activeSequence.description}
-                    </p>
-                  </div>
-                  <Badge variant="secondary">
-                    {t('Mode de lecture')} · {t(activeSequence.playbackMode)}
-                  </Badge>
-                </div>
-                <div className="state-playback-detail-grid">
-                  <div>
-                    <span>{t('Expressions')}</span>
-                    <strong>{activeSequence.steps.length}</strong>
-                    <small>
-                      {activeSequence.steps
-                        .map(step => formatSeconds(step.holdMs, language))
-                        .join(' · ')}
-                    </small>
-                  </div>
-                  <div>
-                    <span>{t('Premier clignement')}</span>
-                    <strong>
-                      {activeSequence.blink.enabled
-                        ? formatSeconds(activeSequence.blink.initialDelayMs, language)
-                        : t('Désactivé')}
-                    </strong>
-                    <small>{t('après le lancement')}</small>
-                  </div>
-                  <div>
-                    <span>{t('Intervalle du clignement')}</span>
-                    <strong>
-                      {formatSeconds(activeSequence.blink.minIntervalMs, language)}–
-                      {formatSeconds(activeSequence.blink.maxIntervalMs, language)}
-                    </strong>
-                    <small>{t('tirage aléatoire')}</small>
-                  </div>
-                  <div>
-                    <span>{t('Durée du clignement')}</span>
-                    <strong>{activeSequence.blink.durationMs} ms</strong>
-                    <small>{t('fermeture et ouverture')}</small>
-                  </div>
-                </div>
+            <div className="state-playback-drag-handle-slot">
+              <motion.div style={{ y: playbackHandleCounterY }}>
+                <motion.button
+                  className="state-playback-drag-handle"
+                  style={{ y: playbackHandleY }}
+                  type="button"
+                  drag="y"
+                  dragMomentum={false}
+                  aria-expanded={statePlayerExpanded}
+                  aria-label={t(
+                    statePlayerExpanded
+                      ? 'Masquer les détails de l’animation'
+                      : 'Afficher les détails de l’animation'
+                  )}
+                  onTap={() => snapPlaybackFooter(!statePlayerExpanded)}
+                  onDragStart={() => {
+                    playbackFooterDragOriginY.current = playbackFooterY.get()
+                  }}
+                  onDrag={(_, info) => {
+                    playbackFooterY.set(
+                      Math.min(
+                        playbackFooterCollapsedOffset,
+                        Math.max(0, playbackFooterDragOriginY.current + info.offset.y)
+                      )
+                    )
+                  }}
+                  onDragEnd={(_, info) => {
+                    playbackHandleY.set(0)
+                    const projectedY = playbackFooterY.get() + info.velocity.y * 0.16
+                    snapPlaybackFooter(projectedY < playbackFooterCollapsedOffset / 2)
+                  }}
+                >
+                  <span />
+                </motion.button>
               </motion.div>
-            )}
+            </div>
             <div className="state-playback-bar">
               <div className="state-playback-timeline">
                 {activeSequence.steps.map((step, position) => {
@@ -1914,6 +1944,62 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 />
               </div>
             </div>
+            <motion.div
+              ref={playbackDetailsRef}
+              className="state-playback-details-shell"
+              style={{ opacity: playbackDetailsOpacity }}
+              aria-hidden={!statePlayerExpanded}
+            >
+              <div className="state-playback-details">
+                <div className="state-playback-details-header">
+                  <div>
+                    <p className="eyebrow">{t('Détails de l’animation')}</p>
+                    <h2>{activeSequenceLabel}</h2>
+                    <p>
+                      {activeSequence.builtIn
+                        ? t(activeSequence.description)
+                        : activeSequence.description}
+                    </p>
+                  </div>
+                  <Badge variant="secondary">
+                    {t('Mode de lecture')} · {t(activeSequence.playbackMode)}
+                  </Badge>
+                </div>
+                <div className="state-playback-detail-grid">
+                  <div>
+                    <span>{t('Expressions')}</span>
+                    <strong>{activeSequence.steps.length}</strong>
+                    <small>
+                      {activeSequence.steps
+                        .map(step => formatSeconds(step.holdMs, language))
+                        .join(' · ')}
+                    </small>
+                  </div>
+                  <div>
+                    <span>{t('Premier clignement')}</span>
+                    <strong>
+                      {activeSequence.blink.enabled
+                        ? formatSeconds(activeSequence.blink.initialDelayMs, language)
+                        : t('Désactivé')}
+                    </strong>
+                    <small>{t('après le lancement')}</small>
+                  </div>
+                  <div>
+                    <span>{t('Intervalle du clignement')}</span>
+                    <strong>
+                      {formatSeconds(activeSequence.blink.minIntervalMs, language)}–
+                      {formatSeconds(activeSequence.blink.maxIntervalMs, language)}
+                    </strong>
+                    <small>{t('tirage aléatoire')}</small>
+                  </div>
+                  <div>
+                    <span>{t('Durée du clignement')}</span>
+                    <strong>{activeSequence.blink.durationMs} ms</strong>
+                    <small>{t('fermeture et ouverture')}</small>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </motion.footer>
         )}
         {!editorPageOpen && (
