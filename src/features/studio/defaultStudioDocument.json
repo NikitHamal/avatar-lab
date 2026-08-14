@@ -712,6 +712,1671 @@
           "leftAngle": 6.980078125,
           "rightAngle": -7.012890625000001
         }
+      },
+      {
+        "id": "avatar-starter-astra",
+        "name": "Astra",
+        "body": {
+          "primary": {
+            "type": "egg",
+            "width": 215,
+            "height": 260,
+            "depth": 205,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "astra-ear-l",
+              "name": "Signal fin L",
+              "surface": {
+                "type": "cone",
+                "width": 30,
+                "height": 76,
+                "depth": 26,
+                "roundness": 0.8
+              },
+              "position": [
+                -74,
+                -94,
+                -18
+              ],
+              "rotation": [
+                0,
+                0,
+                -18
+              ],
+              "color": "#a78bfa",
+              "colorTo": "#60a5fa",
+              "gradientType": "linear",
+              "opacity": 0.92,
+              "material": "glow"
+            },
+            {
+              "id": "astra-ear-r",
+              "name": "Signal fin R",
+              "surface": {
+                "type": "cone",
+                "width": 30,
+                "height": 76,
+                "depth": 26,
+                "roundness": 0.8
+              },
+              "position": [
+                74,
+                -94,
+                -18
+              ],
+              "rotation": [
+                0,
+                0,
+                18
+              ],
+              "color": "#a78bfa",
+              "colorTo": "#60a5fa",
+              "gradientType": "linear",
+              "opacity": 0.92,
+              "material": "glow"
+            },
+            {
+              "id": "astra-halo",
+              "name": "Orbital halo",
+              "surface": {
+                "type": "torus",
+                "width": 148,
+                "height": 20,
+                "depth": 148,
+                "roundness": 1
+              },
+              "position": [
+                0,
+                -112,
+                -2
+              ],
+              "rotation": [
+                72,
+                0,
+                0
+              ],
+              "color": "#93c5fd",
+              "colorTo": "#c4b5fd",
+              "gradientType": "linear",
+              "opacity": 0.8,
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#8b5cf6",
+          "eyes": "#f8fafc"
+        },
+        "eyes": {
+          "widthLeft": 19,
+          "widthRight": 19,
+          "heightLeft": 43,
+          "heightRight": 43,
+          "spacing": 34,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -10,
+          "positionYRight": -10,
+          "leftAngle": 5,
+          "rightAngle": -5
+        }
+      },
+      {
+        "id": "avatar-starter-kumo",
+        "name": "Kumo",
+        "body": {
+          "primary": {
+            "type": "cloud",
+            "width": 250,
+            "height": 190,
+            "depth": 180,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "kumo-star",
+              "name": "Dream star",
+              "surface": {
+                "type": "star",
+                "width": 52,
+                "height": 52,
+                "depth": 20,
+                "roundness": 0.5
+              },
+              "position": [
+                82,
+                -86,
+                -12
+              ],
+              "rotation": [
+                0,
+                0,
+                16
+              ],
+              "color": "#ffd166",
+              "colorTo": "#fff1a8",
+              "gradientType": "radial",
+              "opacity": 1,
+              "material": "glow"
+            },
+            {
+              "id": "kumo-drop-l",
+              "name": "Cloudlet L",
+              "surface": {
+                "type": "sphere",
+                "width": 66,
+                "height": 54,
+                "depth": 48,
+                "roundness": 1
+              },
+              "position": [
+                -102,
+                36,
+                -8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#dbeafe"
+            },
+            {
+              "id": "kumo-drop-r",
+              "name": "Cloudlet R",
+              "surface": {
+                "type": "sphere",
+                "width": 58,
+                "height": 48,
+                "depth": 44,
+                "roundness": 1
+              },
+              "position": [
+                104,
+                30,
+                -8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#e0f2fe"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#eef6ff",
+          "eyes": "#162033"
+        },
+        "eyes": {
+          "widthLeft": 25,
+          "widthRight": 25,
+          "heightLeft": 30,
+          "heightRight": 30,
+          "spacing": 38,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -2,
+          "positionYRight": -2,
+          "leftAngle": 4,
+          "rightAngle": -4
+        }
+      },
+      {
+        "id": "avatar-starter-pixel",
+        "name": "Pixel",
+        "body": {
+          "primary": {
+            "type": "cube",
+            "width": 245,
+            "height": 245,
+            "depth": 220,
+            "roundness": 0.35
+          },
+          "nodes": [
+            {
+              "id": "pixel-ant",
+              "name": "Antenna",
+              "surface": {
+                "type": "cylinder",
+                "width": 14,
+                "height": 78,
+                "depth": 14,
+                "roundness": 0.3
+              },
+              "position": [
+                0,
+                -128,
+                -8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#22d3ee",
+              "material": "metallic"
+            },
+            {
+              "id": "pixel-beacon",
+              "name": "Beacon",
+              "surface": {
+                "type": "sphere",
+                "width": 30,
+                "height": 30,
+                "depth": 30,
+                "roundness": 1
+              },
+              "position": [
+                0,
+                -170,
+                -8
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#f472b6",
+              "colorTo": "#22d3ee",
+              "gradientType": "radial",
+              "opacity": 1,
+              "material": "glow"
+            },
+            {
+              "id": "pixel-ear-l",
+              "name": "Module L",
+              "surface": {
+                "type": "cube",
+                "width": 44,
+                "height": 76,
+                "depth": 38,
+                "roundness": 0.3
+              },
+              "position": [
+                -130,
+                -4,
+                -14
+              ],
+              "rotation": [
+                0,
+                0,
+                8
+              ],
+              "color": "#374151",
+              "material": "metallic"
+            },
+            {
+              "id": "pixel-ear-r",
+              "name": "Module R",
+              "surface": {
+                "type": "cube",
+                "width": 44,
+                "height": 76,
+                "depth": 38,
+                "roundness": 0.3
+              },
+              "position": [
+                130,
+                -4,
+                -14
+              ],
+              "rotation": [
+                0,
+                0,
+                -8
+              ],
+              "color": "#374151",
+              "material": "metallic"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#111827",
+          "eyes": "#67e8f9"
+        },
+        "eyes": {
+          "widthLeft": 18,
+          "widthRight": 18,
+          "heightLeft": 28,
+          "heightRight": 28,
+          "spacing": 32,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -5,
+          "positionYRight": -5,
+          "leftAngle": 0,
+          "rightAngle": 0
+        }
+      },
+      {
+        "id": "avatar-starter-moss",
+        "name": "Moss",
+        "body": {
+          "primary": {
+            "type": "pebble",
+            "width": 250,
+            "height": 205,
+            "depth": 175,
+            "roundness": 1.25
+          },
+          "nodes": [
+            {
+              "id": "moss-leaf-l",
+              "name": "Leaf L",
+              "surface": {
+                "type": "droplet",
+                "width": 38,
+                "height": 72,
+                "depth": 24,
+                "roundness": 0.9
+              },
+              "position": [
+                -70,
+                -103,
+                -22
+              ],
+              "rotation": [
+                0,
+                0,
+                -32
+              ],
+              "color": "#7fcf8e",
+              "colorTo": "#b8e994",
+              "gradientType": "linear",
+              "opacity": 1,
+              "material": "solid"
+            },
+            {
+              "id": "moss-leaf-r",
+              "name": "Leaf R",
+              "surface": {
+                "type": "droplet",
+                "width": 34,
+                "height": 66,
+                "depth": 22,
+                "roundness": 0.9
+              },
+              "position": [
+                8,
+                -126,
+                -22
+              ],
+              "rotation": [
+                0,
+                0,
+                8
+              ],
+              "color": "#6dbb78",
+              "colorTo": "#9ee6a8",
+              "gradientType": "linear",
+              "opacity": 1,
+              "material": "solid"
+            },
+            {
+              "id": "moss-flower",
+              "name": "Tiny bloom",
+              "surface": {
+                "type": "flower",
+                "width": 42,
+                "height": 42,
+                "depth": 16,
+                "roundness": 0.75
+              },
+              "position": [
+                78,
+                -78,
+                -12
+              ],
+              "rotation": [
+                0,
+                0,
+                12
+              ],
+              "color": "#f9a8d4",
+              "colorTo": "#fde68a",
+              "gradientType": "radial",
+              "opacity": 1,
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#4f8f63",
+          "eyes": "#14251b"
+        },
+        "eyes": {
+          "widthLeft": 22,
+          "widthRight": 22,
+          "heightLeft": 34,
+          "heightRight": 34,
+          "spacing": 36,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -7,
+          "positionYRight": -7,
+          "leftAngle": 7,
+          "rightAngle": -7
+        }
+      },
+      {
+        "id": "avatar-starter-orbit",
+        "name": "Orbit",
+        "body": {
+          "primary": {
+            "type": "disc",
+            "width": 230,
+            "height": 230,
+            "depth": 72,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "orbit-ring-a",
+              "name": "Orbit A",
+              "surface": {
+                "type": "torus",
+                "width": 300,
+                "height": 18,
+                "depth": 300,
+                "roundness": 1
+              },
+              "position": [
+                0,
+                0,
+                -4
+              ],
+              "rotation": [
+                68,
+                0,
+                12
+              ],
+              "color": "#38bdf8",
+              "colorTo": "#818cf8",
+              "gradientType": "linear",
+              "opacity": 0.72,
+              "material": "glow"
+            },
+            {
+              "id": "orbit-ring-b",
+              "name": "Orbit B",
+              "surface": {
+                "type": "torus",
+                "width": 265,
+                "height": 14,
+                "depth": 265,
+                "roundness": 1
+              },
+              "position": [
+                0,
+                0,
+                -10
+              ],
+              "rotation": [
+                28,
+                50,
+                -18
+              ],
+              "color": "#f472b6",
+              "colorTo": "#facc15",
+              "gradientType": "linear",
+              "opacity": 0.54,
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#0f172a",
+          "eyes": "#e2e8f0"
+        },
+        "eyes": {
+          "widthLeft": 18,
+          "widthRight": 18,
+          "heightLeft": 32,
+          "heightRight": 32,
+          "spacing": 32,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -3,
+          "positionYRight": -3,
+          "leftAngle": 0,
+          "rightAngle": 0
+        }
+      },
+      {
+        "id": "avatar-starter-luma",
+        "name": "Luma",
+        "body": {
+          "primary": {
+            "type": "droplet",
+            "width": 210,
+            "height": 275,
+            "depth": 190,
+            "roundness": 0.9
+          },
+          "nodes": [
+            {
+              "id": "luma-ray-l",
+              "name": "Ray L",
+              "surface": {
+                "type": "cone",
+                "width": 26,
+                "height": 62,
+                "depth": 20,
+                "roundness": 0.75
+              },
+              "position": [
+                -77,
+                -99,
+                -26
+              ],
+              "rotation": [
+                0,
+                0,
+                -40
+              ],
+              "color": "#fff3a3",
+              "material": "glow"
+            },
+            {
+              "id": "luma-ray-r",
+              "name": "Ray R",
+              "surface": {
+                "type": "cone",
+                "width": 26,
+                "height": 62,
+                "depth": 20,
+                "roundness": 0.75
+              },
+              "position": [
+                77,
+                -99,
+                -26
+              ],
+              "rotation": [
+                0,
+                0,
+                40
+              ],
+              "color": "#fff3a3",
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#f9e45b",
+          "eyes": "#3a2f0b"
+        },
+        "eyes": {
+          "widthLeft": 23,
+          "widthRight": 23,
+          "heightLeft": 38,
+          "heightRight": 38,
+          "spacing": 34,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -1,
+          "positionYRight": -1,
+          "leftAngle": 4,
+          "rightAngle": -4
+        }
+      },
+      {
+        "id": "avatar-starter-ember",
+        "name": "Ember",
+        "body": {
+          "primary": {
+            "type": "heart",
+            "width": 235,
+            "height": 220,
+            "depth": 150,
+            "roundness": 0.8
+          },
+          "nodes": [
+            {
+              "id": "ember-horn-l",
+              "name": "Horn L",
+              "surface": {
+                "type": "cone",
+                "width": 32,
+                "height": 72,
+                "depth": 28,
+                "roundness": 0.4
+              },
+              "position": [
+                -64,
+                -104,
+                -16
+              ],
+              "rotation": [
+                0,
+                0,
+                -24
+              ],
+              "color": "#3b1720",
+              "material": "metallic"
+            },
+            {
+              "id": "ember-horn-r",
+              "name": "Horn R",
+              "surface": {
+                "type": "cone",
+                "width": 32,
+                "height": 72,
+                "depth": 28,
+                "roundness": 0.4
+              },
+              "position": [
+                64,
+                -104,
+                -16
+              ],
+              "rotation": [
+                0,
+                0,
+                24
+              ],
+              "color": "#3b1720",
+              "material": "metallic"
+            },
+            {
+              "id": "ember-spark",
+              "name": "Spark",
+              "surface": {
+                "type": "star",
+                "width": 38,
+                "height": 38,
+                "depth": 18,
+                "roundness": 0.4
+              },
+              "position": [
+                92,
+                -74,
+                -8
+              ],
+              "rotation": [
+                0,
+                0,
+                16
+              ],
+              "color": "#ffd166",
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#fb6f5f",
+          "eyes": "#35110e"
+        },
+        "eyes": {
+          "widthLeft": 20,
+          "widthRight": 20,
+          "heightLeft": 30,
+          "heightRight": 30,
+          "spacing": 34,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -6,
+          "positionYRight": -6,
+          "leftAngle": 7,
+          "rightAngle": -7
+        }
+      },
+      {
+        "id": "avatar-starter-momo",
+        "name": "Momo",
+        "body": {
+          "primary": {
+            "type": "bean",
+            "width": 235,
+            "height": 220,
+            "depth": 190,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "momo-ear-l",
+              "name": "Ear L",
+              "surface": {
+                "type": "egg",
+                "width": 54,
+                "height": 84,
+                "depth": 42,
+                "roundness": 1
+              },
+              "position": [
+                -95,
+                -65,
+                -18
+              ],
+              "rotation": [
+                0,
+                0,
+                -26
+              ],
+              "color": "#ffc1d7"
+            },
+            {
+              "id": "momo-ear-r",
+              "name": "Ear R",
+              "surface": {
+                "type": "egg",
+                "width": 54,
+                "height": 84,
+                "depth": 42,
+                "roundness": 1
+              },
+              "position": [
+                95,
+                -65,
+                -18
+              ],
+              "rotation": [
+                0,
+                0,
+                26
+              ],
+              "color": "#ffc1d7"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#f8a4c4",
+          "eyes": "#4a2030"
+        },
+        "eyes": {
+          "widthLeft": 28,
+          "widthRight": 28,
+          "heightLeft": 36,
+          "heightRight": 36,
+          "spacing": 40,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -3,
+          "positionYRight": -3,
+          "leftAngle": 9,
+          "rightAngle": -9
+        }
+      },
+      {
+        "id": "avatar-starter-flux",
+        "name": "Flux",
+        "body": {
+          "primary": {
+            "type": "pyramid",
+            "width": 235,
+            "height": 255,
+            "depth": 215,
+            "roundness": 0.2
+          },
+          "nodes": [
+            {
+              "id": "flux-orb-l",
+              "name": "Data orb L",
+              "surface": {
+                "type": "sphere",
+                "width": 38,
+                "height": 38,
+                "depth": 38,
+                "roundness": 1
+              },
+              "position": [
+                -96,
+                -12,
+                -2
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#67e8f9",
+              "material": "glow"
+            },
+            {
+              "id": "flux-orb-r",
+              "name": "Data orb R",
+              "surface": {
+                "type": "sphere",
+                "width": 38,
+                "height": 38,
+                "depth": 38,
+                "roundness": 1
+              },
+              "position": [
+                96,
+                -12,
+                -2
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#a78bfa",
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#19c6b3",
+          "eyes": "#042f2e"
+        },
+        "eyes": {
+          "widthLeft": 17,
+          "widthRight": 17,
+          "heightLeft": 34,
+          "heightRight": 34,
+          "spacing": 29,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": 6,
+          "positionYRight": 6,
+          "leftAngle": 0,
+          "rightAngle": 0
+        }
+      },
+      {
+        "id": "avatar-starter-vanta",
+        "name": "Vanta",
+        "body": {
+          "primary": {
+            "type": "diamond",
+            "width": 235,
+            "height": 260,
+            "depth": 215,
+            "roundness": 0.35
+          },
+          "nodes": [
+            {
+              "id": "vanta-fin-l",
+              "name": "Fin L",
+              "surface": {
+                "type": "diamond",
+                "width": 42,
+                "height": 76,
+                "depth": 34,
+                "roundness": 0.25
+              },
+              "position": [
+                -96,
+                -82,
+                -20
+              ],
+              "rotation": [
+                0,
+                0,
+                -22
+              ],
+              "color": "#2e2e3a",
+              "material": "metallic"
+            },
+            {
+              "id": "vanta-fin-r",
+              "name": "Fin R",
+              "surface": {
+                "type": "diamond",
+                "width": 42,
+                "height": 76,
+                "depth": 34,
+                "roundness": 0.25
+              },
+              "position": [
+                96,
+                -82,
+                -20
+              ],
+              "rotation": [
+                0,
+                0,
+                22
+              ],
+              "color": "#2e2e3a",
+              "material": "metallic"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#16161d",
+          "eyes": "#ffffff"
+        },
+        "eyes": {
+          "widthLeft": 16,
+          "widthRight": 16,
+          "heightLeft": 38,
+          "heightRight": 38,
+          "spacing": 30,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -7,
+          "positionYRight": -7,
+          "leftAngle": 10,
+          "rightAngle": -10
+        }
+      },
+      {
+        "id": "avatar-starter-bloom",
+        "name": "Bloom",
+        "body": {
+          "primary": {
+            "type": "flower",
+            "width": 185,
+            "height": 185,
+            "depth": 70,
+            "roundness": 0.75
+          },
+          "nodes": [
+            {
+              "id": "bloom-core",
+              "name": "Core",
+              "surface": {
+                "type": "sphere",
+                "width": 128,
+                "height": 128,
+                "depth": 72,
+                "roundness": 1
+              },
+              "position": [
+                0,
+                0,
+                -28
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#fbcfe8",
+              "colorTo": "#fde68a",
+              "gradientType": "radial",
+              "opacity": 0.42,
+              "material": "glass"
+            },
+            {
+              "id": "bloom-leaf",
+              "name": "Leaf",
+              "surface": {
+                "type": "droplet",
+                "width": 42,
+                "height": 78,
+                "depth": 22,
+                "roundness": 0.9
+              },
+              "position": [
+                0,
+                120,
+                -24
+              ],
+              "rotation": [
+                0,
+                0,
+                180
+              ],
+              "color": "#86efac"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#f472b6",
+          "eyes": "#4a1232"
+        },
+        "eyes": {
+          "widthLeft": 21,
+          "widthRight": 21,
+          "heightLeft": 32,
+          "heightRight": 32,
+          "spacing": 34,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -2,
+          "positionYRight": -2,
+          "leftAngle": 5,
+          "rightAngle": -5
+        }
+      },
+      {
+        "id": "avatar-starter-byte",
+        "name": "Byte",
+        "body": {
+          "primary": {
+            "type": "capsule",
+            "width": 205,
+            "height": 270,
+            "depth": 205,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "byte-side-l",
+              "name": "Side LED L",
+              "surface": {
+                "type": "disc",
+                "width": 34,
+                "height": 34,
+                "depth": 10,
+                "roundness": 1
+              },
+              "position": [
+                -112,
+                -5,
+                -4
+              ],
+              "rotation": [
+                0,
+                78,
+                0
+              ],
+              "color": "#22d3ee",
+              "material": "glow"
+            },
+            {
+              "id": "byte-side-r",
+              "name": "Side LED R",
+              "surface": {
+                "type": "disc",
+                "width": 34,
+                "height": 34,
+                "depth": 10,
+                "roundness": 1
+              },
+              "position": [
+                112,
+                -5,
+                -4
+              ],
+              "rotation": [
+                0,
+                78,
+                0
+              ],
+              "color": "#f472b6",
+              "material": "glow"
+            },
+            {
+              "id": "byte-top",
+              "name": "Top module",
+              "surface": {
+                "type": "cube",
+                "width": 82,
+                "height": 34,
+                "depth": 62,
+                "roundness": 0.6
+              },
+              "position": [
+                0,
+                -142,
+                -15
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#334155",
+              "material": "metallic"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#5b7fe5",
+          "eyes": "#111827"
+        },
+        "eyes": {
+          "widthLeft": 14,
+          "widthRight": 14,
+          "heightLeft": 28,
+          "heightRight": 28,
+          "spacing": 28,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -9,
+          "positionYRight": -9,
+          "leftAngle": 0,
+          "rightAngle": 0
+        }
+      },
+      {
+        "id": "avatar-starter-halo",
+        "name": "Halo",
+        "body": {
+          "primary": {
+            "type": "egg",
+            "width": 215,
+            "height": 260,
+            "depth": 205,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "halo-ring",
+              "name": "Halo",
+              "surface": {
+                "type": "torus",
+                "width": 152,
+                "height": 16,
+                "depth": 152,
+                "roundness": 1
+              },
+              "position": [
+                0,
+                -137,
+                -4
+              ],
+              "rotation": [
+                76,
+                0,
+                0
+              ],
+              "color": "#c4b5fd",
+              "colorTo": "#67e8f9",
+              "gradientType": "linear",
+              "opacity": 0.86,
+              "material": "glow"
+            },
+            {
+              "id": "halo-wing-l",
+              "name": "Wing L",
+              "surface": {
+                "type": "heart",
+                "width": 70,
+                "height": 70,
+                "depth": 34,
+                "roundness": 0.8
+              },
+              "position": [
+                -122,
+                18,
+                -18
+              ],
+              "rotation": [
+                0,
+                20,
+                -38
+              ],
+              "color": "#ddd6fe",
+              "opacity": 0.72,
+              "material": "glass"
+            },
+            {
+              "id": "halo-wing-r",
+              "name": "Wing R",
+              "surface": {
+                "type": "heart",
+                "width": 70,
+                "height": 70,
+                "depth": 34,
+                "roundness": 0.8
+              },
+              "position": [
+                122,
+                18,
+                -18
+              ],
+              "rotation": [
+                0,
+                -20,
+                38
+              ],
+              "color": "#ddd6fe",
+              "opacity": 0.72,
+              "material": "glass"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#f5f3ff",
+          "eyes": "#312e81"
+        },
+        "eyes": {
+          "widthLeft": 22,
+          "widthRight": 22,
+          "heightLeft": 33,
+          "heightRight": 33,
+          "spacing": 36,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -8,
+          "positionYRight": -8,
+          "leftAngle": 4,
+          "rightAngle": -4
+        }
+      },
+      {
+        "id": "avatar-starter-piko",
+        "name": "Piko",
+        "body": {
+          "primary": {
+            "type": "egg",
+            "width": 215,
+            "height": 260,
+            "depth": 205,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "piko-ear-l",
+              "name": "Ear L",
+              "surface": {
+                "type": "disc",
+                "width": 70,
+                "height": 70,
+                "depth": 24,
+                "roundness": 1
+              },
+              "position": [
+                -102,
+                -78,
+                -20
+              ],
+              "rotation": [
+                0,
+                65,
+                0
+              ],
+              "color": "#ffb84d"
+            },
+            {
+              "id": "piko-ear-r",
+              "name": "Ear R",
+              "surface": {
+                "type": "disc",
+                "width": 70,
+                "height": 70,
+                "depth": 24,
+                "roundness": 1
+              },
+              "position": [
+                102,
+                -78,
+                -20
+              ],
+              "rotation": [
+                0,
+                65,
+                0
+              ],
+              "color": "#ffb84d"
+            },
+            {
+              "id": "piko-tail",
+              "name": "Tail",
+              "surface": {
+                "type": "torus",
+                "width": 82,
+                "height": 18,
+                "depth": 82,
+                "roundness": 1
+              },
+              "position": [
+                120,
+                72,
+                -80
+              ],
+              "rotation": [
+                35,
+                15,
+                0
+              ],
+              "color": "#ffb84d"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#ffd166",
+          "eyes": "#3f2d12"
+        },
+        "eyes": {
+          "widthLeft": 29,
+          "widthRight": 29,
+          "heightLeft": 39,
+          "heightRight": 39,
+          "spacing": 40,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -4,
+          "positionYRight": -4,
+          "leftAngle": 0,
+          "rightAngle": 0
+        }
+      },
+      {
+        "id": "avatar-starter-ripple",
+        "name": "Ripple",
+        "body": {
+          "primary": {
+            "type": "bean",
+            "width": 235,
+            "height": 220,
+            "depth": 190,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "ripple-fin-l",
+              "name": "Fin L",
+              "surface": {
+                "type": "droplet",
+                "width": 42,
+                "height": 88,
+                "depth": 24,
+                "roundness": 0.9
+              },
+              "position": [
+                -115,
+                18,
+                -22
+              ],
+              "rotation": [
+                0,
+                0,
+                66
+              ],
+              "color": "#90e0ef",
+              "opacity": 0.78,
+              "material": "glass"
+            },
+            {
+              "id": "ripple-fin-r",
+              "name": "Fin R",
+              "surface": {
+                "type": "droplet",
+                "width": 42,
+                "height": 88,
+                "depth": 24,
+                "roundness": 0.9
+              },
+              "position": [
+                115,
+                18,
+                -22
+              ],
+              "rotation": [
+                0,
+                0,
+                -66
+              ],
+              "color": "#90e0ef",
+              "opacity": 0.78
+            }
+          ]
+        },
+        "colors": {
+          "body": "#4cc9f0",
+          "eyes": "#0b2633"
+        },
+        "eyes": {
+          "widthLeft": 24,
+          "widthRight": 24,
+          "heightLeft": 29,
+          "heightRight": 29,
+          "spacing": 38,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -5,
+          "positionYRight": -5,
+          "leftAngle": 3,
+          "rightAngle": -3
+        }
+      },
+      {
+        "id": "avatar-starter-prism",
+        "name": "Prism",
+        "body": {
+          "primary": {
+            "type": "pyramid",
+            "width": 235,
+            "height": 255,
+            "depth": 215,
+            "roundness": 0.2
+          },
+          "nodes": [
+            {
+              "id": "prism-gem-l",
+              "name": "Gem L",
+              "surface": {
+                "type": "diamond",
+                "width": 36,
+                "height": 64,
+                "depth": 30,
+                "roundness": 0.3
+              },
+              "position": [
+                -86,
+                -54,
+                -6
+              ],
+              "rotation": [
+                0,
+                0,
+                -12
+              ],
+              "color": "#22d3ee",
+              "material": "glow"
+            },
+            {
+              "id": "prism-gem-r",
+              "name": "Gem R",
+              "surface": {
+                "type": "diamond",
+                "width": 36,
+                "height": 64,
+                "depth": 30,
+                "roundness": 0.3
+              },
+              "position": [
+                86,
+                -54,
+                -6
+              ],
+              "rotation": [
+                0,
+                0,
+                12
+              ],
+              "color": "#f472b6",
+              "material": "glow"
+            },
+            {
+              "id": "prism-crown",
+              "name": "Crown",
+              "surface": {
+                "type": "star",
+                "width": 60,
+                "height": 60,
+                "depth": 24,
+                "roundness": 0.4
+              },
+              "position": [
+                0,
+                -133,
+                -18
+              ],
+              "rotation": [
+                0,
+                0,
+                0
+              ],
+              "color": "#facc15",
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#7c3aed",
+          "eyes": "#f5f3ff"
+        },
+        "eyes": {
+          "widthLeft": 16,
+          "widthRight": 16,
+          "heightLeft": 32,
+          "heightRight": 32,
+          "spacing": 28,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": 3,
+          "positionYRight": 3,
+          "leftAngle": 8,
+          "rightAngle": -8
+        }
+      },
+      {
+        "id": "avatar-starter-nori",
+        "name": "Nori",
+        "body": {
+          "primary": {
+            "type": "pebble",
+            "width": 250,
+            "height": 205,
+            "depth": 175,
+            "roundness": 1.25
+          },
+          "nodes": [
+            {
+              "id": "nori-sprout-l",
+              "name": "Sprout L",
+              "surface": {
+                "type": "droplet",
+                "width": 30,
+                "height": 60,
+                "depth": 18,
+                "roundness": 0.9
+              },
+              "position": [
+                -24,
+                -119,
+                -18
+              ],
+              "rotation": [
+                0,
+                0,
+                -28
+              ],
+              "color": "#bbf7d0"
+            },
+            {
+              "id": "nori-sprout-r",
+              "name": "Sprout R",
+              "surface": {
+                "type": "droplet",
+                "width": 28,
+                "height": 58,
+                "depth": 18,
+                "roundness": 0.9
+              },
+              "position": [
+                28,
+                -126,
+                -18
+              ],
+              "rotation": [
+                0,
+                0,
+                24
+              ],
+              "color": "#6ee7b7"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#86cfa6",
+          "eyes": "#163a2a"
+        },
+        "eyes": {
+          "widthLeft": 24,
+          "widthRight": 24,
+          "heightLeft": 31,
+          "heightRight": 31,
+          "spacing": 37,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -3,
+          "positionYRight": -3,
+          "leftAngle": 6,
+          "rightAngle": -6
+        }
+      },
+      {
+        "id": "avatar-starter-echo",
+        "name": "Echo",
+        "body": {
+          "primary": {
+            "type": "disc",
+            "width": 230,
+            "height": 230,
+            "depth": 72,
+            "roundness": 1
+          },
+          "nodes": [
+            {
+              "id": "echo-ring-l",
+              "name": "Wave L",
+              "surface": {
+                "type": "torus",
+                "width": 82,
+                "height": 10,
+                "depth": 82,
+                "roundness": 1
+              },
+              "position": [
+                -85,
+                0,
+                -20
+              ],
+              "rotation": [
+                0,
+                72,
+                0
+              ],
+              "color": "#67e8f9",
+              "opacity": 0.7,
+              "material": "glow"
+            },
+            {
+              "id": "echo-ring-r",
+              "name": "Wave R",
+              "surface": {
+                "type": "torus",
+                "width": 82,
+                "height": 10,
+                "depth": 82,
+                "roundness": 1
+              },
+              "position": [
+                85,
+                0,
+                -20
+              ],
+              "rotation": [
+                0,
+                72,
+                0
+              ],
+              "color": "#a78bfa",
+              "opacity": 0.7,
+              "material": "glow"
+            }
+          ]
+        },
+        "colors": {
+          "body": "#1e293b",
+          "eyes": "#a5f3fc"
+        },
+        "eyes": {
+          "widthLeft": 15,
+          "widthRight": 15,
+          "heightLeft": 42,
+          "heightRight": 42,
+          "spacing": 30,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -4,
+          "positionYRight": -4,
+          "leftAngle": 0,
+          "rightAngle": 0
+        }
       }
     ]
   },
@@ -1258,6 +2923,560 @@
       "eyeMotion": "shake",
       "bodyMotion": "slowDrift",
       "bodyColor": "#adc3ff"
+    },
+    {
+      "id": "joy",
+      "headX": 5,
+      "headY": -5,
+      "headZ": -2,
+      "widthLeft": 30,
+      "widthRight": 30,
+      "heightLeft": 18,
+      "heightRight": 18,
+      "spacing": 38,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -2,
+      "positionYRight": -2,
+      "leftAngle": 8,
+      "rightAngle": -8,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "bob",
+      "mouth": "grin",
+      "mouthScale": 1.15
+    },
+    {
+      "id": "soft-smile",
+      "headX": 2,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 24,
+      "widthRight": 24,
+      "heightLeft": 30,
+      "heightRight": 30,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "breathe",
+      "mouth": "smile",
+      "mouthScale": 0.9
+    },
+    {
+      "id": "wink",
+      "headX": 0,
+      "headY": -10,
+      "headZ": -6,
+      "widthLeft": 26,
+      "widthRight": 27,
+      "heightLeft": 8,
+      "heightRight": 34,
+      "spacing": 38,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": -8,
+      "rightAngle": 6,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "sway",
+      "mouth": "smirk",
+      "mouthScale": 1
+    },
+    {
+      "id": "love",
+      "headX": 4,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 31,
+      "widthRight": 31,
+      "heightLeft": 28,
+      "heightRight": 28,
+      "spacing": 39,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -3,
+      "positionYRight": -3,
+      "leftAngle": 10,
+      "rightAngle": -10,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "float",
+      "mouth": "smile",
+      "mouthScale": 1.05,
+      "bodyColor": "#ff6f91"
+    },
+    {
+      "id": "smug",
+      "headX": 0,
+      "headY": 14,
+      "headZ": 8,
+      "widthLeft": 27,
+      "widthRight": 19,
+      "heightLeft": 19,
+      "heightRight": 16,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -4,
+      "positionYRight": -1,
+      "leftAngle": -8,
+      "rightAngle": 10,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "none",
+      "mouth": "smirk",
+      "mouthScale": 1
+    },
+    {
+      "id": "skeptical",
+      "headX": 0,
+      "headY": -13,
+      "headZ": -5,
+      "widthLeft": 24,
+      "widthRight": 20,
+      "heightLeft": 20,
+      "heightRight": 13,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -3,
+      "positionYRight": 1,
+      "leftAngle": 12,
+      "rightAngle": -12,
+      "perspective": 1,
+      "eyeMotion": "focusPulse",
+      "bodyMotion": "none",
+      "mouth": "flat",
+      "mouthScale": 1
+    },
+    {
+      "id": "side-eye",
+      "headX": 0,
+      "headY": 8,
+      "headZ": 0,
+      "widthLeft": 23,
+      "widthRight": 23,
+      "heightLeft": 21,
+      "heightRight": 21,
+      "spacing": 35,
+      "positionXLeft": 11,
+      "positionXRight": 11,
+      "positionYLeft": -3,
+      "positionYRight": -3,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "none",
+      "mouth": "flat",
+      "mouthScale": 1
+    },
+    {
+      "id": "focus",
+      "headX": -4,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 20,
+      "widthRight": 20,
+      "heightLeft": 22,
+      "heightRight": 22,
+      "spacing": 32,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -5,
+      "positionYRight": -5,
+      "leftAngle": -5,
+      "rightAngle": 5,
+      "perspective": 1,
+      "eyeMotion": "focusPulse",
+      "bodyMotion": "breathe",
+      "mouth": "flat",
+      "mouthScale": 1
+    },
+    {
+      "id": "scan-left",
+      "headX": 0,
+      "headY": -10,
+      "headZ": 0,
+      "widthLeft": 23,
+      "widthRight": 23,
+      "heightLeft": 29,
+      "heightRight": 29,
+      "spacing": 35,
+      "positionXLeft": -13,
+      "positionXRight": -13,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "lookAround",
+      "bodyMotion": "none",
+      "mouth": "none",
+      "mouthScale": 1
+    },
+    {
+      "id": "scan-right",
+      "headX": 0,
+      "headY": 10,
+      "headZ": 0,
+      "widthLeft": 23,
+      "widthRight": 23,
+      "heightLeft": 29,
+      "heightRight": 29,
+      "spacing": 35,
+      "positionXLeft": 13,
+      "positionXRight": 13,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "lookAround",
+      "bodyMotion": "none",
+      "mouth": "none",
+      "mouthScale": 1
+    },
+    {
+      "id": "talk-a",
+      "headX": 0,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 24,
+      "widthRight": 24,
+      "heightLeft": 31,
+      "heightRight": 31,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "microSaccades",
+      "bodyMotion": "none",
+      "mouth": "openSmile",
+      "mouthScale": 0.8
+    },
+    {
+      "id": "talk-b",
+      "headX": 0,
+      "headY": 0,
+      "headZ": 2,
+      "widthLeft": 23,
+      "widthRight": 23,
+      "heightLeft": 28,
+      "heightRight": 28,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "none",
+      "mouth": "oMouth",
+      "mouthScale": 0.72
+    },
+    {
+      "id": "talk-c",
+      "headX": 0,
+      "headY": 0,
+      "headZ": -2,
+      "widthLeft": 25,
+      "widthRight": 25,
+      "heightLeft": 27,
+      "heightRight": 27,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "none",
+      "mouth": "smile",
+      "mouthScale": 0.78
+    },
+    {
+      "id": "gasp",
+      "headX": 7,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 33,
+      "widthRight": 33,
+      "heightLeft": 47,
+      "heightRight": 47,
+      "spacing": 40,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -5,
+      "positionYRight": -5,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "bounce",
+      "mouth": "oMouth",
+      "mouthScale": 1.1
+    },
+    {
+      "id": "panic",
+      "headX": 7,
+      "headY": 0,
+      "headZ": 5,
+      "widthLeft": 31,
+      "widthRight": 31,
+      "heightLeft": 48,
+      "heightRight": 48,
+      "spacing": 42,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": -14,
+      "rightAngle": 14,
+      "perspective": 1,
+      "eyeMotion": "shake",
+      "bodyMotion": "shake",
+      "mouth": "oMouth",
+      "mouthScale": 1
+    },
+    {
+      "id": "sad-deep",
+      "headX": -8,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 22,
+      "widthRight": 22,
+      "heightLeft": 20,
+      "heightRight": 20,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": 4,
+      "positionYRight": 4,
+      "leftAngle": -12,
+      "rightAngle": 12,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "slowDrift",
+      "mouth": "frown",
+      "mouthScale": 1
+    },
+    {
+      "id": "angry-hot",
+      "headX": -5,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 25,
+      "widthRight": 25,
+      "heightLeft": 15,
+      "heightRight": 15,
+      "spacing": 32,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 18,
+      "rightAngle": -18,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "shake",
+      "mouth": "frown",
+      "mouthScale": 1,
+      "bodyColor": "#ef5350"
+    },
+    {
+      "id": "sleepy",
+      "headX": -6,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 24,
+      "widthRight": 24,
+      "heightLeft": 8,
+      "heightRight": 8,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": 1,
+      "positionYRight": 1,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "breathe",
+      "mouth": "flat",
+      "mouthScale": 1
+    },
+    {
+      "id": "kiss",
+      "headX": 4,
+      "headY": 0,
+      "headZ": -6,
+      "widthLeft": 25,
+      "widthRight": 25,
+      "heightLeft": 20,
+      "heightRight": 20,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 7,
+      "rightAngle": -7,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "sway",
+      "mouth": "kiss",
+      "mouthScale": 0.9
+    },
+    {
+      "id": "cat-cute",
+      "headX": 3,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 30,
+      "widthRight": 30,
+      "heightLeft": 31,
+      "heightRight": 31,
+      "spacing": 38,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "bob",
+      "mouth": "cat",
+      "mouthScale": 0.8
+    },
+    {
+      "id": "dizzy",
+      "headX": 0,
+      "headY": 0,
+      "headZ": 12,
+      "widthLeft": 19,
+      "widthRight": 29,
+      "heightLeft": 17,
+      "heightRight": 34,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 35,
+      "rightAngle": -32,
+      "perspective": 1,
+      "eyeMotion": "wander",
+      "bodyMotion": "sway",
+      "mouth": "oMouth",
+      "mouthScale": 1
+    },
+    {
+      "id": "notification",
+      "headX": 6,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 31,
+      "widthRight": 31,
+      "heightLeft": 40,
+      "heightRight": 40,
+      "spacing": 39,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "focusPulse",
+      "bodyMotion": "bounce",
+      "mouth": "smile",
+      "mouthScale": 1
+    },
+    {
+      "id": "success",
+      "headX": 6,
+      "headY": 0,
+      "headZ": -3,
+      "widthLeft": 28,
+      "widthRight": 28,
+      "heightLeft": 19,
+      "heightRight": 19,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "bounce",
+      "mouth": "grin",
+      "mouthScale": 1,
+      "bodyColor": "#39c98a"
+    },
+    {
+      "id": "error",
+      "headX": -5,
+      "headY": 0,
+      "headZ": 4,
+      "widthLeft": 24,
+      "widthRight": 24,
+      "heightLeft": 14,
+      "heightRight": 14,
+      "spacing": 35,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 14,
+      "rightAngle": -14,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "shake",
+      "mouth": "frown",
+      "mouthScale": 1,
+      "bodyColor": "#ff5f6d"
+    },
+    {
+      "id": "confetti",
+      "headX": 8,
+      "headY": -4,
+      "headZ": 0,
+      "widthLeft": 32,
+      "widthRight": 32,
+      "heightLeft": 22,
+      "heightRight": 22,
+      "spacing": 40,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -7,
+      "positionYRight": -7,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "microSaccades",
+      "bodyMotion": "bounce",
+      "mouth": "grin",
+      "mouthScale": 1.2
     }
   ],
   "sequences": [
@@ -2167,6 +4386,528 @@
         "initialDelayMs": 1200,
         "minIntervalMs": 1800,
         "maxIntervalMs": 3600,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "speaking",
+      "name": "speaking",
+      "group": "Cycle de vie",
+      "description": "Conversational mouth cycle with attentive micro-movement",
+      "builtIn": true,
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "id": "speaking-step-0",
+          "expressionId": "talk-a",
+          "holdMs": 360,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "speaking-step-1",
+          "expressionId": "talk-b",
+          "holdMs": 360,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "speaking-step-2",
+          "expressionId": "talk-c",
+          "holdMs": 360,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "speaking-step-3",
+          "expressionId": "soft-smile",
+          "holdMs": 360,
+          "transitionMs": 240,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "presenting",
+      "name": "presenting",
+      "group": "Cycle de vie",
+      "description": "Confident presenter loop with focus, joy and emphasis",
+      "builtIn": true,
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "id": "presenting-step-0",
+          "expressionId": "focus",
+          "holdMs": 920,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "presenting-step-1",
+          "expressionId": "soft-smile",
+          "holdMs": 920,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "presenting-step-2",
+          "expressionId": "joy",
+          "holdMs": 920,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "presenting-step-3",
+          "expressionId": "confetti",
+          "holdMs": 920,
+          "transitionMs": 240,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "scanning",
+      "name": "scanning",
+      "group": "Cycle de vie",
+      "description": "Search/scanning behavior with lateral gaze",
+      "builtIn": true,
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "id": "scanning-step-0",
+          "expressionId": "scan-left",
+          "holdMs": 620,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "scanning-step-1",
+          "expressionId": "focus",
+          "holdMs": 620,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "scanning-step-2",
+          "expressionId": "scan-right",
+          "holdMs": 620,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "scanning-step-3",
+          "expressionId": "focus",
+          "holdMs": 620,
+          "transitionMs": 240,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "greeting",
+      "name": "greeting",
+      "group": "Réactions",
+      "description": "Warm hello with a wink and soft rebound",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "greeting-step-0",
+          "expressionId": "soft-smile",
+          "holdMs": 420,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "greeting-step-1",
+          "expressionId": "wink",
+          "holdMs": 420,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "greeting-step-2",
+          "expressionId": "joy",
+          "holdMs": 420,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "agree",
+      "name": "agree",
+      "group": "Réactions",
+      "description": "Quick positive acknowledgment",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "agree-step-0",
+          "expressionId": "soft-smile",
+          "holdMs": 360,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "agree-step-1",
+          "expressionId": "success",
+          "holdMs": 360,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "agree-step-2",
+          "expressionId": "joy",
+          "holdMs": 360,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "disagree",
+      "name": "disagree",
+      "group": "Réactions",
+      "description": "Readable skeptical disagreement",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "disagree-step-0",
+          "expressionId": "skeptical",
+          "holdMs": 430,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "disagree-step-1",
+          "expressionId": "side-eye",
+          "holdMs": 430,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "disagree-step-2",
+          "expressionId": "angry-hot",
+          "holdMs": 430,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "wink",
+      "name": "wink",
+      "group": "Réactions",
+      "description": "Playful wink reaction",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "wink-step-0",
+          "expressionId": "soft-smile",
+          "holdMs": 360,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "wink-step-1",
+          "expressionId": "wink",
+          "holdMs": 360,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "wink-step-2",
+          "expressionId": "smug",
+          "holdMs": 360,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "love",
+      "name": "love",
+      "group": "Réactions",
+      "description": "Affectionate floaty reaction",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "love-step-0",
+          "expressionId": "soft-smile",
+          "holdMs": 520,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "love-step-1",
+          "expressionId": "love",
+          "holdMs": 520,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "love-step-2",
+          "expressionId": "kiss",
+          "holdMs": 520,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "success",
+      "name": "success",
+      "group": "Réactions",
+      "description": "Energetic success acknowledgment",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "success-step-0",
+          "expressionId": "success",
+          "holdMs": 330,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "success-step-1",
+          "expressionId": "confetti",
+          "holdMs": 330,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "success-step-2",
+          "expressionId": "joy",
+          "holdMs": 330,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "error",
+      "name": "error",
+      "group": "Réactions",
+      "description": "Expressive error signal",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "error-step-0",
+          "expressionId": "error",
+          "holdMs": 300,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "error-step-1",
+          "expressionId": "angry-hot",
+          "holdMs": 300,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "error-step-2",
+          "expressionId": "panic",
+          "holdMs": 300,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "notification",
+      "name": "notification",
+      "group": "Réactions",
+      "description": "Attention pulse for alerts and events",
+      "builtIn": true,
+      "playbackMode": "once",
+      "steps": [
+        {
+          "id": "notification-step-0",
+          "expressionId": "notification",
+          "holdMs": 320,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "notification-step-1",
+          "expressionId": "gasp",
+          "holdMs": 320,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "notification-step-2",
+          "expressionId": "soft-smile",
+          "holdMs": 320,
+          "transitionMs": 180,
+          "transition": "spring"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "dizzy",
+      "name": "dizzy",
+      "group": "Réactions",
+      "description": "Swaying dizzy reaction",
+      "builtIn": true,
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "id": "dizzy-step-0",
+          "expressionId": "dizzy",
+          "holdMs": 450,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "dizzy-step-1",
+          "expressionId": "gasp",
+          "holdMs": 450,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "dizzy-step-2",
+          "expressionId": "sleepy",
+          "holdMs": 450,
+          "transitionMs": 240,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
+        "durationMs": 220
+      }
+    },
+    {
+      "id": "dance",
+      "name": "dance",
+      "group": "Réactions",
+      "description": "Bouncy celebratory dance loop",
+      "builtIn": true,
+      "playbackMode": "loop",
+      "steps": [
+        {
+          "id": "dance-step-0",
+          "expressionId": "confetti",
+          "holdMs": 300,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "dance-step-1",
+          "expressionId": "wink",
+          "holdMs": 300,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "dance-step-2",
+          "expressionId": "joy",
+          "holdMs": 300,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
+          "id": "dance-step-3",
+          "expressionId": "kiss",
+          "holdMs": 300,
+          "transitionMs": 240,
+          "transition": "smooth"
+        }
+      ],
+      "blink": {
+        "enabled": true,
+        "initialDelayMs": 1800,
+        "minIntervalMs": 2600,
+        "maxIntervalMs": 5200,
         "durationMs": 220
       }
     }

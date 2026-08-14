@@ -91,6 +91,27 @@ export type PlayAnimationAction = {
   sequenceId: string
 }
 
+export type ApplyCharacterPresetAction = {
+  action: 'apply_character_preset'
+  presetName: string
+  newName?: string
+}
+
+export type RemixAvatarAction = {
+  action: 'remix_avatar'
+  intensity?: number
+}
+
+export type SetPoseAction = {
+  action: 'set_pose'
+  pose: Partial<Expression>
+}
+
+export type PlayReactionAction = {
+  action: 'play_reaction'
+  reaction: string
+}
+
 export type ApplyPresetAction = {
   action: 'apply_preset'
   presetName: string
@@ -111,6 +132,10 @@ export type AgentAction =
   | UpdateExpressionAction
   | CreateAnimationAction
   | PlayAnimationAction
+  | ApplyCharacterPresetAction
+  | RemixAvatarAction
+  | SetPoseAction
+  | PlayReactionAction
   | ApplyPresetAction
   | ImportStudioDocumentAction
 
@@ -127,6 +152,7 @@ export type AgentActionItem = {
 export type StudioDocumentSnapshot = {
   avatarId: string
   avatar: StudioAvatar
+  avatars: StudioAvatar[]
   expressions: Expression[]
   sequences: AvatarSequence[]
 }

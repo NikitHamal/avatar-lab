@@ -30,10 +30,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ai_server")
 
+MAX_UPLOAD_BYTES = int(os.environ.get("AVATAR_LAB_MAX_UPLOAD_BYTES", str(12 * 1024 * 1024)))
+MAX_CHAT_BYTES = int(os.environ.get("AVATAR_LAB_MAX_CHAT_BYTES", str(2 * 1024 * 1024)))
+ALLOWED_ORIGINS = {
+    origin.strip()
+    for origin in os.environ.get("AVATAR_LAB_ALLOWED_ORIGINS", "*").split(",")
+    if origin.strip()
+}
+
 
 class AIServerHandler(BaseHTTPRequestHandler):
+    server_version = "AvatarLabAI/1.0"
+    sys_version = ""
+
     def _send_cors_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin", "")
+        allowed_origin = "*" if "*" in ALLOWED_ORIGINS else (origin if origin in ALLOWED_ORIGINS else "")
+        if allowed_origin:
+            self.send_header("Access-Control-Allow-Origin", allowed_origin)
+            if allowed_origin != "*":
+                self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 
@@ -105,7 +121,14 @@ class AIServerHandler(BaseHTTPRequestHandler):
 
     def _handle_upload(self):
         content_type = self.headers.get("Content-Type", "")
-        content_length = int(self.headers.get("Content-Length", 0))
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            self._send_json(400, {"error": "Invalid Content-Length"})
+            return
+        if content_length > MAX_UPLOAD_BYTES:
+            self._send_json(413, {"error": f"Upload exceeds {MAX_UPLOAD_BYTES} byte limit"})
+            return
 
         file_bytes = b""
         filename = "upload.png"
@@ -150,10 +173,17 @@ class AIServerHandler(BaseHTTPRequestHandler):
             self._send_json(200, {"success": True, "file": file_obj})
         except Exception as e:
             logger.exception(f"Upload error: {e}")
-            self._send_json(500, {"error": str(e)})
+            self._send_json(500, {"error": "Upload failed"})
 
     def _handle_chat_stream(self):
-        content_length = int(self.headers.get("Content-Length", 0))
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            self._send_json(400, {"error": "Invalid Content-Length"})
+            return
+        if content_length <= 0 or content_length > MAX_CHAT_BYTES:
+            self._send_json(413 if content_length > MAX_CHAT_BYTES else 400, {"error": "Invalid chat payload size"})
+            return
         body = self.rfile.read(content_length)
         try:
             payload = json.loads(body.decode("utf-8"))
@@ -164,8 +194,20 @@ class AIServerHandler(BaseHTTPRequestHandler):
         provider = payload.get("provider") or "qwen"
         model = payload.get("model") or "qwen3.8-max"
         messages = payload.get("messages") or []
+        if not isinstance(messages, list) or len(messages) > 200:
+            self._send_json(400, {"error": "messages must be an array with at most 200 items"})
+            return
+        if any(not isinstance(message, dict) for message in messages):
+            self._send_json(400, {"error": "every message must be an object"})
+            return
         uploaded_files = payload.get("uploaded_files") or []
+        if not isinstance(uploaded_files, list) or len(uploaded_files) > 24:
+            self._send_json(400, {"error": "uploaded_files must be an array with at most 24 items"})
+            return
         system_prompt = payload.get("system_prompt")
+        if system_prompt is not None and not isinstance(system_prompt, str):
+            self._send_json(400, {"error": "system_prompt must be a string"})
+            return
 
         # Auto-detect provider if model name belongs to a known provider
         if model.startswith("laguna"):
@@ -207,7 +249,7 @@ class AIServerHandler(BaseHTTPRequestHandler):
                         break
         except Exception as exc:
             logger.exception(f"Chat streaming error: {exc}")
-            emit_event({"type": "error", "error": str(exc)})
+            emit_event({"type": "error", "error": "The AI provider request failed"})
 
         emit_event({"type": "done"})
 

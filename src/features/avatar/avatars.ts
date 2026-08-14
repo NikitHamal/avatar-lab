@@ -130,6 +130,31 @@ export const parseExpressions = (value: unknown): Expression[] => {
     parsed.bodyMotion = isBodyMotion(storedBodyMotion)
       ? storedBodyMotion
       : defaultExpression.bodyMotion
+    const storedMouth = (item as { mouth?: unknown }).mouth
+    if (
+      typeof storedMouth === 'string' &&
+      [
+        'smile',
+        'openSmile',
+        'oMouth',
+        'flat',
+        'cat',
+        'frown',
+        'smirk',
+        'grin',
+        'kiss',
+        'none',
+      ].includes(storedMouth)
+    ) {
+      parsed.mouth = storedMouth as Expression['mouth']
+    } else {
+      parsed.mouth = defaultExpression.mouth
+    }
+    const storedMouthScale = (item as { mouthScale?: unknown }).mouthScale
+    parsed.mouthScale =
+      typeof storedMouthScale === 'number' && Number.isFinite(storedMouthScale)
+        ? Math.min(1.8, Math.max(0.45, storedMouthScale))
+        : defaultExpression.mouthScale
     return parsed
   })
 }

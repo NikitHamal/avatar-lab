@@ -10,6 +10,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import { Switch } from '@/components/ui/switch'
 import { useStudioLanguage } from '@/i18n'
 
 import { ControlSection } from '@/app/components/common'
@@ -19,8 +20,15 @@ import { type AvatarColors, type AvatarEyeDefaults } from '@/features/avatar/ava
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
 import { type Expression } from '@/features/avatar/geometry'
-import { defaultExpression } from '@/features/avatar/presets'
+import { defaultExpression, getExpressionDisplayName } from '@/features/avatar/presets'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
+import {
+  nodeGradientId,
+  nodeShouldGlow,
+  nodeUsesGradient,
+  resolveNodeFill,
+  resolveNodeOpacity,
+} from '@/features/rendering/nodePaint'
 export function SurfaceThumbnail({ surface }: { surface: SurfaceConfig }) {
   const geometry = getPreviewGeometry(defaultExpression, surface, emptyBodyNodes)
   return (
@@ -57,13 +65,50 @@ export function ExpressionPreview({
         <clipPath id={clipId}>
           <path d={geometry.headPath} />
         </clipPath>
+        {Object.entries(geometry.nodeStyles ?? {}).map(([nodeId, style]) => {
+          if (!nodeUsesGradient(style)) return null
+          const gradientId = nodeGradientId(clipId, nodeId)
+          const from = style.color || resolvedColors.body
+          const to = style.colorTo || (style.material === 'metallic' ? '#f8fafc' : from)
+          if (style.gradientType === 'radial' || style.gradientType === 'glow') {
+            return (
+              <radialGradient key={gradientId} id={gradientId} cx="34%" cy="28%" r="74%">
+                <stop offset="0%" stopColor={to} />
+                <stop offset="58%" stopColor={from} />
+                <stop offset="100%" stopColor={style.colorTo || from} />
+              </radialGradient>
+            )
+          }
+          return (
+            <linearGradient key={gradientId} id={gradientId} x1="12%" y1="8%" x2="88%" y2="92%">
+              <stop offset="0%" stopColor={style.material === 'metallic' ? '#f8fafc' : from} />
+              <stop offset="48%" stopColor={from} />
+              <stop offset="100%" stopColor={to} />
+            </linearGradient>
+          )
+        })}
+        <filter id={`${clipId}-glow`} x="-35%" y="-35%" width="170%" height="170%">
+          <feGaussianBlur stdDeviation="4" result="glow" />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       {geometry.backPaths.map((pathValue, index) => {
         const nodeId = geometry.backNodeIds[index]
         const style = nodeId ? geometry.nodeStyles?.[nodeId] : undefined
-        const fill = style?.color || resolvedColors.body
-        const opacity = style?.opacity
-        return <path className="preview-head" d={pathValue} key={index} style={{ fill, opacity }} />
+        const fill = resolveNodeFill(style, resolvedColors.body, clipId, nodeId)
+        const opacity = resolveNodeOpacity(style)
+        const filter = nodeShouldGlow(style) ? `url(#${clipId}-glow)` : undefined
+        return (
+          <path
+            className="preview-head"
+            d={pathValue}
+            key={index}
+            style={{ fill, opacity, filter }}
+          />
+        )
       })}
       <path className="preview-head" d={geometry.headPath} style={{ fill: resolvedColors.body }} />
       <g clipPath={`url(#${clipId})`}>
@@ -101,14 +146,15 @@ export function ExpressionPreview({
       {geometry.frontPaths.map((pathValue, index) => {
         const nodeId = geometry.frontNodeIds[index]
         const style = nodeId ? geometry.nodeStyles?.[nodeId] : undefined
-        const fill = style?.color || resolvedColors.body
-        const opacity = style?.opacity
+        const fill = resolveNodeFill(style, resolvedColors.body, clipId, nodeId)
+        const opacity = resolveNodeOpacity(style)
+        const filter = nodeShouldGlow(style) ? `url(#${clipId}-glow)` : undefined
         return (
           <path
             className="preview-head"
             d={pathValue}
             key={`front-${index}`}
-            style={{ fill, opacity }}
+            style={{ fill, opacity, filter }}
           />
         )
       })}
@@ -179,7 +225,7 @@ export function ExpressionCard({
         avatarEyes={avatarEyes}
         id={previewId}
       />
-      <span>{String(index).padStart(2, '0')}</span>
+      <span title={expression.id}>{t(getExpressionDisplayName(expression, index))}</span>
     </Button>
   )
   if (!onEdit) return card
@@ -321,6 +367,11 @@ export function ExpressionWorkspace({
                 options={[
                   { value: 'none', label: 'Aucun mouvement' },
                   { value: 'slowDrift', label: 'Dérive lente' },
+                  { value: 'breathe', label: 'Respiration' },
+                  { value: 'bob', label: 'Hochement doux' },
+                  { value: 'bounce', label: 'Rebond' },
+                  { value: 'sway', label: 'Balancement' },
+                  { value: 'float', label: 'Flottement' },
                   { value: 'shake', label: 'Tremblement' },
                 ]}
                 onChange={bodyMotion => update({ bodyMotion })}
@@ -378,6 +429,9 @@ export function ExpressionWorkspace({
                 options={[
                   { value: 'none', label: 'Aucun mouvement' },
                   { value: 'microSaccades', label: 'Micro-ajustements' },
+                  { value: 'wander', label: 'Regard errant' },
+                  { value: 'lookAround', label: 'Balayage du regard' },
+                  { value: 'focusPulse', label: 'Focus vivant' },
                   { value: 'shake', label: 'Tremblement' },
                 ]}
                 onChange={eyeMotion => update({ eyeMotion })}
@@ -490,6 +544,52 @@ export function ExpressionWorkspace({
                   onChange={value => updateRotation('Right', value)}
                 />
               </div>
+            </Card>
+          </ControlSection>
+          <ControlSection
+            title="Bouche & personnalité"
+            subtitle="Ajoute une bouche procédurale légère sans casser le style minimal de l’avatar."
+            compact
+          >
+            <Card className="dialog-group">
+              <div className="switch">
+                <span>{t('Activer la bouche')}</span>
+                <Switch
+                  checked={Boolean(editing.draft.mouth && editing.draft.mouth !== 'none')}
+                  onCheckedChange={enabled => update({ mouth: enabled ? 'smile' : 'none' })}
+                  aria-label={t('Activer la bouche')}
+                />
+              </div>
+              {editing.draft.mouth && editing.draft.mouth !== 'none' && (
+                <>
+                  <AmbientMotionField<NonNullable<Expression['mouth']>>
+                    label="Style de bouche"
+                    value={editing.draft.mouth}
+                    options={[
+                      { value: 'none', label: 'Aucune' },
+                      { value: 'smile', label: 'Sourire' },
+                      { value: 'grin', label: 'Grand sourire' },
+                      { value: 'openSmile', label: 'Sourire ouvert' },
+                      { value: 'flat', label: 'Neutre' },
+                      { value: 'frown', label: 'Triste' },
+                      { value: 'smirk', label: 'Malicieux' },
+                      { value: 'cat', label: 'Chat' },
+                      { value: 'oMouth', label: 'Surprise' },
+                      { value: 'kiss', label: 'Bisou' },
+                    ]}
+                    onChange={mouth => update({ mouth })}
+                  />
+                  <NumericField
+                    label="Taille de bouche"
+                    value={editing.draft.mouthScale ?? 1}
+                    min={0.45}
+                    max={1.8}
+                    step={0.05}
+                    unit="×"
+                    onChange={mouthScale => update({ mouthScale })}
+                  />
+                </>
+              )}
             </Card>
           </ControlSection>
           <ControlSection

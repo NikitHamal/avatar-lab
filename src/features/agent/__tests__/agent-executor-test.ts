@@ -55,6 +55,15 @@ And here is an expression for it:
     expect(actions[1].action).toBe('create_expression')
   })
 
+  it('extracts batched actions from an actions envelope', () => {
+    const actions = extractAgentActions(`
+\`\`\`avatar-action
+{"actions":[{"action":"set_pose","pose":{"mouth":"smirk"}},{"action":"play_reaction","reaction":"success"}]}
+\`\`\``)
+
+    expect(actions.map(action => action.action)).toEqual(['set_pose', 'play_reaction'])
+  })
+
   it('handles empty or malformed text gracefully', () => {
     expect(extractAgentActions('')).toEqual([])
     expect(extractAgentActions('No code block here')).toEqual([])

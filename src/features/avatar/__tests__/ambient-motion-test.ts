@@ -104,4 +104,21 @@ describe('perpetual expression motion', () => {
 
     expect(ambientBodyOffset(expression, 1500)).not.toEqual({ x: 0, y: 0 })
   })
+  it('supports expanded living motion modes with finite offsets', () => {
+    for (const bodyMotion of ['breathe', 'bob', 'bounce', 'sway', 'float'] as const) {
+      const expression = { ...defaultExpression, bodyMotion }
+      const offset = ambientBodyOffset(expression, 1375)
+      const animated = applyAmbientBodyMotion(expression, 1375)
+      expect(Number.isFinite(offset.x)).toBe(true)
+      expect(Number.isFinite(offset.y)).toBe(true)
+      expect(Number.isFinite(animated.headX)).toBe(true)
+      expect(Number.isFinite(animated.headY)).toBe(true)
+      expect(Number.isFinite(animated.headZ)).toBe(true)
+    }
+    for (const eyeMotion of ['wander', 'lookAround', 'focusPulse'] as const) {
+      const offset = ambientEyeOffset({ ...defaultExpression, eyeMotion }, 1375)
+      expect(Number.isFinite(offset.x)).toBe(true)
+      expect(Number.isFinite(offset.y)).toBe(true)
+    }
+  })
 })

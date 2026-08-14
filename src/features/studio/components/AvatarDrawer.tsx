@@ -1,5 +1,6 @@
-import { Copy, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Copy, Pencil, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -31,11 +32,18 @@ export function AvatarPage({ controller }: { controller: StudioController }) {
     expressions,
     previewAvatarMove,
     reduceMotion,
+    remixAvatarVariant,
     setDeleteAvatarOpen,
     setDraggingAvatarId,
     setFocusAvatarName,
     t,
   } = controller
+  const [query, setQuery] = useState('')
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleAvatars = normalizedQuery
+    ? avatars.filter(avatar => avatar.name.toLowerCase().includes(normalizedQuery))
+    : avatars
+  const activeAvatar = avatars.find(avatar => avatar.id === activeAvatarId) ?? avatars[0]
 
   return (
     <div className="panel-stack avatar-page">
@@ -44,8 +52,27 @@ export function AvatarPage({ controller }: { controller: StudioController }) {
           <strong>{t('Double-clic pour modifier')}</strong>
           <span>{avatars.length}</span>
         </div>
+        <div className="avatar-library-tools">
+          <label className="avatar-search">
+            <Search aria-hidden="true" />
+            <input
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              placeholder={t('Rechercher un personnage')}
+              aria-label={t('Rechercher un personnage')}
+            />
+          </label>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={!activeAvatar}
+            onClick={() => activeAvatar && remixAvatarVariant(activeAvatar)}
+          >
+            <Sparkles /> {t('Remix')}
+          </Button>
+        </div>
         <div className="avatar-grid">
-          {avatars.map(avatar => (
+          {visibleAvatars.map(avatar => (
             <motion.div
               className="avatar-sort-item"
               data-dragging={draggingAvatarId === avatar.id || undefined}
@@ -69,8 +96,9 @@ export function AvatarPage({ controller }: { controller: StudioController }) {
                       variant="outline"
                       aria-pressed={activeAvatarId === avatar.id}
                       type="button"
-                      draggable
+                      draggable={!normalizedQuery}
                       onDragStart={event => {
+                        if (normalizedQuery) return
                         avatarDragOrigin.current = avatarsRef.current
                         avatarDragPreview.current = avatarsRef.current
                         draggedAvatarId.current = avatar.id

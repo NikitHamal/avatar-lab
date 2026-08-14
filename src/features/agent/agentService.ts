@@ -2,6 +2,8 @@ import type { AgentAttachment, AgentMessage, AgentModel, AgentProvider } from '.
 import { AGENT_SYSTEM_PROMPT } from './agentPrompt'
 
 const API_BASE = ''
+const MAX_REFERENCE_FILE_BYTES = 12 * 1024 * 1024
+const MAX_UPLOADED_REFERENCES_PER_REQUEST = 24
 
 export const DEFAULT_MODELS: AgentModel[] = [
   {
@@ -124,34 +126,26 @@ export async function fetchAvailableModels(): Promise<AgentModel[]> {
 }
 
 export async function uploadReferenceFile(file: File): Promise<AgentAttachment> {
-  const previewUrl = URL.createObjectURL(file)
   const attachment: AgentAttachment = {
     id: `att-${crypto.randomUUID()}`,
     name: file.name,
     mimeType: file.type,
     size: file.size,
-    previewUrl,
+  }
+
+  if (file.size > MAX_REFERENCE_FILE_BYTES) {
+    return {
+      ...attachment,
+      error: `Reference file is larger than ${Math.round(MAX_REFERENCE_FILE_BYTES / 1024 / 1024)} MB`,
+    }
   }
 
   try {
-    const arrayBuffer = await file.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
-    const base64Data = btoa(binary)
-
+    const formData = new FormData()
+    formData.append('file', file, file.name)
     const res = await fetchAI('/api/ai/upload', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        filename: file.name,
-        mime_type: file.type || 'image/png',
-        data: base64Data,
-      }),
+      body: formData,
     })
     if (!res.ok) {
       const text = await res.text()
@@ -210,7 +204,7 @@ export async function streamChatCompletion(
     provider,
     model,
     messages: formattedMessages,
-    uploaded_files: uploadedFiles,
+    uploaded_files: uploadedFiles.slice(-MAX_UPLOADED_REFERENCES_PER_REQUEST),
     system_prompt: systemPrompt || AGENT_SYSTEM_PROMPT,
   }
 

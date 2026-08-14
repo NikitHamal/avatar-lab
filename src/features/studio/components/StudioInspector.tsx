@@ -49,7 +49,7 @@ import {
   SnapshotPreview,
   StatePlayer,
 } from '@/app/components/common'
-import { ColorField, LinkButton, NumericField } from '@/app/components/controls'
+import { AmbientMotionField, ColorField, LinkButton, NumericField } from '@/app/components/controls'
 import { formatSeconds, scaleSurface, type Side, type SnapshotFormat } from '@/app/studio-utils'
 import { SequenceWorkspace } from '@/features/animation/components/SequenceWorkspace'
 import { findExpressionIndex, groupSequences } from '@/features/animation/sequences'
@@ -61,6 +61,7 @@ import {
   ExpressionWorkspace,
   SurfaceThumbnail,
 } from '@/features/avatar/components/ExpressionWorkspace'
+import type { Expression } from '@/features/avatar/geometry'
 import { defaultExpression } from '@/features/avatar/presets'
 import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
@@ -700,6 +701,27 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                     }))
                                   }
                                 />
+                                <ColorField
+                                  label="Couleur secondaire"
+                                  value={
+                                    selectedBodyNode.colorTo ||
+                                    selectedBodyNode.color ||
+                                    renderedColors?.body.get() ||
+                                    '#8b5cf6'
+                                  }
+                                  onChange={colorTo =>
+                                    updateSelectedBodyNode(node => ({
+                                      ...node,
+                                      colorTo,
+                                      gradientType:
+                                        node.gradientType && node.gradientType !== 'none'
+                                          ? node.gradientType
+                                          : 'linear',
+                                    }))
+                                  }
+                                />
+                              </div>
+                              <div style={{ marginTop: '8px' }}>
                                 <NumericField
                                   label="Opacité"
                                   value={selectedBodyNode.opacity ?? 1}
@@ -743,6 +765,51 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                     {t(item.label)}
                                   </Button>
                                 ))}
+                              </div>
+                              <div style={{ marginTop: '8px' }}>
+                                <div
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    color: 'var(--muted-foreground)',
+                                    marginBottom: '5px',
+                                  }}
+                                >
+                                  {t('Dégradé')}
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  {(
+                                    [
+                                      { id: 'none', label: 'Aucun' },
+                                      { id: 'linear', label: 'Linéaire' },
+                                      { id: 'radial', label: 'Radial' },
+                                      { id: 'glow', label: 'Halo' },
+                                    ] as const
+                                  ).map(item => (
+                                    <Button
+                                      key={item.id}
+                                      type="button"
+                                      size="sm"
+                                      variant={
+                                        (selectedBodyNode.gradientType || 'none') === item.id
+                                          ? 'default'
+                                          : 'outline'
+                                      }
+                                      style={{ flex: 1, fontSize: '0.72rem', padding: '4px' }}
+                                      onClick={() =>
+                                        updateSelectedBodyNode(node => ({
+                                          ...node,
+                                          gradientType: item.id,
+                                          colorTo:
+                                            item.id === 'none'
+                                              ? node.colorTo
+                                              : node.colorTo || node.color || '#8b5cf6',
+                                        }))
+                                      }
+                                    >
+                                      {t(item.label)}
+                                    </Button>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1358,6 +1425,63 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             }
                           />
                         </div>
+                      </InspectorCard>
+                    </ControlSection>
+                    <ControlSection
+                      title="Bouche & personnalité"
+                      subtitle="Bouche procédurale et options expressives."
+                    >
+                      <InspectorCard>
+                        <PanelTitle
+                          level={3}
+                          title="Bouche procédurale"
+                          subtitle="Choisis une forme de bouche ou désactive-la."
+                        />
+                        <div className="switch">
+                          <span>{t('Activer la bouche')}</span>
+                          <Switch
+                            checked={Boolean(expression.mouth && expression.mouth !== 'none')}
+                            onCheckedChange={enabled =>
+                              updateImmediate({
+                                ...expression,
+                                mouth: enabled ? 'smile' : 'none',
+                              })
+                            }
+                            aria-label={t('Activer la bouche')}
+                          />
+                        </div>
+                        {expression.mouth && expression.mouth !== 'none' && (
+                          <>
+                            <AmbientMotionField<NonNullable<Expression['mouth']>>
+                              label="Forme"
+                              value={expression.mouth}
+                              options={[
+                                { value: 'none', label: 'Aucune' },
+                                { value: 'smile', label: 'Sourire' },
+                                { value: 'grin', label: 'Grand sourire' },
+                                { value: 'openSmile', label: 'Sourire ouvert' },
+                                { value: 'flat', label: 'Neutre' },
+                                { value: 'frown', label: 'Triste' },
+                                { value: 'smirk', label: 'Malicieux' },
+                                { value: 'cat', label: 'Chat' },
+                                { value: 'oMouth', label: 'Surprise' },
+                                { value: 'kiss', label: 'Bisou' },
+                              ]}
+                              onChange={mouth => updateImmediate({ ...expression, mouth })}
+                            />
+                            <NumericField
+                              label="Taille de bouche"
+                              value={expression.mouthScale ?? 1}
+                              min={0.45}
+                              max={1.8}
+                              step={0.05}
+                              unit="×"
+                              onChange={mouthScale =>
+                                updateImmediate({ ...expression, mouthScale })
+                              }
+                            />
+                          </>
+                        )}
                       </InspectorCard>
                     </ControlSection>
                     <ControlSection

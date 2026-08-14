@@ -32,28 +32,34 @@ import type { StudioController } from '@/features/studio/useStudioController'
 
 const INSPIRATION_CHIPS = [
   {
-    label: '🦊 Cybernetic Fox',
+    label: '✦ Design a signature mascot',
     prompt:
-      'Create a stylish cybernetic fox avatar with glowing eyes, pointed ears, and a sleek head shape.',
+      'Design a distinctive premium mascot from scratch. Keep it minimal, use a strong silhouette, dimensional materials, and create a cohesive identity rather than a generic character.',
   },
   {
-    label: '🌸 Kawaii Cat',
+    label: '◐ Remix this character',
     prompt:
-      'Create a super cute pastel kawaii cat avatar with round ears, pink cheeks, and cheerful eyes.',
+      'Create a tasteful new remix of the current avatar. Preserve its identity but push the proportions, palette, and material treatment into a fresh premium direction.',
   },
   {
-    label: '🤖 Retro Droid',
+    label: '☺ Expression pack',
     prompt:
-      'Create a retro sci-fi robot avatar with antennas, angular boxy head, and expressive robotic eyes.',
+      'Create a polished conversational expression pack for this avatar: attentive, soft smile, joyful, skeptical, wink, love, gasp, concern, success, and error. Use mouths and ambient eye/body motion where appropriate.',
   },
   {
-    label: '✨ 5 Expressive Faces',
+    label: '◉ Speaking system',
     prompt:
-      'Generate 5 distinct facial expressions for this avatar: joyful wink, surprised, sleepy, anime crying, and suspicious squint.',
+      'Create a natural speaking system for this avatar using at least three mouth/face states, subtle head motion, listening/focus, and a looping talk animation with natural blinking.',
   },
   {
-    label: '🎬 Dynamic Talk Cycle',
-    prompt: 'Create a smooth talking and laughing animation sequence with natural blinking.',
+    label: '⚡ Reaction pack',
+    prompt:
+      'Create a compact reaction pack for product/agent UI: greeting, agree, disagree, notification, success, error, celebration, and dizzy. Make the timing crisp and expressive.',
+  },
+  {
+    label: '◇ Material pass',
+    prompt:
+      'Refine the current avatar with a professional material pass. Use glass, glow, metallic, and restrained gradients only where they improve depth and hierarchy.',
   },
 ]
 

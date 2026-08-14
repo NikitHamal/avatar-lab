@@ -1,10 +1,16 @@
 # Avatar Lab
 
-Avatar Lab is a browser-based authoring studio for procedural 2D avatars. It combines 3D-inspired geometry with SVG rendering so you can construct a character, define its neutral appearance, create expressions, compose reusable animations, and export the result without depending on the Studio UI.
+Avatar Lab is a browser-based character and motion studio for procedural avatars. It combines 3D-inspired geometry with SVG rendering so you can construct a character, direct live poses, create expressive behavior, compose reusable animations and reactions, and export the result without depending on the Studio UI.
 
 Website: [avatars.bible-strong.app](https://avatars.bible-strong.app) · Source: [GitHub](https://github.com/smontlouis/bible-strong-avatar-lab)
 
-The application runs entirely in the browser. Projects are stored locally and can be moved between browsers with JSON export/import; no account or backend is required.
+The core Studio runs entirely in the browser. Projects are stored locally and can be moved between browsers with JSON export/import; no account is required. AI agent features can optionally use the local proxy under `server/` to connect configured model providers.
+
+## vNext creative system
+
+The bundled Studio now ships with 29 starter characters, 52 expression presets, and 36 animation/reaction sequences. The procedural vocabulary includes 21 surface families, up to 24 accessory nodes per character, mouth shapes, richer eye/body ambient motion, and per-node gradient, glass, glow, and metallic materials.
+
+The character shelf includes search and a non-destructive **Remix** action for quickly generating cohesive variants. The AI agent can use named character presets, remix the active avatar, direct immediate poses, trigger reactions, sculpt body nodes, create expressions, and compose animations through structured reversible actions. The UI also includes a responsive production pass for compact laptops, tablets, and mobile screens.
 
 ## What you can do
 
@@ -22,7 +28,7 @@ The application runs entirely in the browser. Projects are stored locally and ca
 - Take SVG or PNG snapshots with transparent, solid, linear-gradient, or radial-gradient backgrounds.
 - Export a standalone React package or a framework-free JavaScript/HTML package.
 - Export and import the complete Studio project as JSON.
-- Use the interface in English, French, or Simplified Chinese.
+- Use the production interface in English, with the translation layer kept ready for additional locales.
 
 ## How the Studio works
 
@@ -116,7 +122,7 @@ The deployable site is written to `dist/`. Serve it locally before publishing:
 pnpm preview
 ```
 
-The application is a client-only Vite site with no server runtime or environment variables. The build uses relative asset paths, so the contents of `dist/` can be hosted at a domain root or a subpath, including a GitHub Pages project URL. Any static host that serves `index.html` can deploy it.
+The core application is a client-side Vite site. The static build uses relative asset paths, so `dist/` can be hosted at a domain root or a subpath. The optional AI agent proxy is a separate Python service under `server/`; deploy or run it only when agent-provider access is needed.
 
 Vercel Web Analytics and Speed Insights are integrated in the React entry point. Enable both products in the Vercel project dashboard, then redeploy so their collection routes become available.
 
@@ -128,7 +134,8 @@ Vercel Web Analytics and Speed Insights are integrated in the React entry point.
 - **Motion** owns high-frequency rendering and playback values.
 - **SVG** renders the procedural avatar geometry.
 - **Tailwind CSS 4** and reusable components under `src/components/ui/` provide the interface layer.
-- **Vitest** covers geometry, playback, editing, persistence, rendering, and export behavior.
+- **Vitest** covers geometry, playback, editing, persistence, rendering, agent execution, and export behavior.
+- **Optional Python AI proxy** under `server/` handles configured model-provider requests with request limits and configurable CORS.
 
 Geometry, playback, document operations, and the standalone runtime remain framework-independent. React state stores durable editor data; Motion values handle frame-by-frame visual updates without forcing React renders.
 
@@ -159,7 +166,7 @@ The current project format is a pre-release schema. Compatibility is maintained 
 
 Keep domain calculations outside React components, preserve the separation between durable React state and high-frequency Motion values, and add focused tests for domain changes. Do not edit `src/features/export/standaloneEngine.generated.ts` directly; run `pnpm engine` after changing its source modules.
 
-English, French, and Simplified Chinese interface copy must stay synchronized across `src/i18n/index.ts` and `src/i18n/zh.ts`.
+Keep user-facing copy routed through the translation layer in `src/i18n/` so additional locales can be introduced without coupling text to domain logic.
 
 For the domain vocabulary, invariants, and architecture boundaries, read [CONTEXT.md](./CONTEXT.md).
 

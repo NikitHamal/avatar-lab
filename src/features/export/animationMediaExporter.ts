@@ -14,6 +14,12 @@ import {
 import type { AvatarSequence, SequenceTransition } from '../animation/sequences'
 import { GifEncoder } from './gifEncoder'
 import type { SnapshotBackground } from './snapshotExporter'
+import {
+  resolveNodeFill,
+  resolveNodeFilter,
+  resolveNodeOpacity,
+  serializeNodePaintDefinitions,
+} from '../rendering/nodePaint'
 
 export type AnimationMediaFormat = 'gif' | 'webm' | 'mp4'
 
@@ -91,9 +97,9 @@ const interpolateColor = (fromHex: string, toHex: string, progress: number): str
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
 }
 
-const pathMarkup = (d: string, fill: string, opacity = 1) =>
+const pathMarkup = (d: string, fill: string, opacity = 1, filter?: string) =>
   d
-    ? `<path d="${escapeXml(d)}" fill="${escapeXml(fill)}"${opacity < 1 ? ` opacity="${opacity}"` : ''}/>`
+    ? `<path d="${escapeXml(d)}" fill="${escapeXml(fill)}"${opacity < 1 ? ` opacity="${opacity}"` : ''}${filter ? ` filter="${escapeXml(filter)}"` : ''}/>`
     : ''
 
 const backgroundMarkup = (options: AnimationMediaOptions) => {
@@ -160,11 +166,37 @@ export const sampleAnimationFrames = (
     }
     const pose = poseFromExpression(fallbackExp)
     const scene = renderAvatar(pose, avatar.body.primary, 1, { bodyNodes: avatar.body.nodes })
+    const paintPrefix = 'frame-node-0'
+    const nodePaintDefs = serializeNodePaintDefinitions(
+      scene.nodeStyles,
+      paintPrefix,
+      avatar.colors.body
+    )
+    const renderNodes = (paths: string[], ids: (string | null)[]) =>
+      paths
+        .map((pathValue, index) => {
+          const nodeId = ids[index]
+          const style = nodeId ? scene.nodeStyles[nodeId] : undefined
+          const fill =
+            resolveNodeFill(style, avatar.colors.body, paintPrefix, nodeId) || avatar.colors.body
+          return pathMarkup(
+            pathValue,
+            fill,
+            resolveNodeOpacity(style) ?? 1,
+            resolveNodeFilter(style, paintPrefix, nodeId)
+          )
+        })
+        .join('')
+    const mouthMarkup =
+      scene.mouthVisible && scene.mouthPath
+        ? `<path d="${escapeXml(scene.mouthPath)}" stroke="${escapeXml(avatar.colors.eyes)}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+        : ''
+
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}">
-  <defs>${gradientMarkup(options)}<clipPath id="frame-clip-0"><path d="${escapeXml(scene.headPath)}"/></clipPath></defs>
+  <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="frame-clip-0"><path d="${escapeXml(scene.headPath)}"/></clipPath></defs>
   ${backgroundMarkup(options)}
-  <g>${scene.backPaths.map(p => pathMarkup(p, avatar.colors.body)).join('')}${pathMarkup(scene.headPath, avatar.colors.body)}<g clip-path="url(#frame-clip-0)">${scene.leftVisible ? pathMarkup(scene.leftPath, avatar.colors.eyes) : ''}${scene.rightVisible ? pathMarkup(scene.rightPath, avatar.colors.eyes) : ''}</g>${scene.frontPaths.map(p => pathMarkup(p, avatar.colors.body)).join('')}</g>
+  <g>${renderNodes(scene.backPaths, scene.backNodeIds)}${pathMarkup(scene.headPath, avatar.colors.body)}<g clip-path="url(#frame-clip-0)">${scene.leftVisible ? pathMarkup(scene.leftPath, avatar.colors.eyes) : ''}${scene.rightVisible ? pathMarkup(scene.rightPath, avatar.colors.eyes) : ''}${mouthMarkup}</g>${renderNodes(scene.frontPaths, scene.frontNodeIds)}</g>
 </svg>`
     return [{ svg, delayMs: 1000, elapsedMs: 0 }]
   }
@@ -329,9 +361,11 @@ export const sampleAnimationFrames = (
       .map((p, index) => {
         const nodeId = scene.backNodeIds[index]
         const style = nodeId ? scene.nodeStyles[nodeId] : undefined
-        const fill = style?.color || bodyColor
-        const opacity = style?.opacity ?? 1
-        return pathMarkup(p, fill, opacity)
+        const paintPrefix = `frame-node-${frameCounter}`
+        const fill = resolveNodeFill(style, bodyColor, paintPrefix, nodeId) || bodyColor
+        const opacity = resolveNodeOpacity(style) ?? 1
+        const filter = resolveNodeFilter(style, paintPrefix, nodeId)
+        return pathMarkup(p, fill, opacity, filter)
       })
       .join('')
 
@@ -339,9 +373,11 @@ export const sampleAnimationFrames = (
       .map((p, index) => {
         const nodeId = scene.frontNodeIds[index]
         const style = nodeId ? scene.nodeStyles[nodeId] : undefined
-        const fill = style?.color || bodyColor
-        const opacity = style?.opacity ?? 1
-        return pathMarkup(p, fill, opacity)
+        const paintPrefix = `frame-node-${frameCounter}`
+        const fill = resolveNodeFill(style, bodyColor, paintPrefix, nodeId) || bodyColor
+        const opacity = resolveNodeOpacity(style) ?? 1
+        const filter = resolveNodeFilter(style, paintPrefix, nodeId)
+        return pathMarkup(p, fill, opacity, filter)
       })
       .join('')
 
@@ -354,9 +390,15 @@ export const sampleAnimationFrames = (
       .map(decal => pathMarkup(decal.path, decal.fill, decal.opacity ?? 1))
       .join('')
 
+    const nodePaintDefs = serializeNodePaintDefinitions(
+      scene.nodeStyles,
+      `frame-node-${frameCounter}`,
+      bodyColor
+    )
+
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}">
-  <defs>${gradientMarkup(options)}<clipPath id="${clipId}"><path d="${escapeXml(scene.headPath)}"/></clipPath></defs>
+  <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="${clipId}"><path d="${escapeXml(scene.headPath)}"/></clipPath></defs>
   ${backgroundMarkup(options)}
   <g transform="translate(${offsetX} ${offsetY})">${backPathsMarkup}${pathMarkup(scene.headPath, bodyColor)}<g clip-path="url(#${clipId})">${decalsMarkup}${scene.leftVisible ? pathMarkup(scene.leftPath, eyeColor) : ''}${scene.rightVisible ? pathMarkup(scene.rightPath, eyeColor) : ''}${mouthMarkup}</g>${frontPathsMarkup}</g>
 </svg>`

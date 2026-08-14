@@ -74,6 +74,7 @@ import {
   type AvatarPose,
   type Expression,
 } from '@/features/avatar/geometry'
+import { createAvatarRemix } from '@/features/avatar/avatarRemix'
 import { defaultExpression } from '@/features/avatar/presets'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
 import {
@@ -866,6 +867,16 @@ export function useStudioController() {
     setAvatars(next)
     updateStudioLibrary({ activeAvatarId: duplicate.id, avatars: next })
     activateAvatar(duplicate.id, editDuplicate)
+  }
+
+  const remixAvatarVariant = (source: StudioAvatar, intensity = 0.55) => {
+    const remix = createAvatarRemix(source, intensity)
+    const next = [...avatarsRef.current, remix]
+    avatarEditSnapshot.current = null
+    avatarsRef.current = next
+    setAvatars(next)
+    updateStudioLibrary({ activeAvatarId: remix.id, avatars: next })
+    activateAvatar(remix.id, false, true)
   }
 
   const previewAvatarMove = (targetId: string) => {
@@ -1820,6 +1831,7 @@ export function useStudioController() {
     projectImportRef,
     reduceMotion,
     renameActiveAvatar,
+    remixAvatarVariant,
     renderedColors,
     renderedRotationGizmo,
     renderedScene,

@@ -7,6 +7,7 @@ import {
   defaultAvatarEyes,
   parseAvatarEyeDefaults,
   resolveAvatarBehavior,
+  parseExpressions,
 } from '@/features/avatar/avatars'
 import { initialExpressions } from '@/features/avatar/presets'
 
@@ -24,6 +25,24 @@ describe('avatar eye defaults', () => {
     expect(result.widthLeft).toBe(38)
     expect(result.positionYLeft).toBe(0)
     expect(expression.widthLeft).toBe(28)
+  })
+
+  it('preserves procedural mouth and expanded motion values when parsing expressions', () => {
+    const parsed = parseExpressions([
+      {
+        ...defaultExpression,
+        id: 'agent-reaction',
+        mouth: 'smirk',
+        mouthScale: 1.35,
+        eyeMotion: 'lookAround',
+        bodyMotion: 'breathe',
+      },
+    ])
+
+    expect(parsed[0].mouth).toBe('smirk')
+    expect(parsed[0].mouthScale).toBe(1.35)
+    expect(parsed[0].eyeMotion).toBe('lookAround')
+    expect(parsed[0].bodyMotion).toBe('breathe')
   })
 
   it('sanitizes partial persisted values', () => {

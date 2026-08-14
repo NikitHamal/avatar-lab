@@ -118,6 +118,18 @@ export const loadStudioDocument = (
           }
         }
       })
+      fallback.expressions.forEach(fallbackExpr => {
+        const existingIndex = parsed.expressions.findIndex(e => e.id === fallbackExpr.id)
+        if (existingIndex < 0) {
+          parsed.expressions.push(fallbackExpr)
+        }
+      })
+      fallback.sequences.forEach(fallbackSeq => {
+        const existingIndex = parsed.sequences.findIndex(s => s.id === fallbackSeq.id)
+        if (existingIndex < 0) {
+          parsed.sequences.push(fallbackSeq)
+        }
+      })
     }
     return parsed
   } catch {

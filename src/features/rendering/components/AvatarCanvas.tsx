@@ -42,6 +42,14 @@ import { type SurfaceConfig } from '@/features/avatar/surfaces'
 import { type CanvasPreviewTarget } from '@/features/rendering/canvasPreview'
 import { type RenderedRotationGizmo } from '@/features/rendering/renderedRotationGizmo'
 import { findBodyNodePath, type RenderedScene } from '@/features/rendering/renderedScene'
+import {
+  nodeFilterId,
+  nodeGradientId,
+  nodeShouldGlow,
+  nodeUsesGradient,
+  resolveNodeFill,
+  resolveNodeOpacity,
+} from '@/features/rendering/nodePaint'
 export function RotationGizmo({
   expression,
   rendered,
@@ -804,14 +812,65 @@ export function AvatarCanvas({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          {Object.entries(nodeStyles.current).map(([nodeId, style]) => {
+            if (!nodeUsesGradient(style)) return null
+            const gradientId = nodeGradientId('stage-node', nodeId)
+            const from = style.color || 'var(--avatar-body-color, #5b7fe5)'
+            const to = style.colorTo || (style.material === 'metallic' ? '#f8fafc' : from)
+            if (style.gradientType === 'radial' || style.gradientType === 'glow') {
+              return (
+                <radialGradient key={gradientId} id={gradientId} cx="34%" cy="28%" r="74%">
+                  <stop
+                    offset="0%"
+                    stopColor={to}
+                    stopOpacity={style.material === 'glass' ? 0.9 : 1}
+                  />
+                  <stop offset="58%" stopColor={from} />
+                  <stop
+                    offset="100%"
+                    stopColor={style.colorTo || from}
+                    stopOpacity={style.material === 'glass' ? 0.76 : 1}
+                  />
+                </radialGradient>
+              )
+            }
+            return (
+              <linearGradient key={gradientId} id={gradientId} x1="12%" y1="8%" x2="88%" y2="92%">
+                <stop offset="0%" stopColor={style.material === 'metallic' ? '#f8fafc' : from} />
+                <stop offset="48%" stopColor={from} />
+                <stop offset="100%" stopColor={to} />
+              </linearGradient>
+            )
+          })}
+          {Object.entries(nodeStyles.current).map(([nodeId, style]) =>
+            nodeShouldGlow(style) ? (
+              <filter
+                key={nodeFilterId('stage-node', nodeId)}
+                id={nodeFilterId('stage-node', nodeId)}
+                x="-35%"
+                y="-35%"
+                width="170%"
+                height="170%"
+              >
+                <feGaussianBlur stdDeviation="4.5" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            ) : null
+          )}
         </defs>
         <motion.g style={{ x: offsetX, y: offsetY }}>
           {backPaths.map((pathValue, index) => {
             const nodeId = backNodeIds.current[index]
             const style = nodeId ? nodeStyles.current[nodeId] : undefined
-            const fill = style?.color || undefined
-            const opacity = style?.opacity
-            const filter = style?.material === 'glow' ? 'url(#glass-glow)' : undefined
+            const fill = resolveNodeFill(style, undefined, 'stage-node', nodeId)
+            const opacity = resolveNodeOpacity(style)
+            const filter =
+              nodeId && nodeShouldGlow(style)
+                ? `url(#${nodeFilterId('stage-node', nodeId)})`
+                : undefined
             return (
               <motion.path
                 className={`avatar-head ${highlight === 'head' ? 'cyan-outline' : ''}`}
@@ -879,9 +938,12 @@ export function AvatarCanvas({
           {frontPaths.map((pathValue, index) => {
             const nodeId = frontNodeIds.current[index]
             const style = nodeId ? nodeStyles.current[nodeId] : undefined
-            const fill = style?.color || undefined
-            const opacity = style?.opacity
-            const filter = style?.material === 'glow' ? 'url(#glass-glow)' : undefined
+            const fill = resolveNodeFill(style, undefined, 'stage-node', nodeId)
+            const opacity = resolveNodeOpacity(style)
+            const filter =
+              nodeId && nodeShouldGlow(style)
+                ? `url(#${nodeFilterId('stage-node', nodeId)})`
+                : undefined
             return (
               <motion.path
                 className={`avatar-head ${highlight === 'head' ? 'cyan-outline' : ''}`}

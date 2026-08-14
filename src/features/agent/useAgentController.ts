@@ -181,7 +181,11 @@ export function useAgentController(studioController: StudioController) {
   }
 
   const removeAttachment = (id: string) => {
-    setPendingAttachments(prev => prev.filter(att => att.id !== id))
+    setPendingAttachments(prev => {
+      const removed = prev.find(att => att.id === id)
+      if (removed?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(removed.previewUrl)
+      return prev.filter(att => att.id !== id)
+    })
   }
 
   const clearChat = () => {
@@ -194,6 +198,15 @@ export function useAgentController(studioController: StudioController) {
       abortControllerRef.current = null
     }
     setIsStreaming(false)
+    setMessages(current => {
+      const next = current.map(message =>
+        message.status === 'streaming' ? { ...message, status: 'done' as const } : message
+      )
+      try {
+        window.localStorage.setItem(AGENT_MESSAGES_KEY, JSON.stringify(next.slice(-30)))
+      } catch {}
+      return next
+    })
   }
 
   const applyAction = (messageId: string, actionIndex: number) => {

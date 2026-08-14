@@ -1,7 +1,23 @@
 import type { BodyMotion, Expression, EyeMotion } from './geometry'
 
-export const eyeMotionModes = ['none', 'microSaccades', 'shake'] as const
-export const bodyMotionModes = ['none', 'slowDrift', 'shake'] as const
+export const eyeMotionModes = [
+  'none',
+  'microSaccades',
+  'wander',
+  'lookAround',
+  'focusPulse',
+  'shake',
+] as const
+export const bodyMotionModes = [
+  'none',
+  'slowDrift',
+  'breathe',
+  'bob',
+  'bounce',
+  'sway',
+  'float',
+  'shake',
+] as const
 const eyeMotionSet = new Set<string>(eyeMotionModes)
 const bodyMotionSet = new Set<string>(bodyMotionModes)
 export const isEyeMotion = (value: unknown): value is EyeMotion =>
@@ -51,6 +67,31 @@ export const ambientBodyOffset = (expression: Expression, elapsedMs: number, str
       y: smoothNoise(elapsedMs, 4, seed, 3700) * 1.1 * strength,
     }
   }
+  if (expression.bodyMotion === 'breathe') {
+    const time = elapsedMs / 1000
+    return { x: 0, y: Math.sin(time * 1.7) * 1.15 * strength }
+  }
+  if (expression.bodyMotion === 'bob') {
+    const time = elapsedMs / 1000
+    return { x: 0, y: Math.sin(time * 3.2) * 2.2 * strength }
+  }
+  if (expression.bodyMotion === 'bounce') {
+    const time = elapsedMs / 1000
+    return {
+      x: Math.sin(time * 2.4) * 0.9 * strength,
+      y: -Math.abs(Math.sin(time * 3.6)) * 4.2 * strength,
+    }
+  }
+  if (expression.bodyMotion === 'sway') {
+    const time = elapsedMs / 1000
+    return { x: Math.sin(time * 1.8) * 2.1 * strength, y: Math.cos(time * 1.4) * 0.55 * strength }
+  }
+  if (expression.bodyMotion === 'float') {
+    return {
+      x: smoothNoise(elapsedMs, 5, seed, 4200) * 2.2 * strength,
+      y: smoothNoise(elapsedMs, 6, seed, 5100) * 2.5 * strength,
+    }
+  }
   if (expression.bodyMotion === 'shake') {
     const time = elapsedMs / 1000
     return {
@@ -67,6 +108,23 @@ export const ambientEyeOffset = (expression: Expression, elapsedMs: number, stre
       x: saccade(elapsedMs, 0, EYE_MOTION_SEED) * 1.5 * strength,
       y: saccade(elapsedMs, 1, EYE_MOTION_SEED) * 0.9 * strength,
     }
+  }
+  if (expression.eyeMotion === 'wander') {
+    return {
+      x: smoothNoise(elapsedMs, 9, EYE_MOTION_SEED, 2100) * 3.2 * strength,
+      y: smoothNoise(elapsedMs, 10, EYE_MOTION_SEED, 2700) * 1.8 * strength,
+    }
+  }
+  if (expression.eyeMotion === 'lookAround') {
+    const time = elapsedMs / 1000
+    return {
+      x: Math.sin(time * 1.8) * 4.2 * strength,
+      y: Math.sin(time * 0.9 + 0.7) * 1.4 * strength,
+    }
+  }
+  if (expression.eyeMotion === 'focusPulse') {
+    const time = elapsedMs / 1000
+    return { x: Math.sin(time * 5.2) * 0.35 * strength, y: Math.cos(time * 4.8) * 0.25 * strength }
   }
   if (expression.eyeMotion === 'shake') {
     const time = elapsedMs / 1000
@@ -90,6 +148,23 @@ export const applyAmbientBodyMotion = (
     next.headX += smoothNoise(elapsedMs, 0, seed, 2600) * 0.8 * strength
     next.headY += smoothNoise(elapsedMs, 1, seed, 3300) * 1.15 * strength
     next.headZ += smoothNoise(elapsedMs, 2, seed, 4100) * 0.45 * strength
+  } else if (expression.bodyMotion === 'breathe') {
+    const time = elapsedMs / 1000
+    next.headX += Math.sin(time * 1.7) * 0.45 * strength
+  } else if (expression.bodyMotion === 'bob') {
+    const time = elapsedMs / 1000
+    next.headX += Math.sin(time * 3.2) * 1.4 * strength
+  } else if (expression.bodyMotion === 'bounce') {
+    const time = elapsedMs / 1000
+    next.headZ += Math.sin(time * 3.6) * 2.2 * strength
+  } else if (expression.bodyMotion === 'sway') {
+    const time = elapsedMs / 1000
+    next.headZ += Math.sin(time * 1.8) * 3.4 * strength
+    next.headY += Math.sin(time * 0.9) * 1.2 * strength
+  } else if (expression.bodyMotion === 'float') {
+    next.headX += smoothNoise(elapsedMs, 7, seed, 4200) * 1.25 * strength
+    next.headY += smoothNoise(elapsedMs, 8, seed, 5100) * 1.8 * strength
+    next.headZ += smoothNoise(elapsedMs, 9, seed, 4700) * 0.9 * strength
   } else if (expression.bodyMotion === 'shake') {
     const time = elapsedMs / 1000
     next.headX += (Math.sin(time * 31) + Math.sin(time * 53) * 0.45) * 1.15 * strength

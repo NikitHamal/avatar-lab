@@ -19,7 +19,7 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 from urllib.parse import quote
 
 try:

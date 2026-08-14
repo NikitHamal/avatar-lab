@@ -1,5 +1,11 @@
 import type { AvatarColors } from '../avatar/avatars'
 import type { RenderedScene } from '../rendering/renderedScene'
+import {
+  resolveNodeFill,
+  resolveNodeFilter,
+  resolveNodeOpacity,
+  serializeNodePaintDefinitions,
+} from '../rendering/nodePaint'
 
 export type SnapshotBackground = 'transparent' | 'solid' | 'linear' | 'radial'
 
@@ -21,8 +27,10 @@ const escapeXml = (value: string) =>
     return entities[character]
   })
 
-const path = (value: string, fill: string, opacity = 1) =>
-  value ? `<path d="${escapeXml(value)}" fill="${fill}" opacity="${opacity}"/>` : ''
+const path = (value: string, fill: string, opacity = 1, filter?: string) =>
+  value
+    ? `<path d="${escapeXml(value)}" fill="${escapeXml(fill)}" opacity="${opacity}"${filter ? ` filter="${escapeXml(filter)}"` : ''}/>`
+    : ''
 
 const backgroundMarkup = (options: SnapshotOptions) => {
   if (options.background === 'transparent') return ''
@@ -58,9 +66,10 @@ export const serializeAvatarSnapshot = (
       if (!p) return ''
       const nodeId = scene.backNodeIds.current[index]
       const style = nodeId ? scene.nodeStyles.current[nodeId] : undefined
-      const fill = style?.color || colors.body
-      const opacity = style?.opacity ?? 1
-      return path(p, fill, opacity)
+      const fill = resolveNodeFill(style, colors.body, 'snapshot-node', nodeId) || colors.body
+      const opacity = resolveNodeOpacity(style) ?? 1
+      const filter = resolveNodeFilter(style, 'snapshot-node', nodeId)
+      return path(p, fill, opacity, filter)
     })
     .join('')
   const frontPaths = scene.frontPaths
@@ -69,9 +78,10 @@ export const serializeAvatarSnapshot = (
       if (!p) return ''
       const nodeId = scene.frontNodeIds.current[index]
       const style = nodeId ? scene.nodeStyles.current[nodeId] : undefined
-      const fill = style?.color || colors.body
-      const opacity = style?.opacity ?? 1
-      return path(p, fill, opacity)
+      const fill = resolveNodeFill(style, colors.body, 'snapshot-node', nodeId) || colors.body
+      const opacity = resolveNodeOpacity(style) ?? 1
+      const filter = resolveNodeFilter(style, 'snapshot-node', nodeId)
+      return path(p, fill, opacity, filter)
     })
     .join('')
   const offsetX = scene.offsetX.get()
@@ -87,6 +97,12 @@ export const serializeAvatarSnapshot = (
     .map(decal => path(decal.path, decal.fill, decal.opacity ?? 1))
     .join('')
 
+  const nodePaintDefs = serializeNodePaintDefinitions(
+    scene.nodeStyles.current,
+    'snapshot-node',
+    colors.body
+  )
+
   const body = [
     backPaths,
     path(headPath, colors.body),
@@ -96,7 +112,7 @@ export const serializeAvatarSnapshot = (
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}" role="img" aria-label="${escapeXml(name)}">
-  <defs>${gradientMarkup(options)}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath></defs>
+  <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath></defs>
   ${backgroundMarkup(options)}
   <g transform="translate(${offsetX} ${offsetY})">${body}</g>
 </svg>`

@@ -10,8 +10,9 @@ import type { BodyNode } from './body'
 
 export type Quaternion = readonly [number, number, number, number]
 export type Point3 = readonly [number, number, number]
-export type EyeMotion = 'none' | 'microSaccades' | 'shake'
-export type BodyMotion = 'none' | 'slowDrift' | 'shake'
+export type EyeMotion = 'none' | 'microSaccades' | 'wander' | 'lookAround' | 'focusPulse' | 'shake'
+export type BodyMotion =
+  'none' | 'slowDrift' | 'breathe' | 'bob' | 'bounce' | 'sway' | 'float' | 'shake'
 
 export type Expression = {
   id: string
@@ -34,7 +35,8 @@ export type Expression = {
   bodyMotion: BodyMotion
   bodyColor?: string
   eyeColor?: string
-  mouth?: 'smile' | 'openSmile' | 'oMouth' | 'flat' | 'cat' | 'none'
+  mouth?:
+    'smile' | 'openSmile' | 'oMouth' | 'flat' | 'cat' | 'frown' | 'smirk' | 'grin' | 'kiss' | 'none'
   mouthScale?: number
 }
 
@@ -371,17 +373,17 @@ export const renderBodyNodeEditor = (
       ]
     })
   ) as BodyNodeEditorGeometry['axes']
-    ; (['x', 'y', 'z'] as const).forEach(axis => {
-      const endpoint = axes[axis]
-      if (Math.hypot(endpoint[0] - center[0], endpoint[1] - center[1]) >= 12) return
-      const fallback: Point3 =
-        axis === 'x'
-          ? [center[0] + 18, center[1], endpoint[2]]
-          : axis === 'y'
-            ? [center[0], center[1] + 18, endpoint[2]]
-            : [center[0] + 14, center[1] + 14, endpoint[2]]
-      axes[axis] = fallback
-    })
+  ;(['x', 'y', 'z'] as const).forEach(axis => {
+    const endpoint = axes[axis]
+    if (Math.hypot(endpoint[0] - center[0], endpoint[1] - center[1]) >= 12) return
+    const fallback: Point3 =
+      axis === 'x'
+        ? [center[0] + 18, center[1], endpoint[2]]
+        : axis === 'y'
+          ? [center[0], center[1] + 18, endpoint[2]]
+          : [center[0] + 14, center[1] + 14, endpoint[2]]
+    axes[axis] = fallback
+  })
   const rings = Object.fromEntries(
     (['x', 'y', 'z'] as const).map(axis => [
       axis,
@@ -981,14 +983,14 @@ const projectedEllipsoid = (
   const cameraOffset: Point3 = [-center[0], -center[1], focalLength - center[2]]
   const cameraNormal: Point3 = [
     quadratic[0][0] * cameraOffset[0] +
-    quadratic[0][1] * cameraOffset[1] +
-    quadratic[0][2] * cameraOffset[2],
+      quadratic[0][1] * cameraOffset[1] +
+      quadratic[0][2] * cameraOffset[2],
     quadratic[1][0] * cameraOffset[0] +
-    quadratic[1][1] * cameraOffset[1] +
-    quadratic[1][2] * cameraOffset[2],
+      quadratic[1][1] * cameraOffset[1] +
+      quadratic[1][2] * cameraOffset[2],
     quadratic[2][0] * cameraOffset[0] +
-    quadratic[2][1] * cameraOffset[1] +
-    quadratic[2][2] * cameraOffset[2],
+      quadratic[2][1] * cameraOffset[1] +
+      quadratic[2][2] * cameraOffset[2],
   ]
   const cameraTerm =
     cameraOffset[0] * cameraNormal[0] +
@@ -1250,40 +1252,56 @@ const accessoryLayers = (pose: AvatarPose, nodes: BodyNode[]) => {
 const mouthPoints = (
   pose: AvatarPose,
   surface: SurfaceConfig,
-  type: string = 'smile',
+  type: Expression['mouth'] = 'none',
   scale = 1
 ): { path: string; visible: boolean } => {
   if (!type || type === 'none') return { path: '', visible: false }
-  const mouthLat = -0.36
-  const mouthWidthAngle = 0.24 * (scale || 1)
-  const mouthCurveLat = type === 'smile' ? -0.09 : type === 'openSmile' ? -0.18 : 0
-  const sampleCount = 9
+  const mouthY = 22
+  const mouthHalfWidth = 20 * (scale || 1)
+
+  if (type === 'oMouth' || type === 'kiss') {
+    const points: Point3[] = []
+    let totalNormalZ = 0
+    const horizontalRadius = (type === 'kiss' ? 8 : 13) * (scale || 1)
+    const verticalRadius = (type === 'kiss' ? 6.5 : 12) * (scale || 1)
+    for (let index = 0; index <= 20; index += 1) {
+      const angle = (index / 20) * Math.PI * 2
+      const x = Math.cos(angle) * horizontalRadius
+      const y = mouthY + Math.sin(angle) * verticalRadius
+      const projected = projectFacePoint(pose, surface, x, y)
+      points.push(projected.point)
+      totalNormalZ += projected.normal[2]
+    }
+    if (!points.length) return { path: '', visible: false }
+    const d = `${path(points)}Z`
+    return { path: d, visible: totalNormalZ > -0.1 }
+  }
+
+  const sampleCount = 15
   const points: Point3[] = []
   let totalNormalZ = 0
-
-  for (let i = 0; i < sampleCount; i++) {
-    const t = (i / (sampleCount - 1)) * 2 - 1
-    const long = t * mouthWidthAngle
-    const curveOffset = (1 - t * t) * mouthCurveLat
-    const lat = mouthLat + curveOffset
-    const sample = surfaceFrontSampleAt(surface, long, lat)
-    const projected = project(
-      rotateWithQuaternion(pose.orientation, sample.point),
-      pose.expression.perspective
-    )
-    points.push(projected)
-    const normal = rotateWithQuaternion(pose.orientation, sample.normal)
-    totalNormalZ += normal[2]
+  for (let index = 0; index < sampleCount; index += 1) {
+    const t = (index / (sampleCount - 1)) * 2 - 1
+    const x = t * mouthHalfWidth * (type === 'grin' ? 1.2 : 1)
+    const baseCurve =
+      type === 'smile'
+        ? -7
+        : type === 'openSmile' || type === 'grin'
+          ? -12
+          : type === 'frown'
+            ? 7
+            : 0
+    const catCurve = type === 'cat' ? -5 * Math.abs(Math.sin(t * Math.PI)) + 2.5 : 0
+    const smirkCurve = type === 'smirk' ? (-6 * (t + 1)) / 2 : 0
+    const curveOffset = (1 - t * t) * baseCurve + catCurve + smirkCurve
+    const y = mouthY + curveOffset
+    const projected = projectFacePoint(pose, surface, x, y)
+    points.push(projected.point)
+    totalNormalZ += projected.normal[2]
   }
 
-  const visible = totalNormalZ > 0
   if (points.length < 2) return { path: '', visible: false }
-
-  let d = `M${points[0][0].toFixed(2)} ${points[0][1].toFixed(2)}`
-  for (let i = 1; i < points.length; i++) {
-    d += ` L${points[i][0].toFixed(2)} ${points[i][1].toFixed(2)}`
-  }
-  return { path: d, visible }
+  return { path: path(points, false), visible: totalNormalZ > -0.1 }
 }
 
 const projectedSurfaceBand = (

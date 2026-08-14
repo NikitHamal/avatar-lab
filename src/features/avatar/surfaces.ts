@@ -14,6 +14,14 @@ export type SurfaceType =
   | 'cloud'
   | 'book'
   | 'hand'
+  | 'egg'
+  | 'bean'
+  | 'heart'
+  | 'droplet'
+  | 'pebble'
+  | 'pyramid'
+  | 'flower'
+  | 'disc'
 
 export type SurfaceConfig = {
   type: SurfaceType
@@ -62,6 +70,14 @@ export const surfacePresets: Record<SurfaceType, SurfaceConfig> = {
   cloud: { type: 'cloud', width: 250, height: 190, depth: 180, roundness: 1 },
   book: { type: 'book', width: 210, height: 140, depth: 95, roundness: 0.5 },
   hand: { type: 'hand', width: 85, height: 85, depth: 75, roundness: 1 },
+  egg: { type: 'egg', width: 215, height: 260, depth: 205, roundness: 1 },
+  bean: { type: 'bean', width: 235, height: 220, depth: 190, roundness: 1 },
+  heart: { type: 'heart', width: 235, height: 220, depth: 150, roundness: 0.8 },
+  droplet: { type: 'droplet', width: 210, height: 275, depth: 190, roundness: 0.9 },
+  pebble: { type: 'pebble', width: 250, height: 205, depth: 175, roundness: 1.25 },
+  pyramid: { type: 'pyramid', width: 235, height: 255, depth: 215, roundness: 0.2 },
+  flower: { type: 'flower', width: 185, height: 185, depth: 70, roundness: 0.75 },
+  disc: { type: 'disc', width: 230, height: 230, depth: 72, roundness: 1 },
 }
 
 export const surfaceLabels: Record<SurfaceType, string> = {
@@ -78,6 +94,14 @@ export const surfaceLabels: Record<SurfaceType, string> = {
   cloud: 'Nuage',
   book: 'Livre',
   hand: 'Main / Patte',
+  egg: 'Œuf',
+  bean: 'Haricot',
+  heart: 'Cœur',
+  droplet: 'Goutte',
+  pebble: 'Galet',
+  pyramid: 'Pyramide',
+  flower: 'Fleur',
+  disc: 'Disque',
 }
 
 const signedPower = (value: number, exponent: number) =>
@@ -416,6 +440,92 @@ export const surfacePointAt = (
         (depth / 2) * latCos * Math.cos(longitude),
       ]
     }
+    case 'egg': {
+      const latSin = Math.sin(latitude)
+      const latCos = Math.cos(latitude)
+      const taper = 1 - 0.17 * latSin
+      return [
+        (width / 2) * latCos * Math.sin(longitude) * taper,
+        (height / 2) * latSin,
+        (depth / 2) * latCos * Math.cos(longitude) * taper,
+      ]
+    }
+    case 'bean': {
+      const latSin = Math.sin(latitude)
+      const latCos = Math.cos(latitude)
+      const waist = 0.88 + 0.14 * Math.cos(latitude * 2)
+      const bend = width * 0.08 * (latSin * latSin - 0.35)
+      return [
+        bend + (width / 2) * latCos * Math.sin(longitude) * waist,
+        (height / 2) * latSin,
+        (depth / 2) * latCos * Math.cos(longitude) * (1 - 0.08 * latSin),
+      ]
+    }
+    case 'heart': {
+      const latSin = Math.sin(latitude)
+      const latCos = Math.cos(latitude)
+      const front = Math.cos(longitude)
+      const side = Math.sin(longitude)
+      const upper = Math.max(0, -latSin)
+      const lobe = 1 + 0.18 * upper * Math.cos(longitude * 2)
+      const cleft = 1 - 0.22 * upper * Math.max(0, front)
+      const point = 1 - 0.18 * Math.max(0, latSin)
+      return [
+        (width / 2) * latCos * side * lobe,
+        (height / 2) * latSin * point + height * 0.035,
+        (depth / 2) * latCos * front * cleft,
+      ]
+    }
+    case 'droplet': {
+      const progress = (latitude + Math.PI / 2) / Math.PI
+      const latSin = Math.sin(latitude)
+      const latCos = Math.cos(latitude)
+      const taper = Math.max(0.08, 1.14 - progress * 0.78)
+      return [
+        (width / 2) * latCos * Math.sin(longitude) * taper,
+        (height / 2) * latSin,
+        (depth / 2) * latCos * Math.cos(longitude) * taper,
+      ]
+    }
+    case 'pebble': {
+      const verticalExponent = 0.82 + clampRoundness(config.roundness) * 0.18
+      const horizontalExponent = 0.82 + clampRoundness(config.roundness) * 0.2
+      const point = superellipsoid(
+        longitude,
+        latitude,
+        width,
+        height,
+        depth,
+        verticalExponent,
+        horizontalExponent
+      )
+      const wobble = 1 + 0.035 * Math.cos(3 * longitude) * Math.cos(latitude)
+      return [point[0] * wobble, point[1], point[2] * wobble]
+    }
+    case 'pyramid': {
+      const progress = (latitude + Math.PI / 2) / Math.PI
+      const y = height / 2 - progress * height
+      const scale = Math.max(0.02, progress)
+      const angle = longitude + Math.PI / 4
+      const squareRadius = 1 / Math.max(Math.abs(Math.cos(angle)), Math.abs(Math.sin(angle)), 0.001)
+      return [
+        (width / 2) * scale * Math.sin(longitude) * squareRadius * 0.72,
+        y,
+        (depth / 2) * scale * Math.cos(longitude) * squareRadius * 0.72,
+      ]
+    }
+    case 'flower': {
+      const latCos = Math.cos(latitude)
+      const petal = 0.7 + 0.3 * (0.5 + 0.5 * Math.cos(longitude * 5))
+      const dome = 0.82 + 0.18 * Math.cos(latitude * 2)
+      return [
+        (width / 2) * latCos * Math.sin(longitude) * petal,
+        (height / 2) * Math.sin(latitude) * petal,
+        (depth / 2) * latCos * Math.cos(longitude) * dome,
+      ]
+    }
+    case 'disc':
+      return superellipsoid(longitude, latitude, width, height, depth, 0.9, 0.9)
   }
 }
 
@@ -599,6 +709,8 @@ export const surfaceFrontSampleAt = (
   switch (config.type) {
     case 'sphere':
     case 'mickey':
+    case 'pebble':
+    case 'disc':
       return ellipsoidFrontSample(x, y, radiusX, radiusY, radiusZ)
 
     case 'cube':
@@ -655,7 +767,12 @@ export const surfaceNormalAt = (
 
   // An ellipsoid has a cheap exact normal. This is also the overwhelmingly
   // common path for the default spherical head.
-  if (config.type === 'sphere' || config.type === 'mickey') {
+  if (
+    config.type === 'sphere' ||
+    config.type === 'mickey' ||
+    config.type === 'pebble' ||
+    config.type === 'disc'
+  ) {
     const halfWidth = config.width / 2 || 1
     const halfHeight = config.height / 2 || 1
     const halfDepth = config.depth / 2 || 1
@@ -692,7 +809,12 @@ export const surfaceSampleAt = (
 ): SurfaceSample => {
   const point = surfacePointAt(config, longitude, latitude)
 
-  if (config.type === 'sphere' || config.type === 'mickey') {
+  if (
+    config.type === 'sphere' ||
+    config.type === 'mickey' ||
+    config.type === 'pebble' ||
+    config.type === 'disc'
+  ) {
     const halfWidth = config.width / 2 || 1
     const halfHeight = config.height / 2 || 1
     const halfDepth = config.depth / 2 || 1

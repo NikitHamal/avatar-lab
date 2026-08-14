@@ -35,9 +35,17 @@ export const bodyPrimitiveTypes = [
   'cloud',
   'book',
   'hand',
+  'egg',
+  'bean',
+  'heart',
+  'droplet',
+  'pebble',
+  'pyramid',
+  'flower',
+  'disc',
 ] as const
 
-export const MAX_BODY_NODES = 16
+export const MAX_BODY_NODES = 24
 
 const allSurfaceTypes = Object.keys(surfacePresets) as SurfaceType[]
 const finite = (value: unknown): value is number =>
