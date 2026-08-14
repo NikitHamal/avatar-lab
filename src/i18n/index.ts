@@ -61,6 +61,23 @@ const english: Record<string, string> = {
   'Retour au studio': 'Back to studio',
   'Preset en mémoire': 'Saved preset',
   'Nouvelle expression': 'New expression',
+  'Identité runtime': 'Runtime identity',
+  'Nom public stable utilisé par les applications qui chargent cet avatar.':
+    'Stable public name used by applications that load this avatar.',
+  'Clé sémantique': 'Semantic key',
+  'Clé sémantique manquante': 'Missing semantic key',
+  'Clé publique stable utilisée par l’API runtime, par exemple happy-smile.':
+    'Stable public key used by the runtime API, for example happy-smile.',
+  'Clé publique stable utilisée par l’API runtime, par exemple thinking.':
+    'Stable public key used by the runtime API, for example thinking.',
+  'Ajoute une clé pour inclure cet élément dans l’export runtime.':
+    'Add a key to include this item in the runtime export.',
+  'Utilise des lettres minuscules, des chiffres et des tirets, par exemple happy-smile.':
+    'Use lowercase letters, numbers, and hyphens, for example happy-smile.',
+  'neutral est réservé à l’apparence neutre de l’avatar.':
+    'neutral is reserved for the avatar neutral appearance.',
+  'Cette clé est déjà utilisée dans cette bibliothèque.':
+    'This key is already used in this library.',
   'L’avatar à gauche affiche cette expression en direct.':
     'The avatar on the left previews this expression live.',
   Corps: 'Body',
@@ -108,8 +125,40 @@ const english: Record<string, string> = {
   Animations: 'Animations',
   Exporter: 'Export',
   'Exporter l’avatar': 'Export avatar',
+  'Exporter le JSON runtime': 'Export runtime JSON',
+  Nouveau: 'New',
+  'Exporte le fichier .avatar.json utilisé par les nouveaux packages npm.':
+    'Export the .avatar.json file used by the new npm packages.',
+  'Télécharge la définition portable complète de l’avatar actif.':
+    'Download the complete portable definition for the active avatar.',
+  'Définition runtime': 'Runtime definition',
+  'Fichier .avatar.json portable': 'Portable .avatar.json file',
+  'Prêt pour l’export runtime': 'Ready for runtime export',
+  'Export runtime incomplet': 'Runtime export is incomplete',
+  'Effacer le projet local et recharger': 'Clear local project and reload',
+  'animations standard disponibles': 'standard animations available',
+  'Télécharger la définition .avatar.json': 'Download .avatar.json definition',
+  'Copier le JSON formaté': 'Copy formatted JSON',
+  'JSON runtime copié dans le presse-papiers.': 'Runtime JSON copied to the clipboard.',
+  'Impossible de copier le JSON runtime.': 'Could not copy the runtime JSON.',
+  'Démarrage rapide npm': 'npm quick start',
+  'Ces commandes fonctionneront après la publication des packages actuellement privés.':
+    'These commands will work after the currently private packages are published.',
+  Installation: 'Installation',
+  'Exemple React minimal': 'Minimal React example',
+  'Lancer l’exemple': 'Run example',
+  'Masquer l’aperçu': 'Hide preview',
+  'Aperçu avec le package React': 'Preview using the React package',
+  'Aperçu runtime de l’avatar actif': 'Runtime preview of the active avatar',
+  Expression: 'Expression',
+  Animation: 'Animation',
+  'Une étape référence une expression qui ne peut pas être exportée.':
+    'A step references an expression that cannot be exported.',
+  'Valeur incompatible avec le format runtime': 'Value incompatible with the runtime format',
   'Télécharge un composant autonome avec les animations de ton choix.':
     'Download a standalone component with the animations you choose.',
+  'Génère l’export ZIP autonome React ou JavaScript qui existait déjà.':
+    'Generate the existing standalone React or JavaScript ZIP export.',
   'Avatar sélectionné': 'Selected avatar',
   Format: 'Format',
   'Choisis l’intégration correspondant à ton projet.':

@@ -28,6 +28,7 @@ export type BlinkSettings = {
 
 export type AvatarSequence = {
   id: string
+  semanticKey?: string
   name: string
   group: string
   description: string
@@ -67,6 +68,7 @@ export const createInitialSequences = (): AvatarSequence[] =>
       const playback = getStatePlaybackConfig(id)
       return {
         id,
+        semanticKey: id,
         name: id,
         group,
         description:
@@ -117,6 +119,7 @@ const parseSequence = (value: unknown, fallback: AvatarSequence): AvatarSequence
   const minIntervalMs = finite(storedBlink?.minIntervalMs, fallback.blink.minIntervalMs, 100, 60000)
   return {
     id: typeof candidate?.id === 'string' ? candidate.id : fallback.id,
+    ...(typeof candidate?.semanticKey === 'string' ? { semanticKey: candidate.semanticKey } : {}),
     name:
       typeof candidate?.name === 'string' && candidate.name.trim() ? candidate.name : fallback.name,
     group:
@@ -227,6 +230,7 @@ export const createSequence = (expressionId = initialExpressions[0].id): AvatarS
 export const duplicateSequence = (source: AvatarSequence): AvatarSequence => ({
   ...cloneSequence(source),
   id: createId('sequence'),
+  semanticKey: undefined,
   name: `${source.name} copy`,
   builtIn: false,
   steps: source.steps.map(step => ({ ...step, id: createId('step') })),

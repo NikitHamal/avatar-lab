@@ -1,0 +1,44 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #111827;
+  background: #f8fafc;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+  min-height: 100dvh;
+  padding: 48px 16px;
+  box-sizing: border-box;
+}
+
+.avatar-host {
+  width: min(100%, 360px);
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 24px;
+  background: white;
+}
+
+button {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  background: #4338ca;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 3px solid #4338ca;
+  outline-offset: 3px;
+}

@@ -58,9 +58,12 @@ export const createAvatarExportPayload = (
   const exportedExpressions = Object.fromEntries(
     [...referencedIds].flatMap(expressionId => {
       const expression = expressionById.get(expressionId)
-      return expression
-        ? [[expressionId, applyAvatarEyeDefaults(expression, avatar.eyes)] as const]
-        : []
+      if (!expression) return []
+      const { semanticKey: _semanticKey, ...legacyExpression } = applyAvatarEyeDefaults(
+        expression,
+        avatar.eyes
+      )
+      return [[expressionId, legacyExpression] as const]
     })
   )
   const usedKeys = new Set<string>()

@@ -34,6 +34,21 @@ export const chinese: Record<string, string> = {
   'Retour au studio': '返回工作室',
   'Preset en mémoire': '已保存预设',
   'Nouvelle expression': '新建表情',
+  'Identité runtime': '运行时标识',
+  'Nom public stable utilisé par les applications qui chargent cet avatar.':
+    '供加载此头像的应用使用的稳定公开名称。',
+  'Clé sémantique': '语义键',
+  'Clé sémantique manquante': '缺少语义键',
+  'Clé publique stable utilisée par l’API runtime, par exemple happy-smile.':
+    '运行时 API 使用的稳定公开键，例如 happy-smile。',
+  'Clé publique stable utilisée par l’API runtime, par exemple thinking.':
+    '运行时 API 使用的稳定公开键，例如 thinking。',
+  'Ajoute une clé pour inclure cet élément dans l’export runtime.':
+    '添加键以在运行时导出中包含此项目。',
+  'Utilise des lettres minuscules, des chiffres et des tirets, par exemple happy-smile.':
+    '请使用小写字母、数字和连字符，例如 happy-smile。',
+  'neutral est réservé à l’apparence neutre de l’avatar.': 'neutral 保留用于头像的中性外观。',
+  'Cette clé est déjà utilisée dans cette bibliothèque.': '此键已在当前库中使用。',
   'L’avatar à gauche affiche cette expression en direct.': '左侧头像会实时预览此表情。',
   Corps: '身体',
   Rendu: '渲染',
@@ -80,8 +95,39 @@ export const chinese: Record<string, string> = {
   Exporter: '导出',
   Export: '导出',
   'Exporter l’avatar': '导出头像',
+  'Exporter le JSON runtime': '导出运行时 JSON',
+  Nouveau: '新增',
+  'Exporte le fichier .avatar.json utilisé par les nouveaux packages npm.':
+    '导出新 npm 包使用的 .avatar.json 文件。',
+  'Télécharge la définition portable complète de l’avatar actif.': '下载当前头像的完整可移植定义。',
+  'Définition runtime': '运行时定义',
+  'Fichier .avatar.json portable': '可移植 .avatar.json 文件',
+  'Prêt pour l’export runtime': '可以导出运行时定义',
+  'Export runtime incomplet': '运行时导出不完整',
+  'Effacer le projet local et recharger': '清除本地项目并重新加载',
+  'animations standard disponibles': '个标准动画可用',
+  'Télécharger la définition .avatar.json': '下载 .avatar.json 定义',
+  'Copier le JSON formaté': '复制格式化的 JSON',
+  'JSON runtime copié dans le presse-papiers.': '运行时 JSON 已复制到剪贴板。',
+  'Impossible de copier le JSON runtime.': '无法复制运行时 JSON。',
+  'Démarrage rapide npm': 'npm 快速开始',
+  'Ces commandes fonctionneront après la publication des packages actuellement privés.':
+    '这些命令将在当前私有包发布后可用。',
+  Installation: '安装',
+  'Exemple React minimal': '最简 React 示例',
+  'Lancer l’exemple': '运行示例',
+  'Masquer l’aperçu': '隐藏预览',
+  'Aperçu avec le package React': '使用 React 包预览',
+  'Aperçu runtime de l’avatar actif': '当前头像的运行时预览',
+  Expression: '表情',
+  Animation: '动画',
+  'Une étape référence une expression qui ne peut pas être exportée.':
+    '某个步骤引用了无法导出的表情。',
+  'Valeur incompatible avec le format runtime': '值与运行时格式不兼容',
   'Télécharge un composant autonome avec les animations de ton choix.':
     '下载包含所选动画的独立组件。',
+  'Génère l’export ZIP autonome React ou JavaScript qui existait déjà.':
+    '生成原有的 React 或 JavaScript 独立 ZIP 导出。',
   'Avatar sélectionné': '已选头像',
   Format: '格式',
   'Choisis l’intégration correspondant à ton projet.': '选择适合项目的集成方式。',

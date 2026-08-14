@@ -1,6 +1,7 @@
 import {
   parseAvatarLibrary,
   parseExpressions,
+  restoreLegacyBehaviorSemanticKeys,
   type AvatarBehaviorLibrary,
   type AvatarLibrary,
 } from '../avatar/avatars'
@@ -49,13 +50,16 @@ export const parseStudioDocument = (value: unknown, fallback: StudioDocument): S
   const sequences = Array.isArray(candidate.sequences)
     ? normalizeSequencesForExpressions(parseSequences(candidate.sequences), expressions)
     : fallback.sequences
-  const baseBehavior: AvatarBehaviorLibrary = { expressions, sequences }
+  const baseBehavior = restoreLegacyBehaviorSemanticKeys(
+    { expressions, sequences },
+    { expressions: fallback.expressions, sequences: fallback.sequences }
+  )
   const library = parseAvatarLibrary(candidate.library, fallback.library, baseBehavior)
   return {
     version: 2,
     library,
-    expressions,
-    sequences,
+    expressions: baseBehavior.expressions,
+    sequences: baseBehavior.sequences,
     playback: parsePlayback(candidate.playback, fallback.playback),
   }
 }
@@ -115,6 +119,17 @@ export const persistStudioDocument = (document: StudioDocument) => {
     return true
   } catch {
     // The in-memory document remains authoritative when storage is unavailable.
+    return false
+  }
+}
+
+export const clearPersistedStudioDocument = (
+  storage: Pick<Storage, 'removeItem'> = window.localStorage
+) => {
+  try {
+    storage.removeItem(DOCUMENT_STORAGE_KEY)
+    return true
+  } catch {
     return false
   }
 }

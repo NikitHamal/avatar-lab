@@ -46,8 +46,16 @@ import {
   hasAmbientMotion,
 } from '@/features/avatar/ambientMotion'
 import {
+  avatarDefinitionFileName,
+  createAvatarDefinition,
+  getSemanticKeyIssue,
+  getStandardAnimationAvailabilityV1,
+  type SemanticKeyIssueCode,
+} from '@/features/avatar/avatarDefinition'
+import {
   cloneAvatarBehavior,
   createAvatar,
+  createUnkeyedExpressionCopy,
   defaultAvatarEyes,
   resolveAvatarBehavior,
   type AvatarBehaviorLibrary,
@@ -106,6 +114,7 @@ import {
 } from '@/features/rendering/renderedScene'
 import { paintPixelAvatar } from '@/features/rendering/pixelRenderer'
 import {
+  clearPersistedStudioDocument,
   createStudioDocumentStore,
   loadStudioDocument,
   parseImportedStudioDocument,
@@ -147,6 +156,7 @@ export function useStudioController() {
   const [snapshotSize, setSnapshotSize] = useState('1024')
   const [snapshotFormat, setSnapshotFormat] = useState<SnapshotFormat>('png')
   const [photoFlash, setPhotoFlash] = useState(0)
+  const [runtimeCopyStatus, setRuntimeCopyStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const initialStatePlayback = initialDocument.playback
   const updateStudioLibrary = (library: typeof initialDocument.library) =>
     documentStore.update({ library })
@@ -1192,7 +1202,7 @@ export function useStudioController() {
   }
 
   const duplicateExpression = (_index: number | null, draft: Expression, editDuplicate = false) => {
-    const duplicate = { ...draft, id: createExpressionId() }
+    const duplicate = createUnkeyedExpressionCopy(draft, createExpressionId())
     const next = [...expressions, duplicate]
     const duplicateIndex = next.length - 1
     setExpressions(next)
@@ -1281,7 +1291,8 @@ export function useStudioController() {
     setMode('expressions')
     setEditing({
       index,
-      draft: { ...draft, id: index === null ? createExpressionId() : draft.id },
+      draft:
+        index === null ? createUnkeyedExpressionCopy(draft, createExpressionId()) : { ...draft },
     })
     const avatar = avatarsRef.current.find(item => item.id === activeAvatarIdRef.current)
     if (avatar) setDisplayColors(resolveColors(draft, avatar.colors))
@@ -1478,6 +1489,79 @@ export function useStudioController() {
       : activeSequence.name
     : null
   const expressionById = new Map(expressions.map(item => [item.id, item]))
+  const semanticKeyIssueMessage = (issue: SemanticKeyIssueCode | 'duplicate_semantic_key') =>
+    t(
+      issue === 'missing_semantic_key'
+        ? 'Ajoute une clé pour inclure cet élément dans l’export runtime.'
+        : issue === 'invalid_semantic_key'
+          ? 'Utilise des lettres minuscules, des chiffres et des tirets, par exemple happy-smile.'
+          : issue === 'reserved_semantic_key'
+            ? 'neutral est réservé à l’apparence neutre de l’avatar.'
+            : 'Cette clé est déjà utilisée dans cette bibliothèque.'
+    )
+  const expressionSemanticKeyError = (draft: Expression) => {
+    const issue = getSemanticKeyIssue(draft.semanticKey, 'expression')
+    if (issue) return semanticKeyIssueMessage(issue)
+    if (
+      expressions.some(
+        expression => expression.id !== draft.id && expression.semanticKey === draft.semanticKey
+      )
+    ) {
+      return semanticKeyIssueMessage('duplicate_semantic_key')
+    }
+    return null
+  }
+  const animationSemanticKeyError = (draft: AvatarSequence) => {
+    const issue = getSemanticKeyIssue(draft.semanticKey, 'animation')
+    if (issue) return semanticKeyIssueMessage(issue)
+    if (
+      sequences.some(
+        sequence => sequence.id !== draft.id && sequence.semanticKey === draft.semanticKey
+      )
+    ) {
+      return semanticKeyIssueMessage('duplicate_semantic_key')
+    }
+    return null
+  }
+  const runtimeDefinitionResult = createAvatarDefinition({
+    avatar: activeAvatar,
+    behavior: { expressions, sequences },
+  })
+  const runtimeExportErrors = runtimeDefinitionResult.ok
+    ? []
+    : [
+        ...new Set(
+          runtimeDefinitionResult.errors
+            .filter(
+              error =>
+                error.code !== 'unresolved_expression_reference' ||
+                !runtimeDefinitionResult.errors.some(candidate =>
+                  candidate.path.startsWith('/studio/expressions/')
+                )
+            )
+            .map(error => {
+              const expressionMatch = error.path.match(/^\/studio\/expressions\/(\d+)/)
+              if (expressionMatch) {
+                const index = Number(expressionMatch[1])
+                const item = expressions[index]
+                return `${t('Expression')} ${item?.semanticKey || String(index).padStart(2, '0')}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
+              }
+              const animationMatch = error.path.match(/^\/studio\/animations\/(\d+)/)
+              if (animationMatch) {
+                const index = Number(animationMatch[1])
+                const item = sequences[index]
+                if (error.code === 'unresolved_expression_reference') {
+                  return `${t('Animation')} ${item?.name ?? index}: ${t('Une étape référence une expression qui ne peut pas être exportée.')}`
+                }
+                return `${t('Animation')} ${item?.semanticKey || item?.name || index}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
+              }
+              return `${t('Valeur incompatible avec le format runtime')} (${error.path || '/'})`
+            })
+        ),
+      ]
+  const runtimeStandardAvailability = runtimeDefinitionResult.ok
+    ? getStandardAnimationAvailabilityV1(runtimeDefinitionResult.value.expressions)
+    : null
   const exportAnimationIdSet = new Set(exportAnimationIds)
   const selectedExportAnimations = sequences.filter(animation =>
     exportAnimationIdSet.has(animation.id)
@@ -1498,6 +1582,28 @@ export function useStudioController() {
       ? generateReactAvatarPackage(payload)
       : generateJavaScriptAvatarPackage(payload, language)
     downloadBlob(blob, avatarExportFileName(activeAvatar.name, extension))
+  }
+  const downloadAvatarRuntimeDefinition = () => {
+    if (!runtimeDefinitionResult.ok) return
+    downloadBlob(
+      new Blob([JSON.stringify(runtimeDefinitionResult.value, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      }),
+      avatarDefinitionFileName(activeAvatar.name)
+    )
+  }
+  const copyAvatarRuntimeDefinition = async () => {
+    if (!runtimeDefinitionResult.ok) return
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard API unavailable')
+      await navigator.clipboard.writeText(JSON.stringify(runtimeDefinitionResult.value, null, 2))
+      setRuntimeCopyStatus('success')
+    } catch {
+      setRuntimeCopyStatus('error')
+    }
+  }
+  const clearLocalStudioDocument = () => {
+    if (clearPersistedStudioDocument()) window.location.reload()
   }
   const currentStudioDocument = (): StudioDocument => ({
     version: 2,
@@ -1772,7 +1878,9 @@ export function useStudioController() {
     commitBodyNode,
     commitExpressionMove,
     commitStateMove,
+    clearLocalStudioDocument,
     confirmStudioProjectImport,
+    copyAvatarRuntimeDefinition,
     createNewAvatar,
     deleteActiveAvatar,
     deleteAvatarOpen,
@@ -1782,6 +1890,7 @@ export function useStudioController() {
     deleteSequenceEditing,
     deleteSequenceOpen,
     downloadAvatarExport,
+    downloadAvatarRuntimeDefinition,
     downloadStudioProject,
     draggedAvatarId,
     draggedExpressionId,
@@ -1800,6 +1909,7 @@ export function useStudioController() {
     exportFormat,
     expression,
     expressionById,
+    expressionSemanticKeyError,
     expressionDragOrigin,
     expressionDragPreview,
     expressions,
@@ -1832,6 +1942,10 @@ export function useStudioController() {
     renderedColors,
     renderedRotationGizmo,
     renderedScene,
+    runtimeDefinitionResult,
+    runtimeCopyStatus,
+    runtimeExportErrors,
+    runtimeStandardAvailability,
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
@@ -1843,6 +1957,7 @@ export function useStudioController() {
     selectedSequenceStepId,
     selectedState,
     sequenceEditing,
+    animationSemanticKeyError,
     sequences,
     setDeleteAvatarOpen,
     setDeleteExpressionOpen,

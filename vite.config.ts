@@ -15,10 +15,16 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.join(root, 'src'),
+      '@bible-strong/avatar-core': path.join(root, 'packages/avatar-core/src/index.ts'),
+      '@bible-strong/avatar-react': path.join(root, 'packages/avatar-react/src/index.ts'),
     },
   },
   build: {
     outDir: path.join(root, 'dist'),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1_100,
+    rolldownOptions: {
+      checks: { pluginTimings: false },
+    },
   },
 })

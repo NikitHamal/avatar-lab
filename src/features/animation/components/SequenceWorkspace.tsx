@@ -62,6 +62,7 @@ export function SequenceWorkspace({
   onSave,
   onDuplicate,
   onDelete,
+  semanticKeyError,
 }: {
   editing: { sourceId: string | null; draft: AvatarSequence }
   expressions: Expression[]
@@ -86,6 +87,7 @@ export function SequenceWorkspace({
   onSave: () => void
   onDuplicate: () => void
   onDelete: () => void
+  semanticKeyError: string | null
 }) {
   const { t } = useStudioLanguage()
   const draggedStepId = useRef<string | null>(null)
@@ -161,6 +163,35 @@ export function SequenceWorkspace({
           compact
         >
           <InspectorCard>
+            <Field>
+              <label className="semantic-key-label" htmlFor={`animation-key-${editing.draft.id}`}>
+                {t('Clé sémantique')}
+              </label>
+              <Input
+                id={`animation-key-${editing.draft.id}`}
+                value={editing.draft.semanticKey ?? ''}
+                maxLength={64}
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
+                aria-invalid={Boolean(semanticKeyError)}
+                aria-describedby={`animation-key-help-${editing.draft.id}`}
+                onChange={event =>
+                  onChange({
+                    ...editing.draft,
+                    semanticKey: event.currentTarget.value || undefined,
+                  })
+                }
+              />
+              <p
+                id={`animation-key-help-${editing.draft.id}`}
+                className={semanticKeyError ? 'semantic-key-error' : 'field-help'}
+                role={semanticKeyError ? 'alert' : undefined}
+              >
+                {semanticKeyError ??
+                  t('Clé publique stable utilisée par l’API runtime, par exemple thinking.')}
+              </p>
+            </Field>
             <Field>
               <FieldTitle>{t('Nom')}</FieldTitle>
               <Input

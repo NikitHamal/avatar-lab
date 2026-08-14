@@ -3,6 +3,8 @@ import { useState, type RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -141,6 +143,7 @@ export function ExpressionCard({
   onDragOver,
   onDrop,
   onDragEnd,
+  runtimeError,
 }: {
   expression: Expression
   index: number
@@ -161,6 +164,7 @@ export function ExpressionCard({
   onDragOver?: (event: React.DragEvent<HTMLButtonElement>) => void
   onDrop?: (event: React.DragEvent<HTMLButtonElement>) => void
   onDragEnd?: () => void
+  runtimeError: string | null
 }) {
   const { t } = useStudioLanguage()
   const card = (
@@ -187,6 +191,16 @@ export function ExpressionCard({
         renderStyle={renderStyle}
         id={previewId}
       />
+      {runtimeError && (
+        <i
+          className="runtime-key-missing"
+          role="img"
+          aria-label={runtimeError}
+          title={runtimeError}
+        >
+          !
+        </i>
+      )}
       <span>{String(index).padStart(2, '0')}</span>
     </Button>
   )
@@ -225,6 +239,7 @@ export function ExpressionWorkspace({
   onSave,
   onDuplicate,
   onDelete,
+  semanticKeyError,
 }: {
   editing: { index: number | null; draft: Expression }
   avatarColors: AvatarColors
@@ -234,6 +249,7 @@ export function ExpressionWorkspace({
   onSave: () => void
   onDuplicate: () => void
   onDelete: () => void
+  semanticKeyError: string | null
 }) {
   const { t } = useStudioLanguage()
   const [linked, setLinked] = useState({
@@ -293,6 +309,43 @@ export function ExpressionWorkspace({
       </header>
       <div className="workspace-scroll">
         <div className="dialog-fields">
+          <ControlSection
+            title="Identité runtime"
+            subtitle="Nom public stable utilisé par les applications qui chargent cet avatar."
+            compact
+          >
+            <Card className="dialog-group semantic-key-card">
+              <Field>
+                <label
+                  className="semantic-key-label"
+                  htmlFor={`expression-key-${editing.draft.id}`}
+                >
+                  {t('Clé sémantique')}
+                </label>
+                <Input
+                  id={`expression-key-${editing.draft.id}`}
+                  value={editing.draft.semanticKey ?? ''}
+                  maxLength={64}
+                  spellCheck={false}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  aria-invalid={Boolean(semanticKeyError)}
+                  aria-describedby={`expression-key-help-${editing.draft.id}`}
+                  onChange={event =>
+                    update({ semanticKey: event.currentTarget.value || undefined })
+                  }
+                />
+                <p
+                  id={`expression-key-help-${editing.draft.id}`}
+                  className={semanticKeyError ? 'semantic-key-error' : 'field-help'}
+                  role={semanticKeyError ? 'alert' : undefined}
+                >
+                  {semanticKeyError ??
+                    t('Clé publique stable utilisée par l’API runtime, par exemple happy-smile.')}
+                </p>
+              </Field>
+            </Card>
+          </ControlSection>
           <ControlSection
             title="Corps"
             subtitle="Apparence et orientation générale de l’avatar."

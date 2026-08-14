@@ -2,7 +2,98 @@
 
 ## Status
 
-Implementation specification - product decisions 1 to 21 recorded on 2026-08-14.
+Complete and archived on 2026-08-14. React v1 phases A-E are implemented and verified. The packages
+remain private and must not be published until licensing and repository metadata are approved.
+Product decisions 1 to 21 were recorded on 2026-08-14.
+
+### Implementation progress - 2026-08-14
+
+| Phase                                                    | State    | Evidence                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A - Contract and pure conversion                         | Complete | The v1 JSON Schema, bounded duplicate-detecting parser, Ajv validation, public types, Studio conversion and focused boundary tests are implemented.                                                                                                                                                       |
+| B - Semantic Studio authoring                            | Complete | The approved bundled catalog has semantic keys. The Studio validates keys, reports export readiness, downloads `.avatar.json`, copies formatted JSON accessibly, and keeps English, French and Simplified Chinese copy synchronized.                                                                      |
+| C - Extract core package                                 | Complete | `@bible-strong/avatar-core` contains the framework-independent contract, geometry, scene generation, semantic lookup and deterministic playback. ESM, declarations and documented entry points build successfully.                                                                                        |
+| D - React renderer package                               | Complete | `@bible-strong/avatar-react` implements React 19 refs, embedded/floating SVG, SSR portal handoff, controlled/uncontrolled playback, direct per-frame rendering, pointer/keyboard movement, bounds, resize behavior and accessible movement controls.                                                      |
+| E - Existing export integration and package verification | Complete | Both packages build and pack. The smoke script installs their actual tarballs in a clean non-workspace React/Vite consumer, typechecks and builds it. Browser checks covered semantic controls, embedded/floating rendering, drag, reduced motion, mobile overflow, console errors and network responses. |
+| F - Additional framework adapters                        | Deferred | Vue and Angular remain explicitly outside the React v1 scope and require a separate go-ahead.                                                                                                                                                                                                             |
+
+### Archive state
+
+Implementation was completed on branch `avatar-runtime`. Do not publish either package and do not
+start Vue or Angular adapters without a separate product decision.
+
+#### Runtime export bug reported on 2026-08-14
+
+The Studio displayed one missing-key error for every bundled Expression and Animation, followed by
+many secondary unresolved-reference errors. This made the active Strobi avatar appear impossible to
+export.
+
+The fix is implemented:
+
+- when the known bundled catalog is loaded without semantic keys, its approved keys are restored by
+  durable internal ID;
+- custom Expressions and Animations are never assigned invented keys;
+- unresolved-reference consequences are hidden when an Expression key error already explains the
+  problem, and identical messages are deduplicated;
+- the incomplete-export card offers a destructive `Clear local project and reload` action that
+  removes only the Studio document storage key before loading the bundled catalog again;
+- the same repair applies to base behavior and Avatar-owned behavior;
+- focused persistence tests cover the repaired bundled catalog and prove that a custom item remains
+  unkeyed.
+
+The Export accordion flags `Export runtime JSON` as new and distinguishes it from the pre-existing
+`Export avatar` ZIP generator. The former exports runtime data for the npm packages; the latter
+continues to generate the historical standalone React or JavaScript ZIP.
+The runtime section also includes a compact `<pre>` quick start with the npm install command and a
+minimal validated React integration. It explicitly notes that the commands become usable after the
+currently private packages are published. The code uses accessible high-contrast syntax coloring,
+and a `Run example` control renders the generated definition through the actual public React package
+with a restartable `idle` animation.
+
+A production-build browser regression loaded Strobi with all bundled semantic keys removed, opened
+Export and observed `Ready for runtime export` and `6/6 standard animations available`. The captured
+download was schema v1 with 28 Expressions (including synthesized `neutral`), 23 Animations and zero
+public `expression-*` references. The formatted-copy action produced valid JSON and its accessible
+success status.
+
+#### Implemented architecture
+
+- `pnpm-workspace.yaml` declares `packages/*` and `examples/*`.
+- `packages/avatar-core` owns the public schema/types/validator, bounded JSON parser, semantic
+  manifests, geometry, surfaces, body model, ambient motion, pure playback state, definition-to-scene
+  adapter, ESM build, declarations, README and package metadata.
+- `src/features/avatar/{geometry,surfaces,body,ambientMotion}.ts` are compatibility re-exports from
+  the shared core. `src/features/avatar/avatarDefinition.ts` keeps only the Studio-to-public adapter
+  and re-exports the public contract.
+- `packages/avatar-react` owns `<Avatar />`, its typed controller, CSS hooks, embedded/floating
+  layouts, body portal, pointer capture, keyboard movement, position constraints/callbacks, SVG
+  rendering and direct per-frame path/transform updates.
+- `examples/react-vite-consumer` is the independent React fixture. `scripts/smoke-packages.mjs`
+  builds and packs both packages, copies the fixture outside the workspace, forces the core
+  dependency to the local tarball, installs, typechecks and builds.
+- Runtime packages remain `private: true` and AGPL-3.0-only. Apache-2.0 relicensing and any npm
+  publication remain blocked until every copyright holder and repository metadata are confirmed.
+- The existing Studio ZIP export still consumes compatibility re-exports and strips new
+  `semanticKey` fields from its legacy payload to avoid an unintended output change.
+
+#### Final verification recorded on 2026-08-14
+
+- Focused Studio/avatar regression suite: 3 files and 67 tests passed.
+- `pnpm check`: passed, including generated-engine freshness, formatting, TypeScript, 19 test files
+  and 162 tests, both package builds, and the production Studio build.
+- `npm pack --dry-run --json`: passed; core contains 30 allow-listed files and React contains 10.
+- `pnpm packages:smoke`: passed against newly built tarballs in a clean temporary consumer.
+- Browser verification of the tarball consumer observed two SVGs/eight paths, working
+  `play('idle')` and `setExpression('neutral')`, floating drag, no mobile horizontal overflow, and no
+  application console or page errors.
+- `git diff --check`: passed during final handoff.
+
+#### Post-implementation constraints
+
+- Decide licensing/repository metadata before removing `private: true` or publishing either package.
+- Phase F requires a separate product decision; it is not a blocker for React v1.
+- Local Vite preview still receives 404 responses for the pre-existing Vercel Analytics and Speed
+  Insights scripts; the runtime example itself renders without JavaScript errors.
 
 ## 1. Context and objective
 
@@ -349,7 +440,13 @@ Implementation steps:
 4. Update `defaultStudioDocument.json` with the curated keys.
 5. Update default constructors and tests so newly created custom content starts without a key and is visibly marked as not export-ready.
 
-Because the project is pre-release, extend the current v2 document parser, serializer, default document, and behavior-copy operations coherently instead of adding a legacy migration. Existing local documents without semantic keys remain editable, but cannot be exported as runtime definitions until keys are supplied. The parser must round-trip `semanticKey` for both base behavior and avatar-owned behavior; it must not drop it as an unknown field after reload.
+Because the project is pre-release, extend the current v2 document parser, serializer, default
+document, and behavior-copy operations coherently instead of introducing another schema version.
+When approved bundled items are loaded without their keys, restore the known keys by durable internal
+ID so the bundled avatar remains exportable. Never invent a key for custom content: custom items
+remain editable but cannot be exported until the user supplies a valid key. The parser must
+round-trip `semanticKey` for both base behavior and Avatar-owned behavior; it must not drop it as an
+unknown field after reload.
 
 ### 6.3 Expression resolution during export
 

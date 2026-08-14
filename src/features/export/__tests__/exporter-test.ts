@@ -29,6 +29,9 @@ describe('avatar export', () => {
     expect(payload).not.toHaveProperty('frames')
     expect(payload.avatar.name).toBe('Strobi')
     expect(payload.avatar.renderStyle).toEqual({ type: 'vector' })
+    expect(Object.values(payload.expressions).every(expression => !expression.semanticKey)).toBe(
+      true
+    )
   })
 
   it('preserves pixel rendering in standalone exports', () => {

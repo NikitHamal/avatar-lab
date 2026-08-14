@@ -120,6 +120,12 @@ export const applyAvatarEyeDefaults = (
   return result
 }
 
+export const createUnkeyedExpressionCopy = (source: Expression, id: string): Expression => ({
+  ...source,
+  id,
+  semanticKey: undefined,
+})
+
 export type AvatarLibrary = {
   activeAvatarId: string
   avatars: StudioAvatar[]
@@ -153,6 +159,7 @@ export const parseExpressions = (value: unknown): Expression[] => {
       parsed.bodyColor = candidate.bodyColor
     if (typeof candidate.eyeColor === 'string' && hexColor.test(candidate.eyeColor))
       parsed.eyeColor = candidate.eyeColor
+    if (typeof candidate.semanticKey === 'string') parsed.semanticKey = candidate.semanticKey
     parsed.eyeMotion = isEyeMotion(storedEyeMotion) ? storedEyeMotion : defaultExpression.eyeMotion
     parsed.bodyMotion = isBodyMotion(storedBodyMotion)
       ? storedBodyMotion
@@ -173,6 +180,41 @@ export const cloneAvatarBehavior = (behavior: AvatarBehaviorLibrary): AvatarBeha
   sequences: cloneSequences(behavior.sequences),
 })
 
+export const restoreLegacyBehaviorSemanticKeys = (
+  behavior: AvatarBehaviorLibrary,
+  reference: AvatarBehaviorLibrary
+): AvatarBehaviorLibrary => {
+  const expressionKeys = new Map(
+    reference.expressions.flatMap(expression =>
+      expression.semanticKey ? [[expression.id, expression.semanticKey] as const] : []
+    )
+  )
+  const sequenceKeys = new Map(
+    reference.sequences.flatMap(sequence =>
+      sequence.semanticKey ? [[sequence.id, sequence.semanticKey] as const] : []
+    )
+  )
+  const restoreExpressions = behavior.expressions.every(
+    expression => expression.semanticKey === undefined
+  )
+  const restoreSequences = behavior.sequences.every(sequence => sequence.semanticKey === undefined)
+
+  return {
+    expressions: restoreExpressions
+      ? behavior.expressions.map(expression => {
+          const semanticKey = expressionKeys.get(expression.id)
+          return semanticKey ? { ...expression, semanticKey } : expression
+        })
+      : behavior.expressions,
+    sequences: restoreSequences
+      ? behavior.sequences.map(sequence => {
+          const semanticKey = sequenceKeys.get(sequence.id)
+          return semanticKey ? { ...sequence, semanticKey } : sequence
+        })
+      : behavior.sequences,
+  }
+}
+
 export const resolveAvatarBehavior = (
   avatar: StudioAvatar,
   base: AvatarBehaviorLibrary
@@ -186,13 +228,18 @@ const parseAvatarBehavior = (
   const candidate = value as Partial<AvatarBehaviorLibrary>
   if (!Array.isArray(candidate.expressions) || !candidate.expressions.length) return undefined
   const expressions = parseExpressions(candidate.expressions)
-  const sequences = normalizeSequencesForExpressions(
-    Array.isArray(candidate.sequences)
-      ? parseSequences(candidate.sequences)
-      : cloneSequences(base.sequences),
-    expressions
+  return restoreLegacyBehaviorSemanticKeys(
+    {
+      expressions,
+      sequences: normalizeSequencesForExpressions(
+        Array.isArray(candidate.sequences)
+          ? parseSequences(candidate.sequences)
+          : cloneSequences(base.sequences),
+        expressions
+      ),
+    },
+    base
   )
-  return { expressions, sequences }
 }
 
 export const createAvatar = (name: string): StudioAvatar => ({

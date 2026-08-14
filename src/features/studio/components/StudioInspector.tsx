@@ -1,5 +1,8 @@
 import {
   ArrowLeft,
+  CircleCheck,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Download,
   FileCode2,
@@ -10,10 +13,16 @@ import {
   RotateCcw,
   Smile,
   Trash2,
+  TriangleAlert,
   Upload,
 } from 'lucide-react'
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
-import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { type CSSProperties, useRef, useState } from 'react'
+
+import {
+  Avatar as RuntimeAvatar,
+  type AvatarController as RuntimeAvatarController,
+} from '@bible-strong/avatar-react'
 
 import { Accordion } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
@@ -65,11 +74,51 @@ import {
 import { defaultExpression } from '@/features/avatar/presets'
 import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
-import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
+import { AvatarDrawer } from '@/features/studio/components/AvatarDrawer'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
 
+const runtimeInstallExample =
+  'npm install @bible-strong/avatar-core @bible-strong/avatar-react react react-dom'
+
+const runtimeReactExample = `import { validateAvatarDefinition } from '@bible-strong/avatar-core'
+import { Avatar } from '@bible-strong/avatar-react'
+import '@bible-strong/avatar-react/styles.css'
+import avatarJson from './strobi.avatar.json'
+
+const avatar = validateAvatarDefinition(avatarJson)
+if (!avatar.ok) throw new Error(avatar.errors[0].message)
+
+export function Strobi() {
+  return <Avatar definition={avatar.value} defaultAnimation="idle" />
+}`
+
+const codeTokenPattern =
+  /(\/\/.*|'.*?'|".*?"|@[a-z0-9-/]+|<\/?[A-Z][A-Za-z]*|\b(?:npm|install|import|from|const|if|throw|new|export|function|return)\b)/g
+
+const highlightedCode = (source: string) =>
+  source.split(codeTokenPattern).map((token, index) => {
+    if (!token) return null
+    const kind = token.startsWith('//')
+      ? 'comment'
+      : token.startsWith("'") || token.startsWith('"') || token.startsWith('@')
+        ? 'string'
+        : token.startsWith('<')
+          ? 'tag'
+          : /^(?:npm|install|import|from|const|if|throw|new|export|function|return)$/.test(token)
+            ? 'keyword'
+            : 'plain'
+    return (
+      <span className={`runtime-token runtime-token-${kind}`} key={`${index}-${token}`}>
+        {token}
+      </span>
+    )
+  })
+
 export function StudioInspector({ controller }: { controller: StudioController }) {
+  const [avatarDrawerOpen, setAvatarDrawerOpen] = useState(false)
+  const [runtimeExampleOpen, setRuntimeExampleOpen] = useState(false)
+  const runtimeExampleRef = useRef<RuntimeAvatarController>(null)
   const {
     activateAvatar,
     activeAvatar,
@@ -96,9 +145,12 @@ export function StudioInspector({ controller }: { controller: StudioController }
     commitAvatarMove,
     commitExpressionMove,
     commitStateMove,
+    clearLocalStudioDocument,
+    copyAvatarRuntimeDefinition,
     createNewAvatar,
     deleteSelectedBodyNode,
     downloadAvatarExport,
+    downloadAvatarRuntimeDefinition,
     downloadStudioProject,
     draggedAvatarId,
     draggedExpressionId,
@@ -117,6 +169,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     exportFormat,
     expression,
     expressionById,
+    expressionSemanticKeyError,
     expressionDragOrigin,
     expressionDragPreview,
     expressions,
@@ -141,6 +194,10 @@ export function StudioInspector({ controller }: { controller: StudioController }
     renameActiveAvatar,
     renderedColors,
     renderedScene,
+    runtimeDefinitionResult,
+    runtimeCopyStatus,
+    runtimeExportErrors,
+    runtimeStandardAvailability,
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
@@ -151,6 +208,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     selectedSequenceStepId,
     selectedState,
     sequenceEditing,
+    animationSemanticKeyError,
     sequences,
     setDeleteAvatarOpen,
     setDeleteExpressionOpen,
@@ -269,9 +327,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
       duration: reduceMotion ? 0 : undefined,
     })
   }
-
   return (
-    <Drawer>
+    <Drawer open={avatarDrawerOpen} onOpenChange={setAvatarDrawerOpen}>
       <main
         className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen ? ' state-player-active' : ''}`}
       >
@@ -319,6 +376,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               onSave={saveSequenceEditing}
               onDuplicate={duplicateSequenceEditing}
               onDelete={() => setDeleteSequenceOpen(true)}
+              semanticKeyError={animationSemanticKeyError(sequenceEditing.draft)}
             />
           </motion.div>
         )}
@@ -339,6 +397,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               onSave={saveEditing}
               onDuplicate={() => duplicateExpression(editing.index, editing.draft, true)}
               onDelete={() => setDeleteExpressionOpen(true)}
+              semanticKeyError={expressionSemanticKeyError(editing.draft)}
             />
           </motion.div>
         )}
@@ -389,33 +448,18 @@ export function StudioInspector({ controller }: { controller: StudioController }
           >
             {!editorPageOpen && (
               <header className="mode-page-header">
-                <div>
-                  <p className="eyebrow">{activeAvatar.name}</p>
-                  <h1>
-                    {t(
-                      mode === 'manual'
-                        ? 'Pose'
-                        : mode === 'avatars'
-                          ? 'Avatars'
-                          : mode === 'expressions'
-                            ? 'Expressions'
-                            : mode === 'states'
-                              ? 'Animations'
-                              : 'Exporter'
-                    )}
-                  </h1>
-                </div>
-                {mode === 'manual' && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    type="button"
-                    aria-label={t('Réinitialiser')}
-                    onClick={() => transitionToExpression({ ...defaultExpression })}
-                  >
-                    <RotateCcw />
-                  </Button>
-                )}
+                <p className="eyebrow">{activeAvatar.name}</p>
+                <h1>
+                  {t(
+                    mode === 'manual'
+                      ? 'Pose'
+                      : mode === 'expressions'
+                        ? 'Expressions'
+                        : mode === 'states'
+                          ? 'Animations'
+                          : 'Exporter'
+                  )}
+                </h1>
               </header>
             )}
 
@@ -1350,13 +1394,20 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             aria-label={t('Afficher le maillage')}
                           />
                         </div>
+                        <Button
+                          className="reset"
+                          variant="outline"
+                          type="button"
+                          onClick={() => transitionToExpression({ ...defaultExpression })}
+                        >
+                          {t('Réinitialiser')}
+                        </Button>
                       </InspectorCard>
                     </ControlSection>
                   </>
                 )}
               </div>
             )}
-            {!editorPageOpen && mode === 'avatars' && <AvatarPage controller={controller} />}
 
             {!sequenceEditing && !editing && bodyEditing && (
               <footer className="workspace-footer">
@@ -1422,6 +1473,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             openExpressionEditor(index, preset)
                             setDeleteExpressionOpen(true)
                           }}
+                          runtimeError={expressionSemanticKeyError(preset)}
                           draggable
                           onDragStart={event => {
                             expressionDragOrigin.current = expressions
@@ -1563,6 +1615,16 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   renderStyle={activeAvatar.renderStyle}
                                   id={`state-card-${sequence.id}`}
                                 />
+                                {animationSemanticKeyError(sequence) && (
+                                  <i
+                                    className="runtime-key-missing"
+                                    role="img"
+                                    aria-label={animationSemanticKeyError(sequence) ?? undefined}
+                                    title={animationSemanticKeyError(sequence) ?? undefined}
+                                  >
+                                    !
+                                  </i>
+                                )}
                                 <span>{sequence.builtIn ? t(sequence.name) : sequence.name}</span>
                               </Button>
                             )
@@ -1630,11 +1692,168 @@ export function StudioInspector({ controller }: { controller: StudioController }
             )}
 
             {!sequenceEditing && !editing && !bodyEditing && mode === 'export' && (
-              <Accordion className="export-panel" defaultValue={['snapshot']}>
+              <Accordion className="export-panel" defaultValue={['runtime']}>
+                <ExportSection
+                  value="runtime"
+                  title="Exporter le JSON runtime"
+                  subtitle="Exporte le fichier .avatar.json utilisé par les nouveaux packages npm."
+                  badge="Nouveau"
+                >
+                  <InspectorCard>
+                    <div className="export-avatar-summary">
+                      <ExpressionPreview
+                        expression={expressions[0] ?? defaultExpression}
+                        surface={activeAvatar.body.primary}
+                        bodyNodes={activeAvatar.body.nodes}
+                        colors={activeAvatar.colors}
+                        avatarEyes={activeAvatarEyes}
+                        id={`runtime-avatar-${activeAvatar.id}`}
+                      />
+                      <div>
+                        <small>{t('Définition runtime')}</small>
+                        <strong>{activeAvatar.name}</strong>
+                        <span>{t('Fichier .avatar.json portable')}</span>
+                      </div>
+                    </div>
+                  </InspectorCard>
+
+                  <InspectorCard
+                    className="runtime-readiness"
+                    data-ready={runtimeDefinitionResult.ok || undefined}
+                  >
+                    <div className="runtime-readiness-heading">
+                      {runtimeDefinitionResult.ok ? <CircleCheck /> : <TriangleAlert />}
+                      <div>
+                        <strong>
+                          {t(
+                            runtimeDefinitionResult.ok
+                              ? 'Prêt pour l’export runtime'
+                              : 'Export runtime incomplet'
+                          )}
+                        </strong>
+                        {runtimeDefinitionResult.ok && runtimeStandardAvailability && (
+                          <small>
+                            {runtimeStandardAvailability.available.length}/6{' '}
+                            {t('animations standard disponibles')}
+                          </small>
+                        )}
+                      </div>
+                    </div>
+                    {runtimeExportErrors.length > 0 && (
+                      <>
+                        <ul className="runtime-error-list" role="alert">
+                          {runtimeExportErrors.map((error, index) => (
+                            <li key={`${index}-${error}`}>{error}</li>
+                          ))}
+                        </ul>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={clearLocalStudioDocument}
+                        >
+                          <Trash2 />
+                          {t('Effacer le projet local et recharger')}
+                        </Button>
+                      </>
+                    )}
+                  </InspectorCard>
+
+                  <InspectorCard className="runtime-quickstart">
+                    <PanelTitle
+                      title="Démarrage rapide npm"
+                      subtitle="Ces commandes fonctionneront après la publication des packages actuellement privés."
+                    />
+                    <div className="runtime-code-example">
+                      <small>{t('Installation')}</small>
+                      <pre tabIndex={0}>
+                        <code>{highlightedCode(runtimeInstallExample)}</code>
+                      </pre>
+                    </div>
+                    <div className="runtime-code-example">
+                      <small>{t('Exemple React minimal')}</small>
+                      <pre tabIndex={0}>
+                        <code>{highlightedCode(runtimeReactExample)}</code>
+                      </pre>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!runtimeDefinitionResult.ok}
+                      aria-expanded={runtimeExampleOpen}
+                      onClick={() => setRuntimeExampleOpen(open => !open)}
+                    >
+                      <Play />
+                      {t(runtimeExampleOpen ? 'Masquer l’aperçu' : 'Lancer l’exemple')}
+                    </Button>
+                    {runtimeExampleOpen && runtimeDefinitionResult.ok && (
+                      <div className="runtime-live-example">
+                        <div className="runtime-live-example-heading">
+                          <div>
+                            <small>{t('Aperçu avec le package React')}</small>
+                            <strong>defaultAnimation=&quot;idle&quot;</strong>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => runtimeExampleRef.current?.play('idle')}
+                          >
+                            <RotateCcw />
+                            {t('Relancer')}
+                          </Button>
+                        </div>
+                        <div className="runtime-live-example-stage">
+                          <RuntimeAvatar
+                            ref={runtimeExampleRef}
+                            definition={runtimeDefinitionResult.value}
+                            defaultAnimation="idle"
+                            size={150}
+                            ariaLabel={t('Aperçu runtime de l’avatar actif')}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </InspectorCard>
+
+                  <div className="runtime-export-actions">
+                    <Button
+                      className="export-download"
+                      type="button"
+                      disabled={!runtimeDefinitionResult.ok}
+                      onClick={downloadAvatarRuntimeDefinition}
+                    >
+                      <Download />
+                      {t('Télécharger la définition .avatar.json')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!runtimeDefinitionResult.ok}
+                      onClick={() => void copyAvatarRuntimeDefinition()}
+                    >
+                      <Copy />
+                      {t('Copier le JSON formaté')}
+                    </Button>
+                  </div>
+                  {runtimeCopyStatus !== 'idle' && (
+                    <p
+                      className="runtime-copy-status"
+                      role={runtimeCopyStatus === 'error' ? 'alert' : 'status'}
+                      aria-live={runtimeCopyStatus === 'error' ? 'assertive' : 'polite'}
+                    >
+                      {t(
+                        runtimeCopyStatus === 'success'
+                          ? 'JSON runtime copié dans le presse-papiers.'
+                          : 'Impossible de copier le JSON runtime.'
+                      )}
+                    </p>
+                  )}
+                </ExportSection>
+
                 <ExportSection
                   value="avatar"
                   title="Exporter l’avatar"
-                  subtitle="Télécharge un composant autonome avec les animations de ton choix."
+                  subtitle="Génère l’export ZIP autonome React ou JavaScript qui existait déjà."
                 >
                   <InspectorCard>
                     <div className="export-avatar-summary">
@@ -1924,44 +2143,79 @@ export function StudioInspector({ controller }: { controller: StudioController }
         {activeSequence && !editorPageOpen && (
           <motion.footer
             className={`state-playback-footer${statePlayerExpanded ? ' is-expanded' : ''}`}
-            style={{ y: playbackFooterY }}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            <div className="state-playback-drag-handle-slot">
-              <motion.div style={{ y: playbackHandleCounterY }}>
-                <motion.button
-                  className="state-playback-drag-handle"
-                  style={{ y: playbackHandleY }}
-                  type="button"
-                  drag="y"
-                  dragMomentum={false}
-                  aria-expanded={statePlayerExpanded}
-                  aria-label={t(
-                    statePlayerExpanded
-                      ? 'Masquer les détails de l’animation'
-                      : 'Afficher les détails de l’animation'
-                  )}
-                  onTap={() => snapPlaybackFooter(!statePlayerExpanded)}
-                  onDragStart={() => {
-                    playbackFooterDragOriginY.current = playbackFooterY.get()
-                  }}
-                  onDrag={(_, info) => {
-                    playbackFooterY.set(
-                      Math.min(
-                        playbackFooterCollapsedOffset,
-                        Math.max(0, playbackFooterDragOriginY.current + info.offset.y)
-                      )
-                    )
-                  }}
-                  onDragEnd={(_, info) => {
-                    playbackHandleY.set(0)
-                    const projectedY = playbackFooterY.get() + info.velocity.y * 0.16
-                    snapPlaybackFooter(projectedY < playbackFooterCollapsedOffset / 2)
-                  }}
-                >
-                  <span />
-                </motion.button>
+            <Button
+              className="state-playback-expand"
+              variant="outline"
+              size="icon-sm"
+              type="button"
+              aria-expanded={statePlayerExpanded}
+              aria-label={t(
+                statePlayerExpanded
+                  ? 'Masquer les détails de l’animation'
+                  : 'Afficher les détails de l’animation'
+              )}
+              onClick={() => setStatePlayerExpanded(expanded => !expanded)}
+            >
+              {statePlayerExpanded ? <ChevronDown /> : <ChevronUp />}
+            </Button>
+            {statePlayerExpanded && (
+              <motion.div
+                className="state-playback-details"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="state-playback-details-header">
+                  <div>
+                    <p className="eyebrow">{t('Détails de l’animation')}</p>
+                    <h2>{activeSequenceLabel}</h2>
+                    <p>
+                      {activeSequence.builtIn
+                        ? t(activeSequence.description)
+                        : activeSequence.description}
+                    </p>
+                  </div>
+                  <Badge variant="secondary">
+                    {t('Mode de lecture')} · {t(activeSequence.playbackMode)}
+                  </Badge>
+                </div>
+                <div className="state-playback-detail-grid">
+                  <div>
+                    <span>{t('Expressions')}</span>
+                    <strong>{activeSequence.steps.length}</strong>
+                    <small>
+                      {activeSequence.steps
+                        .map(step => formatSeconds(step.holdMs, language))
+                        .join(' · ')}
+                    </small>
+                  </div>
+                  <div>
+                    <span>{t('Premier clignement')}</span>
+                    <strong>
+                      {activeSequence.blink.enabled
+                        ? formatSeconds(activeSequence.blink.initialDelayMs, language)
+                        : t('Désactivé')}
+                    </strong>
+                    <small>{t('après le lancement')}</small>
+                  </div>
+                  <div>
+                    <span>{t('Intervalle du clignement')}</span>
+                    <strong>
+                      {formatSeconds(activeSequence.blink.minIntervalMs, language)}–
+                      {formatSeconds(activeSequence.blink.maxIntervalMs, language)}
+                    </strong>
+                    <small>{t('tirage aléatoire')}</small>
+                  </div>
+                  <div>
+                    <span>{t('Durée du clignement')}</span>
+                    <strong>{activeSequence.blink.durationMs} ms</strong>
+                    <small>{t('fermeture et ouverture')}</small>
+                  </div>
+                </div>
               </motion.div>
-            </div>
+            )}
             <div className="state-playback-bar">
               <div className="state-playback-timeline">
                 {activeSequence.steps.map((step, position) => {
@@ -2012,62 +2266,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 />
               </div>
             </div>
-            <motion.div
-              ref={playbackDetailsRef}
-              className="state-playback-details-shell"
-              style={{ opacity: playbackDetailsOpacity }}
-              aria-hidden={!statePlayerExpanded}
-            >
-              <div className="state-playback-details">
-                <div className="state-playback-details-header">
-                  <div>
-                    <p className="eyebrow">{t('Détails de l’animation')}</p>
-                    <h2>{activeSequenceLabel}</h2>
-                    <p>
-                      {activeSequence.builtIn
-                        ? t(activeSequence.description)
-                        : activeSequence.description}
-                    </p>
-                  </div>
-                  <Badge variant="secondary">
-                    {t('Mode de lecture')} · {t(activeSequence.playbackMode)}
-                  </Badge>
-                </div>
-                <div className="state-playback-detail-grid">
-                  <div>
-                    <span>{t('Expressions')}</span>
-                    <strong>{activeSequence.steps.length}</strong>
-                    <small>
-                      {activeSequence.steps
-                        .map(step => formatSeconds(step.holdMs, language))
-                        .join(' · ')}
-                    </small>
-                  </div>
-                  <div>
-                    <span>{t('Premier clignement')}</span>
-                    <strong>
-                      {activeSequence.blink.enabled
-                        ? formatSeconds(activeSequence.blink.initialDelayMs, language)
-                        : t('Désactivé')}
-                    </strong>
-                    <small>{t('après le lancement')}</small>
-                  </div>
-                  <div>
-                    <span>{t('Intervalle du clignement')}</span>
-                    <strong>
-                      {formatSeconds(activeSequence.blink.minIntervalMs, language)}–
-                      {formatSeconds(activeSequence.blink.maxIntervalMs, language)}
-                    </strong>
-                    <small>{t('tirage aléatoire')}</small>
-                  </div>
-                  <div>
-                    <span>{t('Durée du clignement')}</span>
-                    <strong>{activeSequence.blink.durationMs} ms</strong>
-                    <small>{t('fermeture et ouverture')}</small>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
           </motion.footer>
         )}
         {!editorPageOpen && (
@@ -2076,9 +2274,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
               className="mobile-mode-tab mobile-avatar-tab"
               variant="ghost"
               type="button"
-              aria-pressed={mode === 'avatars'}
+              aria-pressed={avatarDrawerOpen}
               aria-label={t('Choisir un avatar')}
-              onClick={() => setMode('avatars')}
+              onClick={() => setAvatarDrawerOpen(true)}
             >
               <ExpressionPreview
                 expression={expressions[0] ?? defaultExpression}
@@ -2113,6 +2311,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
             ))}
           </nav>
         )}
+        <AvatarDrawer controller={controller} onOpenChange={setAvatarDrawerOpen} />
       </main>
     </Drawer>
   )

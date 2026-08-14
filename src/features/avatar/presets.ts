@@ -1,5 +1,33 @@
 import type { Expression } from './geometry'
 
+export const bundledExpressionSemanticKeys: Record<string, string> = {
+  'expression-00': 'upward-side-glance',
+  'expression-01': 'downward-gaze',
+  'expression-02': 'joyful-down-right',
+  'expression-03': 'surprised-left',
+  'expression-04': 'sleepy-squint',
+  'expression-05': 'skeptical-right',
+  'expression-06': 'small-attentive',
+  'expression-07': 'angry-right',
+  'expression-08': 'curious-left',
+  'expression-09': 'asymmetric-down-right',
+  'expression-10': 'attentive-left',
+  'expression-11': 'joyful-wide',
+  'expression-12': 'wide-downward-gaze',
+  'expression-13': 'eyes-closed',
+  'expression-14': 'skeptical-left',
+  'expression-15': 'far-right-glance',
+  'expression-16': 'angry-left',
+  'expression-17': 'playful-right',
+  'expression-18': 'asymmetric-up-left',
+  'expression-19': 'gentle-downward-gaze',
+  'expression-20': 'wide-down-left',
+  'expression-21': 'surprised-wide-left',
+  'expression-22': 'drowsy-closed',
+  'expression-23': 'suspicious-right',
+  'expression-24': 'shy-downward',
+}
+
 const calibrated: number[][] = [
   [7.3, 27.8, -16.1, 24.2, 27.6, 38.9, 40.7, 54.3, -20.5, 0, 0],
   [-35.6, 0.7, -8.5, 29.4, 27.3, 49.5, 49.8, 57.7, -42, 0, 0],
@@ -46,6 +74,7 @@ export const initialExpressions: Expression[] = calibrated.map(
     index
   ) => ({
     id: `expression-${String(index).padStart(2, '0')}`,
+    semanticKey: bundledExpressionSemanticKeys[`expression-${String(index).padStart(2, '0')}`],
     headX,
     headY,
     headZ,

@@ -4,6 +4,7 @@ import {
   applyAvatarEyeDefaults,
   cloneAvatarBehavior,
   createAvatar,
+  createUnkeyedExpressionCopy,
   defaultAvatarEyes,
   parseAvatarEyeDefaults,
   parseAvatarRenderStyle,
@@ -12,6 +13,16 @@ import {
 import { initialExpressions } from '@/features/avatar/presets'
 
 describe('avatar eye defaults', () => {
+  it('clears the public semantic key when creating custom content from a preset', () => {
+    const source = { ...defaultExpression, semanticKey: 'attentive-left' }
+
+    const copy = createUnkeyedExpressionCopy(source, 'expression-copy')
+
+    expect(copy.id).toBe('expression-copy')
+    expect(copy.semanticKey).toBeUndefined()
+    expect(source.semanticKey).toBe('attentive-left')
+  })
+
   it('keeps the historical rendering when using default values', () => {
     expect(applyAvatarEyeDefaults(defaultExpression, defaultAvatarEyes)).toEqual(defaultExpression)
   })
