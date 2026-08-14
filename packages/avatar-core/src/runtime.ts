@@ -74,6 +74,12 @@ export type AvatarPlaybackState = {
   pausedAt?: number
   blinkDueAt?: number
   blinkStartedAt?: number
+  directTransition?: {
+    from: ExpressionKey
+    startedAt: number
+    durationMs: number
+    transition: AvatarAnimationDefinition['steps'][number]['transition']
+  }
 }
 
 export type AvatarRuntimeEnvironment = {
@@ -141,6 +147,13 @@ export const advanceAvatarPlayback = (
   now: number,
   environment: AvatarRuntimeEnvironment
 ): AvatarPlaybackState => {
+  if (state.directTransition) {
+    if (now < state.directTransition.startedAt + state.directTransition.durationMs) {
+      return { ...state }
+    }
+    const { directTransition: _directTransition, ...next } = state
+    return { ...next, status: 'stopped' }
+  }
   if (state.status !== 'playing' || !state.activeAnimation) return { ...state }
   const resolved = resolveAnimation(definition, state.activeAnimation)
   if (!resolved.ok || !resolved.value.steps.length) return { ...createAvatarPlaybackState() }
@@ -241,7 +254,21 @@ export const renderAvatarFrame = (
     )
   let expression = expressionFromDefinition(state.activeExpression, targetDefinition)
   let blink = 1
-  if (state.activeAnimation) {
+  if (state.directTransition && !environment.reduceMotion) {
+    const fromDefinition = definition.expressions[state.directTransition.from]
+    if (fromDefinition) {
+      const from = expressionFromDefinition(state.directTransition.from, fromDefinition)
+      const progress = easing(
+        state.directTransition.transition,
+        (now - state.directTransition.startedAt) / Math.max(state.directTransition.durationMs, 1)
+      )
+      expression = interpolatePose(
+        poseFromExpression(from),
+        poseFromExpression(expression),
+        progress
+      ).expression
+    }
+  } else if (state.activeAnimation) {
     const resolved = resolveAnimation(definition, state.activeAnimation)
     if (resolved.ok) {
       const step = resolved.value.steps[state.stepIndex]

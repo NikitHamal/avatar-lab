@@ -137,6 +137,18 @@ describe('@bible-strong/avatar-react', () => {
     })
   })
 
+  it('smoothly transitions when a controlled expression changes', () => {
+    const controller = createRef<AvatarController>()
+    const view = render(<Avatar definition={definition} expression="neutral" ref={controller} />)
+
+    view.rerender(<Avatar definition={definition} expression="smile" ref={controller} />)
+
+    expect(controller.current?.getState()).toEqual({
+      activeExpression: 'smile',
+      status: 'playing',
+    })
+  })
+
   it('rejects simultaneous controlled animation and expression props', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     expect(() =>
@@ -224,6 +236,29 @@ describe('@bible-strong/avatar-react', () => {
     fireEvent.pointerUp(avatar, { pointerId: 1, clientX: 35, clientY: 45 })
     expect(commits).toEqual([{ x: 25, y: 35 }])
     expect(previews.length).toBeLessThanOrEqual(1)
+  })
+
+  it('uses the visible grip as the floating avatar drag target', () => {
+    const view = render(
+      <Avatar
+        definition={definition}
+        mode="floating"
+        draggable
+        constrainTo="none"
+        initialPosition={{ x: 0, y: 0 }}
+      />
+    )
+    const avatar = view.getByRole('group')
+    const grip = avatar.querySelector('.bs-avatar__drag-grip')
+    expect(grip).not.toBeNull()
+
+    fireEvent.pointerDown(avatar, { pointerId: 8, button: 0, clientX: 0, clientY: 0 })
+    fireEvent.pointerMove(avatar, { pointerId: 8, clientX: 20, clientY: 20 })
+    expect(avatar.style.transform).toBe('translate3d(0px, 0px, 0)')
+
+    fireEvent.pointerDown(grip!, { pointerId: 9, button: 0, clientX: 0, clientY: 0 })
+    fireEvent.pointerMove(avatar, { pointerId: 9, clientX: 20, clientY: 20 })
+    expect(avatar.style.transform).toBe('translate3d(20px, 20px, 0)')
   })
 
   it('limits drag previews to one callback per animation frame with the latest position', () => {

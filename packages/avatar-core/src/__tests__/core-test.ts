@@ -84,6 +84,30 @@ describe('@bible-strong/avatar-core', () => {
     })
   })
 
+  it('interpolates and completes a direct expression transition', () => {
+    const state = {
+      ...createAvatarPlaybackState(),
+      activeExpression: 'curious-left',
+      status: 'playing' as const,
+      directTransition: {
+        from: 'neutral',
+        startedAt: 1_000,
+        durationMs: 400,
+        transition: 'smooth' as const,
+      },
+    }
+    const start = renderAvatarFrame(definition, state, 1_000, { random: () => 0.5 })
+    const midway = renderAvatarFrame(definition, state, 1_200, { random: () => 0.5 })
+    const end = renderAvatarFrame(definition, state, 1_400, { random: () => 0.5 })
+
+    expect(midway.geometry).not.toEqual(start.geometry)
+    expect(midway.geometry).not.toEqual(end.geometry)
+    expect(advanceAvatarPlayback(definition, state, 1_400, { random: () => 0.5 })).toMatchObject({
+      activeExpression: 'curious-left',
+      status: 'stopped',
+    })
+  })
+
   it('generates the same geometry through the public definition adapter', () => {
     const scene = renderAvatarDefinition(definition, 'curious-left')
     const body = bodyFromDefinition(definition.body)

@@ -31,6 +31,7 @@ import { createPortal } from 'react-dom'
 import './styles.css'
 
 const validatedDefinitions = new WeakSet<object>()
+const controlledExpressionTransitionMs = 420
 
 const assertValidDefinition = (definition: AvatarDefinition) => {
   if (validatedDefinitions.has(definition)) return
@@ -107,7 +108,11 @@ const samePlayback = (left: CorePlaybackState, right: CorePlaybackState) =>
   left.phaseStartedAt === right.phaseStartedAt &&
   left.transitionFrom === right.transitionFrom &&
   left.blinkDueAt === right.blinkDueAt &&
-  left.blinkStartedAt === right.blinkStartedAt
+  left.blinkStartedAt === right.blinkStartedAt &&
+  left.directTransition?.from === right.directTransition?.from &&
+  left.directTransition?.startedAt === right.directTransition?.startedAt &&
+  left.directTransition?.durationMs === right.directTransition?.durationMs &&
+  left.directTransition?.transition === right.directTransition?.transition
 
 const samePosition = (left: AvatarPosition, right: AvatarPosition) =>
   left.x === right.x && left.y === right.y
@@ -332,7 +337,24 @@ export function Avatar({
     if (expression !== undefined) {
       const resolved = resolveExpression(definition, expression)
       if (resolved.ok) {
-        setPlayback({ ...createAvatarPlaybackState(), activeExpression: expression })
+        const current = playbackRef.current
+        const next = {
+          ...createAvatarPlaybackState(),
+          activeExpression: expression,
+          ...(current.activeExpression === expression
+            ? {}
+            : {
+                status: 'playing' as const,
+                directTransition: {
+                  from: current.activeExpression,
+                  startedAt: performance.now(),
+                  durationMs: controlledExpressionTransitionMs,
+                  transition: 'smooth' as const,
+                },
+              }),
+        }
+        playbackRef.current = next
+        setPlayback(next)
       }
       return
     }
@@ -470,6 +492,12 @@ export function Avatar({
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!draggable || event.button !== 0) return
+    if (
+      mode === 'floating' &&
+      !(event.target instanceof Element && event.target.closest('.bs-avatar__drag-grip'))
+    ) {
+      return
+    }
     event.currentTarget.setPointerCapture(event.pointerId)
     drag.current = {
       pointerId: event.pointerId,
@@ -545,7 +573,9 @@ export function Avatar({
       role={draggable ? 'group' : 'img'}
       aria-label={ariaLabel}
       aria-description={
-        draggable ? 'Use arrow keys or move controls to reposition the avatar.' : undefined
+        draggable
+          ? 'Use the drag handle, arrow keys or move controls to reposition the avatar.'
+          : undefined
       }
       tabIndex={draggable ? 0 : undefined}
       onPointerDown={startDrag}
@@ -565,6 +595,7 @@ export function Avatar({
         event.preventDefault()
       }}
     >
+      {draggable && <div className="bs-avatar__drag-grip" aria-hidden="true" title="Drag avatar" />}
       <svg className="bs-avatar__svg" viewBox="-150 -150 300 300" aria-hidden="true">
         <defs>
           <clipPath id={clipId}>
