@@ -1,6 +1,6 @@
 import { Camera, Info } from 'lucide-react'
 import { motion } from 'motion/react'
-import { type CSSProperties } from 'react'
+import { type CSSProperties, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -10,6 +10,7 @@ import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
 
 export function StudioStage({ controller }: { controller: StudioController }) {
+  const [photoHelpOpen, setPhotoHelpOpen] = useState(false)
   const {
     activeAvatarEyes,
     activeSequenceLabel,
@@ -38,7 +39,6 @@ export function StudioStage({ controller }: { controller: StudioController }) {
     setEditing,
     setSelectedEyeSide,
     showWire,
-    snapshotFormat,
     surface,
     t,
     takePicture,
@@ -118,10 +118,15 @@ export function StudioStage({ controller }: { controller: StudioController }) {
           >
             <Camera />
             <span className="photo-capture-label">{t('Prendre une photo')}</span>
-            <span className="photo-format-badge">{snapshotFormat.toUpperCase()}</span>
           </Button>
-          <Tooltip>
+          <Tooltip
+            open={photoHelpOpen}
+            onOpenChange={open => {
+              if (!open) setPhotoHelpOpen(false)
+            }}
+          >
             <TooltipTrigger
+              closeOnClick={false}
               render={
                 <Button
                   className="photo-help-button"
@@ -129,6 +134,8 @@ export function StudioStage({ controller }: { controller: StudioController }) {
                   size="icon-sm"
                   type="button"
                   aria-label={t('Informations sur le mode photo')}
+                  aria-expanded={photoHelpOpen}
+                  onClick={() => setPhotoHelpOpen(open => !open)}
                 />
               }
             >
