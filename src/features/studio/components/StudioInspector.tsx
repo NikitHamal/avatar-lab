@@ -3,6 +3,8 @@ import {
   Copy,
   Download,
   FileCode2,
+  Film,
+  Loader2,
   Move3D,
   Pencil,
   Play,
@@ -11,6 +13,7 @@ import {
   Smile,
   Trash2,
   Upload,
+  Video,
 } from 'lucide-react'
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
@@ -61,6 +64,7 @@ import {
 import { defaultExpression } from '@/features/avatar/presets'
 import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
+import { type AnimationMediaFormat } from '@/features/export/animationMediaExporter'
 import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
@@ -76,6 +80,15 @@ export function StudioInspector({ controller }: { controller: StudioController }
     activeSequenceLabel,
     activeState,
     addBodyNode,
+    animationExportBackground,
+    animationExportColorFrom,
+    animationExportColorTo,
+    animationExportFormat,
+    animationExportFps,
+    animationExportLoops,
+    animationExportProgress,
+    animationExportSequenceId,
+    animationExportSize,
     avatarDragOrigin,
     avatarDragPreview,
     avatars,
@@ -110,6 +123,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     editing,
     editorPageOpen,
     exportAnimationIdSet,
+    exportAnimationMedia,
     exportFormat,
     expression,
     expressionById,
@@ -117,6 +131,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     expressionDragPreview,
     expressions,
     focusAvatarName,
+    isExportingAnimation,
     language,
     launchSequence,
     linked,
@@ -154,12 +169,24 @@ export function StudioInspector({ controller }: { controller: StudioController }
     setDraggingAvatarId,
     setDraggingExpressionId,
     setDraggingStateId,
+    setEditing,
     setExportAnimationIds,
     setExportFormat,
+    setAnimationExportBackground,
+    setAnimationExportColorFrom,
+    setAnimationExportColorTo,
+    setAnimationExportFormat,
+    setAnimationExportFps,
+    setAnimationExportLoops,
+    setAnimationExportSequenceId,
+    setAnimationExportSize,
+    setExpressions,
     setFocusAvatarName,
     setLinked,
-    setLanguage,
     setMode,
+    setPendingProjectImport,
+    setSequences,
+    setSelectedEyeSide,
     setSelectedSequenceStepId,
     setSequenceEditing,
     setSnapshotBackground,
@@ -245,13 +272,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     const observer = new ResizeObserver(measure)
     observer.observe(details)
     return () => observer.disconnect()
-  }, [
-    activeSequence,
-    language,
-    playbackFooterCollapsedOffset,
-    playbackFooterY,
-    statePlayerExpanded,
-  ])
+  }, [activeSequence, playbackFooterCollapsedOffset, playbackFooterY, statePlayerExpanded])
 
   const snapPlaybackFooter = (expanded: boolean) => {
     setStatePlayerExpanded(expanded)
@@ -268,12 +289,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
       <main
         className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen ? ' state-player-active' : ''}`}
       >
-        <StudioIdentity
-          className="inspector-identity"
-          language={language}
-          setLanguage={setLanguage}
-          t={t}
-        />
+        <StudioIdentity className="inspector-identity" />
         {sequenceEditing && !editing && (
           <motion.div
             key={`sequence-${sequenceEditing.sourceId ?? 'new'}`}
@@ -643,6 +659,89 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                       updateNodeVector('rotation', index as 0 | 1 | 2, value)
                                     }
                                   />
+                                ))}
+                              </div>
+                            </div>
+                            <div
+                              className="node-material-section"
+                              style={{
+                                marginTop: '14px',
+                                paddingTop: '12px',
+                                borderTop: '1px solid var(--border)',
+                              }}
+                            >
+                              <h3
+                                style={{
+                                  fontSize: '0.85rem',
+                                  fontWeight: 600,
+                                  marginBottom: '8px',
+                                }}
+                              >
+                                {t('Couleur & Matériau')}
+                              </h3>
+                              <div
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: '1fr 1fr',
+                                  gap: '8px',
+                                }}
+                              >
+                                <ColorField
+                                  label="Couleur"
+                                  value={
+                                    selectedBodyNode.color ||
+                                    renderedColors?.body.get() ||
+                                    '#3b82f6'
+                                  }
+                                  onChange={color =>
+                                    updateSelectedBodyNode(node => ({
+                                      ...node,
+                                      color,
+                                    }))
+                                  }
+                                />
+                                <NumericField
+                                  label="Opacité"
+                                  value={selectedBodyNode.opacity ?? 1}
+                                  min={0.1}
+                                  max={1}
+                                  step={0.05}
+                                  onChange={opacity =>
+                                    updateSelectedBodyNode(node => ({
+                                      ...node,
+                                      opacity,
+                                    }))
+                                  }
+                                />
+                              </div>
+                              <div style={{ marginTop: '8px', display: 'flex', gap: '6px' }}>
+                                {(
+                                  [
+                                    { id: 'solid', label: 'Matte' },
+                                    { id: 'glass', label: 'Verre liquide' },
+                                    { id: 'glow', label: 'Lueur' },
+                                    { id: 'metallic', label: 'Métal' },
+                                  ] as const
+                                ).map(item => (
+                                  <Button
+                                    key={item.id}
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                      (selectedBodyNode.material || 'solid') === item.id
+                                        ? 'default'
+                                        : 'outline'
+                                    }
+                                    style={{ flex: 1, fontSize: '0.75rem', padding: '4px' }}
+                                    onClick={() =>
+                                      updateSelectedBodyNode(node => ({
+                                        ...node,
+                                        material: item.id,
+                                      }))
+                                    }
+                                  >
+                                    {t(item.label)}
+                                  </Button>
                                 ))}
                               </div>
                             </div>
@@ -1530,6 +1629,31 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                     </ContextMenuItem>
                                     <ContextMenuSeparator />
                                     <ContextMenuItem
+                                      onClick={() =>
+                                        exportAnimationMedia(sequence.id, { format: 'gif' })
+                                      }
+                                    >
+                                      <Film />
+                                      {t('Exporter en GIF')}
+                                    </ContextMenuItem>
+                                    <ContextMenuItem
+                                      onClick={() =>
+                                        exportAnimationMedia(sequence.id, { format: 'webm' })
+                                      }
+                                    >
+                                      <Video />
+                                      {t('Exporter en vidéo (WebM)')}
+                                    </ContextMenuItem>
+                                    <ContextMenuItem
+                                      onClick={() =>
+                                        exportAnimationMedia(sequence.id, { format: 'mp4' })
+                                      }
+                                    >
+                                      <Video />
+                                      {t('Exporter en vidéo (MP4)')}
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem
                                       variant="destructive"
                                       onClick={() => {
                                         openSequenceEditor(sequence)
@@ -1813,6 +1937,222 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 </ExportSection>
 
                 <ExportSection
+                  value="animation-media"
+                  title="Animation (Vidéo & GIF)"
+                  subtitle="Exporte une animation de l’avatar au format vidéo (WebM / MP4) ou GIF animé."
+                >
+                  <InspectorCard>
+                    <PanelTitle
+                      title="Animation source"
+                      subtitle="Choisis l’animation à exporter pour cet avatar."
+                    />
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <FieldTitle>{t('Animation')}</FieldTitle>
+                      <Select
+                        value={animationExportSequenceId || sequences[0]?.id || ''}
+                        items={sequences.map(s => ({
+                          value: s.id,
+                          label: s.builtIn ? t(s.name) : s.name,
+                        }))}
+                        onValueChange={next => next && setAnimationExportSequenceId(next)}
+                      >
+                        <SelectTrigger aria-label={t('Animation')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sequences.map(s => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.builtIn ? t(s.name) : s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </InspectorCard>
+
+                  <InspectorCard>
+                    <PanelTitle
+                      title="Format & rendu"
+                      subtitle="Paramètres vidéo ou GIF pour l’animation."
+                    />
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <div>
+                        <FieldTitle>{t('Format')}</FieldTitle>
+                        <small>{t('GIF animé ou vidéo.')}</small>
+                      </div>
+                      <Select
+                        value={animationExportFormat}
+                        items={[
+                          { value: 'gif', label: 'GIF animé' },
+                          { value: 'webm', label: 'Vidéo WebM' },
+                          { value: 'mp4', label: 'Vidéo MP4' },
+                        ]}
+                        onValueChange={next =>
+                          next && setAnimationExportFormat(next as AnimationMediaFormat)
+                        }
+                      >
+                        <SelectTrigger aria-label={t('Format d’animation')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gif">GIF animé</SelectItem>
+                          <SelectItem value="webm">Vidéo WebM</SelectItem>
+                          <SelectItem value="mp4">Vidéo MP4</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+
+                    <Separator className="snapshot-settings-separator" />
+
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <div>
+                        <FieldTitle>{t('Définition')}</FieldTitle>
+                        <small>{t('Dimensions du fichier exporté.')}</small>
+                      </div>
+                      <Select
+                        value={animationExportSize}
+                        items={[
+                          { value: '256', label: '256 px' },
+                          { value: '512', label: '512 px' },
+                          { value: '1024', label: '1024 px' },
+                        ]}
+                        onValueChange={next => next && setAnimationExportSize(next)}
+                      >
+                        <SelectTrigger aria-label={t('Définition')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="256">256 px</SelectItem>
+                          <SelectItem value="512">512 px</SelectItem>
+                          <SelectItem value="1024">1024 px</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+
+                    <Separator className="snapshot-settings-separator" />
+
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <div>
+                        <FieldTitle>{t('Fluidité (FPS)')}</FieldTitle>
+                        <small>{t('Nombre d’images par seconde.')}</small>
+                      </div>
+                      <Select
+                        value={animationExportFps}
+                        items={[
+                          { value: '24', label: '24 fps' },
+                          { value: '30', label: '30 fps' },
+                          { value: '60', label: '60 fps' },
+                        ]}
+                        onValueChange={next => next && setAnimationExportFps(next)}
+                      >
+                        <SelectTrigger aria-label={t('Images par seconde')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="24">24 fps</SelectItem>
+                          <SelectItem value="30">30 fps</SelectItem>
+                          <SelectItem value="60">60 fps</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+
+                    <Separator className="snapshot-settings-separator" />
+
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <div>
+                        <FieldTitle>{t('Boucles')}</FieldTitle>
+                        <small>{t('Répétitions de l’animation.')}</small>
+                      </div>
+                      <Select
+                        value={animationExportLoops}
+                        items={[
+                          { value: '1', label: t('1 cycle') },
+                          { value: '2', label: t('2 cycles') },
+                          { value: '3', label: t('3 cycles') },
+                        ]}
+                        onValueChange={next => next && setAnimationExportLoops(next)}
+                      >
+                        <SelectTrigger aria-label={t('Nombre de boucles')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">{t('1 cycle')}</SelectItem>
+                          <SelectItem value="2">{t('2 cycles')}</SelectItem>
+                          <SelectItem value="3">{t('3 cycles')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  </InspectorCard>
+
+                  <InspectorCard>
+                    <PanelTitle
+                      title="Arrière-plan"
+                      subtitle="Choisis un fond transparent, uni ou en dégradé."
+                    />
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <FieldTitle>{t('Style')}</FieldTitle>
+                      <Select
+                        value={animationExportBackground}
+                        items={[
+                          { value: 'transparent', label: t('Transparent') },
+                          { value: 'solid', label: t('Uni') },
+                          { value: 'linear', label: t('Dégradé linéaire') },
+                          { value: 'radial', label: t('Dégradé radial') },
+                        ]}
+                        onValueChange={next =>
+                          next && setAnimationExportBackground(next as SnapshotBackground)
+                        }
+                      >
+                        <SelectTrigger aria-label={t('Style d’arrière-plan')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="transparent">{t('Transparent')}</SelectItem>
+                          <SelectItem value="solid">{t('Uni')}</SelectItem>
+                          <SelectItem value="linear">{t('Dégradé linéaire')}</SelectItem>
+                          <SelectItem value="radial">{t('Dégradé radial')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    {animationExportBackground !== 'transparent' && (
+                      <div className="snapshot-colors">
+                        <ColorField
+                          label={animationExportBackground === 'solid' ? 'Couleur' : 'Départ'}
+                          value={animationExportColorFrom}
+                          onChange={setAnimationExportColorFrom}
+                        />
+                        {(animationExportBackground === 'linear' ||
+                          animationExportBackground === 'radial') && (
+                          <ColorField
+                            label="Arrivée"
+                            value={animationExportColorTo}
+                            onChange={setAnimationExportColorTo}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </InspectorCard>
+
+                  <Button
+                    className="export-download"
+                    type="button"
+                    disabled={isExportingAnimation}
+                    onClick={() => exportAnimationMedia()}
+                  >
+                    {isExportingAnimation ? <Loader2 className="animate-spin" /> : <Download />}
+                    {isExportingAnimation
+                      ? animationExportProgress?.label || t('Export en cours...')
+                      : t(
+                          animationExportFormat === 'gif'
+                            ? 'Exporter le GIF animé'
+                            : animationExportFormat === 'webm'
+                              ? 'Exporter la vidéo (WebM)'
+                              : 'Exporter la vidéo (MP4)'
+                        )}
+                  </Button>
+                </ExportSection>
+
+                <ExportSection
                   value="project"
                   title="Projet du Studio"
                   subtitle="Transfère tous les avatars, expressions et animations vers un autre navigateur."
@@ -1968,16 +2308,14 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     <span>{t('Expressions')}</span>
                     <strong>{activeSequence.steps.length}</strong>
                     <small>
-                      {activeSequence.steps
-                        .map(step => formatSeconds(step.holdMs, language))
-                        .join(' · ')}
+                      {activeSequence.steps.map(step => formatSeconds(step.holdMs)).join(' · ')}
                     </small>
                   </div>
                   <div>
                     <span>{t('Premier clignement')}</span>
                     <strong>
                       {activeSequence.blink.enabled
-                        ? formatSeconds(activeSequence.blink.initialDelayMs, language)
+                        ? formatSeconds(activeSequence.blink.initialDelayMs)
                         : t('Désactivé')}
                     </strong>
                     <small>{t('après le lancement')}</small>
@@ -1985,8 +2323,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                   <div>
                     <span>{t('Intervalle du clignement')}</span>
                     <strong>
-                      {formatSeconds(activeSequence.blink.minIntervalMs, language)}–
-                      {formatSeconds(activeSequence.blink.maxIntervalMs, language)}
+                      {formatSeconds(activeSequence.blink.minIntervalMs)}–
+                      {formatSeconds(activeSequence.blink.maxIntervalMs)}
                     </strong>
                     <small>{t('tirage aléatoire')}</small>
                   </div>

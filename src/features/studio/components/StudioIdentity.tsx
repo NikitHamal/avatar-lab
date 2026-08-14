@@ -1,56 +1,13 @@
-import { Code2 } from 'lucide-react'
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import type { StudioController } from '@/features/studio/useStudioController'
-import { type StudioLanguage } from '@/i18n'
-
-type StudioIdentityProps = Pick<StudioController, 'language' | 'setLanguage' | 't'> & {
+type StudioIdentityProps = {
   className?: string
 }
 
-export function StudioIdentity({ className = '', language, setLanguage, t }: StudioIdentityProps) {
+export function StudioIdentity({ className = '' }: StudioIdentityProps) {
   return (
     <div className={`studio-identity ${className}`.trim()}>
       <div className="brand">
         <span className="brand-mark" />
-        Bible Strong <em>Avatar Lab</em>
-      </div>
-      <div className="language-picker">
-        <a
-          className="source-link"
-          href="https://github.com/smontlouis/bible-strong-avatar-lab"
-          target="_blank"
-          rel="noreferrer"
-          aria-label="GitHub"
-        >
-          <Code2 aria-hidden="true" />
-          <span>GitHub</span>
-        </a>
-        <span className="identity-divider" aria-hidden="true" />
-        <Select
-          value={language}
-          items={[
-            { value: 'en', label: '🇬🇧' },
-            { value: 'fr', label: '🇫🇷' },
-            { value: 'zh-CN', label: '🇨🇳' },
-          ]}
-          onValueChange={next => next && setLanguage(next as StudioLanguage)}
-        >
-          <SelectTrigger aria-label={t('Langue de l’interface')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="en">🇬🇧</SelectItem>
-            <SelectItem value="fr">🇫🇷</SelectItem>
-            <SelectItem value="zh-CN">🇨🇳</SelectItem>
-          </SelectContent>
-        </Select>
+        Avatar <em>Lab</em>
       </div>
     </div>
   )

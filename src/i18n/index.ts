@@ -1,29 +1,6 @@
-import {
-  createContext,
-  createElement,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react'
-import { chinese, translateChineseDynamicText } from './zh'
+import { createContext, createElement, useContext, type ReactNode } from 'react'
 
-export type StudioLanguage = 'en' | 'fr' | 'zh-CN'
-
-const STUDIO_LANGUAGE_STORAGE_KEY = 'avatar-studio-language'
-
-const isStudioLanguage = (value: string | null): value is StudioLanguage =>
-  value === 'en' || value === 'fr' || value === 'zh-CN'
-
-const readStoredStudioLanguage = (): StudioLanguage => {
-  if (typeof window === 'undefined') return 'en'
-  try {
-    const storedLanguage = window.localStorage.getItem(STUDIO_LANGUAGE_STORAGE_KEY)
-    return isStudioLanguage(storedLanguage) ? storedLanguage : 'en'
-  } catch {
-    return 'en'
-  }
-}
+export type StudioLanguage = 'en'
 
 const english: Record<string, string> = {
   'Playground de l’avatar': 'Avatar playground',
@@ -43,6 +20,14 @@ const english: Record<string, string> = {
   'Langue de l’interface': 'Interface language',
   'Redimensionner l’aperçu et l’éditeur': 'Resize preview and editor',
   'Nom de l’avatar': 'Avatar name',
+  'Ouvrir l’agent IA': 'Open AI agent',
+  'Ouvrir l’agent IA (Nebians Qwen / Laguna / K2Think)':
+    'Open AI agent (Nebians Qwen / Laguna / K2Think)',
+  'Réduire l’agent IA': 'Collapse AI agent',
+  'Effacer la conversation': 'Clear conversation',
+  'Glisser pour redimensionner': 'Drag to resize',
+  'Demandez à l’agent de créer un avatar, des expressions...':
+    'Ask the agent to create an avatar, expressions...',
   sélecteur: 'picker',
   hexadécimal: 'hex value',
   'Lier width': 'Link widths',
@@ -390,59 +375,46 @@ const english: Record<string, string> = {
   dragging: 'dragging',
   bouncing: 'bouncing',
   'powering-down': 'powering down',
-}
-
-const frenchStates: Record<string, string> = {
-  loop: 'boucle',
-  once: 'une fois',
-  pingPong: 'aller-retour',
-  Custom: 'Personnalisé',
-  'Untitled animation': 'Animation sans titre',
-  // Compatibilité avec les animations intégrées déjà persistées avant le renommage.
-  'Untitled sequence': 'Animation sans titre',
-  'Cet état enchaîne un pool de presets et des clignements.':
-    'Cette animation enchaîne un pool de presets et des clignements.',
-  'Séquence courte de réveil avant retour vers une expression neutre.':
-    'Animation courte de réveil avant retour vers une expression neutre.',
-  sleeping: 'sommeil',
-  waking: 'réveil',
-  idle: 'au repos',
-  listening: 'écoute',
-  thinking: 'réflexion',
-  searching: 'recherche',
-  working: 'travail',
-  excited: 'enthousiaste',
-  surprised: 'surpris',
-  suspicious: 'méfiant',
-  angry: 'en colère',
-  drowsy: 'somnolent',
-  happy: 'heureux',
-  curious: 'curieux',
-  confused: 'confus',
-  bored: 'ennuyé',
-  proud: 'fier',
-  shy: 'timide',
-  sad: 'triste',
-  laughing: 'rire',
-  scared: 'effrayé',
-  playful: 'joueur',
-  celebrate: 'célébration',
-  orbit: 'orbite',
-  radar: 'radar',
-  progress: 'progression',
-  spawning: 'apparition',
-  humming: 'fredonnement',
-  loading: 'chargement',
-  dictating: 'dictée',
-  writing: 'écriture',
-  sending: 'envoi',
-  receiving: 'réception',
-  uploading: 'téléversement',
-  notifying: 'notification',
-  alerting: 'alerte',
-  dragging: 'glissement',
-  bouncing: 'rebond',
-  'powering-down': 'extinction',
+  'Animation (Vidéo & GIF)': 'Animation (Video & GIF)',
+  'Exporte une animation de l’avatar au format vidéo (WebM / MP4) ou GIF animé.':
+    'Export an avatar animation as a video (WebM / MP4) or animated GIF.',
+  'Animation source': 'Source animation',
+  'Choisis l’animation à exporter pour cet avatar.':
+    'Choose the animation to export for this avatar.',
+  'Format & rendu': 'Format & rendering',
+  'Paramètres vidéo ou GIF pour l’animation.': 'Video or GIF settings for the animation.',
+  'GIF animé ou vidéo.': 'Animated GIF or video.',
+  'Format d’animation': 'Animation format',
+  'GIF animé': 'Animated GIF',
+  'Vidéo WebM': 'WebM video',
+  'Vidéo MP4': 'MP4 video',
+  'Fluidité (FPS)': 'Framerate (FPS)',
+  'Nombre d’images par seconde.': 'Frames per second.',
+  'Images par seconde': 'Frames per second',
+  Boucles: 'Loops',
+  'Répétitions de l’animation.': 'Animation repetitions.',
+  'Nombre de boucles': 'Number of loops',
+  '1 cycle': '1 cycle',
+  '2 cycles': '2 cycles',
+  '3 cycles': '3 cycles',
+  'Exporter le GIF animé': 'Export animated GIF',
+  'Exporter la vidéo (WebM)': 'Export video (WebM)',
+  'Exporter la vidéo (MP4)': 'Export video (MP4)',
+  'Exporter en GIF': 'Export as GIF',
+  'Exporter en vidéo (WebM)': 'Export as video (WebM)',
+  'Exporter en vidéo (MP4)': 'Export as video (MP4)',
+  'Préparation des images...': 'Preparing frames...',
+  'Export en cours...': 'Exporting...',
+  'Halo / Anneau': 'Halo / Ring',
+  Étoile: 'Star',
+  Nuage: 'Cloud',
+  Livre: 'Book',
+  'Main / Patte': 'Hand / Paw',
+  'Couleur & Matériau': 'Color & Material',
+  'Verre liquide': 'Liquid glass',
+  Lueur: 'Glow',
+  Métal: 'Metallic',
+  Matte: 'Matte',
 }
 
 const dynamicTranslations: [RegExp, string][] = [
@@ -459,19 +431,6 @@ const dynamicTranslations: [RegExp, string][] = [
 ]
 
 export const translateStudioText = (text: string, language: StudioLanguage) => {
-  if (language === 'fr') return frenchStates[text] ?? text
-  if (language === 'zh-CN') {
-    const exact = chinese[text]
-    if (exact) return exact
-    const dynamic = translateChineseDynamicText(text)
-    if (dynamic) return dynamic
-    return Object.entries(chinese)
-      .sort(([left], [right]) => right.length - left.length)
-      .reduce(
-        (translated, [source, replacement]) => translated.replaceAll(source, replacement),
-        text
-      )
-  }
   const exact = english[text]
   if (exact) return exact
   for (const [pattern, replacement] of dynamicTranslations) {
@@ -491,20 +450,11 @@ type StudioLanguageContextValue = {
 const StudioLanguageContext = createContext<StudioLanguageContextValue | null>(null)
 
 export function StudioLanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<StudioLanguage>(readStoredStudioLanguage)
-
-  useEffect(() => {
-    document.documentElement.lang = language
-    try {
-      window.localStorage.setItem(STUDIO_LANGUAGE_STORAGE_KEY, language)
-    } catch {
-      // The studio remains usable when browser storage is unavailable.
-    }
-  }, [language])
-
   return createElement(
     StudioLanguageContext.Provider,
-    { value: { language, setLanguage, t: text => translateStudioText(text, language) } },
+    {
+      value: { language: 'en', setLanguage: () => {}, t: text => translateStudioText(text, 'en') },
+    },
     children
   )
 }

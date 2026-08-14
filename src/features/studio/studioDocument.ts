@@ -100,10 +100,26 @@ export const loadStudioDocument = (
 ): StudioDocument => {
   const fallback = createBundledStudioDocument()
   try {
-    return parseStudioDocument(
-      JSON.parse(storage.getItem(DOCUMENT_STORAGE_KEY) ?? 'null'),
-      fallback
-    )
+    const raw = storage.getItem(DOCUMENT_STORAGE_KEY)
+    if (!raw) return fallback
+    const parsed = parseStudioDocument(JSON.parse(raw), fallback)
+    const hasStrobi = parsed.library.avatars.some(a => a.id === 'strobi')
+    if (hasStrobi) {
+      fallback.library.avatars.forEach(fallbackAvatar => {
+        const existingIndex = parsed.library.avatars.findIndex(a => a.id === fallbackAvatar.id)
+        if (existingIndex < 0) {
+          parsed.library.avatars.push(fallbackAvatar)
+        } else if (fallbackAvatar.id === 'avatar-neby') {
+          const current = parsed.library.avatars[existingIndex]
+          const currentNodes = current.body.nodes
+          const hasOldNodes = currentNodes.length > 0 || current.body.primary.pattern !== 'book'
+          if (hasOldNodes) {
+            parsed.library.avatars[existingIndex] = fallbackAvatar
+          }
+        }
+      })
+    }
+    return parsed
   } catch {
     return fallback
   }

@@ -56,12 +56,7 @@ export function StudioStage({ controller }: { controller: StudioController }) {
         } as CSSProperties
       }
     >
-      <StudioIdentity
-        className="stage-identity"
-        language={controller.language}
-        setLanguage={controller.setLanguage}
-        t={t}
-      />
+      <StudioIdentity className="stage-identity" />
       <AvatarCanvas
         expression={canvasExpression}
         avatarEyes={activeAvatarEyes}
@@ -140,13 +135,6 @@ export function StudioStage({ controller }: { controller: StudioController }) {
           </Tooltip>
         </div>
       </TooltipProvider>
-      <p className="stage-credit">
-        Made with ❤️ by{' '}
-        <a href="https://x.com/_smontlouis" target="_blank" rel="noreferrer">
-          @_smontlouis
-        </a>
-        .
-      </p>
     </motion.section>
   )
 }

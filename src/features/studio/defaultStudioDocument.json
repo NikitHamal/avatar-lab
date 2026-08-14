@@ -35,6 +35,38 @@
         }
       },
       {
+        "id": "avatar-neby",
+        "name": "Neby",
+        "body": {
+          "primary": {
+            "type": "cube",
+            "width": 240,
+            "height": 240,
+            "depth": 215,
+            "roundness": 0.95,
+            "pattern": "book"
+          },
+          "nodes": []
+        },
+        "colors": {
+          "body": "#f0f5ff",
+          "eyes": "#0a1c4d"
+        },
+        "eyes": {
+          "widthLeft": 46,
+          "widthRight": 46,
+          "heightLeft": 74,
+          "heightRight": 74,
+          "spacing": 86,
+          "positionXLeft": 0,
+          "positionXRight": 0,
+          "positionYLeft": -16,
+          "positionYRight": -16,
+          "leftAngle": 0,
+          "rightAngle": 0
+        }
+      },
+      {
         "id": "avatar-4fe2d1bd-cf46-4e5e-a62d-d6b60be519ed",
         "name": "Freddy",
         "body": {

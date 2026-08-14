@@ -88,6 +88,13 @@ import {
   type SnapshotBackground,
 } from '@/features/export/snapshotExporter'
 import {
+  downloadMediaBlob,
+  exportAnimationToGif,
+  exportAnimationToVideo,
+  type AnimationMediaFormat,
+  type AnimationMediaOptions,
+} from '@/features/export/animationMediaExporter'
+import {
   resolveCanvasPreviewExpression,
   type CanvasPreviewTarget,
 } from '@/features/rendering/canvasPreview'
@@ -143,6 +150,20 @@ export function useStudioController() {
   const [snapshotColorTo, setSnapshotColorTo] = useState('#C9D5FF')
   const [snapshotSize, setSnapshotSize] = useState('1024')
   const [snapshotFormat, setSnapshotFormat] = useState<SnapshotFormat>('png')
+  const [animationExportSequenceId, setAnimationExportSequenceId] = useState<string | null>(null)
+  const [animationExportFormat, setAnimationExportFormat] = useState<AnimationMediaFormat>('gif')
+  const [animationExportSize, setAnimationExportSize] = useState('512')
+  const [animationExportFps, setAnimationExportFps] = useState('30')
+  const [animationExportBackground, setAnimationExportBackground] =
+    useState<SnapshotBackground>('transparent')
+  const [animationExportColorFrom, setAnimationExportColorFrom] = useState('#F5F7FC')
+  const [animationExportColorTo, setAnimationExportColorTo] = useState('#C9D5FF')
+  const [animationExportLoops, setAnimationExportLoops] = useState('1')
+  const [isExportingAnimation, setIsExportingAnimation] = useState(false)
+  const [animationExportProgress, setAnimationExportProgress] = useState<{
+    percent: number
+    label: string
+  } | null>(null)
   const [photoFlash, setPhotoFlash] = useState(0)
   const initialStatePlayback = initialDocument.playback
   const updateStudioLibrary = (library: typeof initialDocument.library) =>
@@ -1555,6 +1576,62 @@ export function useStudioController() {
       else downloadSnapshotSvg()
     })
   }
+  const exportAnimationMedia = async (
+    sequenceId?: string,
+    overrideOptions?: Partial<AnimationMediaOptions>
+  ) => {
+    const targetId = sequenceId || animationExportSequenceId || sequences[0]?.id
+    const targetSequence = sequences.find(s => s.id === targetId)
+    if (!targetSequence) return
+
+    const format = overrideOptions?.format || animationExportFormat
+    const size = overrideOptions?.size || Number(animationExportSize) || 512
+    const fps = overrideOptions?.fps || Number(animationExportFps) || 30
+    const background = overrideOptions?.background || animationExportBackground
+    const colorFrom = overrideOptions?.colorFrom || animationExportColorFrom
+    const colorTo = overrideOptions?.colorTo || animationExportColorTo
+    const loops = overrideOptions?.loops || Number(animationExportLoops) || 1
+
+    const options: AnimationMediaOptions = {
+      format,
+      size,
+      fps,
+      background,
+      colorFrom,
+      colorTo,
+      loops,
+    }
+
+    setIsExportingAnimation(true)
+    setAnimationExportProgress({ percent: 0, label: t('Préparation des images...') })
+
+    try {
+      if (format === 'gif') {
+        const { blob, filename } = await exportAnimationToGif(
+          activeAvatar,
+          targetSequence,
+          expressions,
+          options,
+          (percent, label) => setAnimationExportProgress({ percent, label })
+        )
+        downloadMediaBlob(blob, filename)
+      } else {
+        const { blob, filename } = await exportAnimationToVideo(
+          activeAvatar,
+          targetSequence,
+          expressions,
+          options,
+          (percent, label) => setAnimationExportProgress({ percent, label })
+        )
+        downloadMediaBlob(blob, filename)
+      }
+    } catch (err) {
+      console.error('Animation media export failed:', err)
+    } finally {
+      setIsExportingAnimation(false)
+      setAnimationExportProgress(null)
+    }
+  }
   const prepareStudioProjectImport = (file: File | undefined) => {
     if (!file) return
     setProjectImportError(null)
@@ -1767,11 +1844,15 @@ export function useStudioController() {
     setEditing,
     setExportAnimationIds,
     setExportFormat,
+    bodyNodesRef,
+    setAvatars,
+    setExpressions,
     setFocusAvatarName,
     setLanguage,
     setLinked,
     setMode,
     setPendingProjectImport,
+    setSequences,
     setSelectedEyeSide,
     setSelectedSequenceStepId,
     setSequenceEditing,
@@ -1780,6 +1861,25 @@ export function useStudioController() {
     setSnapshotColorTo,
     setSnapshotFormat,
     setSnapshotSize,
+    animationExportSequenceId,
+    setAnimationExportSequenceId,
+    animationExportFormat,
+    setAnimationExportFormat,
+    animationExportSize,
+    setAnimationExportSize,
+    animationExportFps,
+    setAnimationExportFps,
+    animationExportBackground,
+    setAnimationExportBackground,
+    animationExportColorFrom,
+    setAnimationExportColorFrom,
+    animationExportColorTo,
+    setAnimationExportColorTo,
+    animationExportLoops,
+    setAnimationExportLoops,
+    isExportingAnimation,
+    animationExportProgress,
+    exportAnimationMedia,
     setSpringSpeed,
     setStatePlayerExpanded,
     showWire,
@@ -1806,6 +1906,7 @@ export function useStudioController() {
     updateAvatarEyePosition,
     updateAvatarEyeSize,
     updateAvatarEyes,
+    updateBodyNodes,
     updateDimension,
     updateHighlight,
     updateImmediate,
@@ -1813,6 +1914,9 @@ export function useStudioController() {
     updateSelectedBodyNode,
     updateSize,
     updateSpacing,
+    updateStudioExpressions,
+    updateStudioLibrary,
+    updateStudioSequences,
     updateSurface,
     updateWireVisibility,
     workspaceBackButtonRef,

@@ -1,7 +1,19 @@
 import type { Point3 } from './geometry'
 
 export type SurfaceType =
-  'sphere' | 'mickey' | 'cursor' | 'cube' | 'capsule' | 'cylinder' | 'cone' | 'diamond'
+  | 'sphere'
+  | 'mickey'
+  | 'cursor'
+  | 'cube'
+  | 'capsule'
+  | 'cylinder'
+  | 'cone'
+  | 'diamond'
+  | 'torus'
+  | 'star'
+  | 'cloud'
+  | 'book'
+  | 'hand'
 
 export type SurfaceConfig = {
   type: SurfaceType
@@ -9,6 +21,7 @@ export type SurfaceConfig = {
   height: number
   depth: number
   roundness: number
+  pattern?: 'none' | 'book' | 'stripes'
   morphRoundness?: number
   tipRoundness?: number
   baseRoundness?: number
@@ -44,6 +57,11 @@ export const surfacePresets: Record<SurfaceType, SurfaceConfig> = {
     baseRoundness: 0.45,
   },
   diamond: { type: 'diamond', width: 235, height: 260, depth: 215, roundness: 0 },
+  torus: { type: 'torus', width: 220, height: 48, depth: 220, roundness: 1 },
+  star: { type: 'star', width: 180, height: 180, depth: 70, roundness: 0 },
+  cloud: { type: 'cloud', width: 250, height: 190, depth: 180, roundness: 1 },
+  book: { type: 'book', width: 210, height: 140, depth: 95, roundness: 0.5 },
+  hand: { type: 'hand', width: 85, height: 85, depth: 75, roundness: 1 },
 }
 
 export const surfaceLabels: Record<SurfaceType, string> = {
@@ -55,6 +73,11 @@ export const surfaceLabels: Record<SurfaceType, string> = {
   cylinder: 'Cylindre',
   cone: 'Cône',
   diamond: 'Diamant',
+  torus: 'Halo / Anneau',
+  star: 'Étoile',
+  cloud: 'Nuage',
+  book: 'Livre',
+  hand: 'Main / Patte',
 }
 
 const signedPower = (value: number, exponent: number) =>
@@ -346,6 +369,53 @@ export const surfacePointAt = (
         (depth / 2) * profile.radiusScale * Math.cos(longitude),
       ]
     }
+    case 'torus': {
+      const ringRadius = (width + depth) / 4
+      const tubeRadius = Math.max(2, height / 2)
+      const u = longitude
+      const v = latitude * 2
+      const radial = ringRadius + tubeRadius * Math.cos(v)
+      return [radial * Math.sin(u), tubeRadius * Math.sin(v), radial * Math.cos(u)]
+    }
+    case 'star': {
+      const angle = longitude
+      const modulation = (Math.abs(Math.sin(2 * angle)) + 0.3) / 1.3
+      const latCos = Math.cos(latitude)
+      return [
+        (width / 2) * latCos * Math.sin(angle) * modulation,
+        (height / 2) * Math.sin(latitude) * modulation,
+        (depth / 2) * latCos * Math.cos(angle) * modulation,
+      ]
+    }
+    case 'cloud': {
+      const latCos = Math.cos(latitude)
+      const lobeMod = 1 + 0.18 * Math.cos(3 * longitude) * Math.cos(2 * latitude)
+      const vertMod = 1 + 0.15 * Math.sin(3 * longitude)
+      return [
+        (width / 2) * latCos * Math.sin(longitude) * lobeMod,
+        (height / 2) * Math.sin(latitude) * vertMod,
+        (depth / 2) * latCos * Math.cos(longitude) * lobeMod,
+      ]
+    }
+    case 'book': {
+      const side = Math.sin(longitude)
+      const latCos = Math.cos(latitude)
+      const openAngle = 0.28
+      const x = (width / 2) * side
+      const y = (height / 2) * Math.sin(latitude)
+      const z =
+        (depth / 2) * latCos * Math.cos(longitude) + Math.abs(side) * (depth / 2) * openAngle
+      return [x, y, z]
+    }
+    case 'hand': {
+      const latCos = Math.cos(latitude)
+      const gripMod = 1 + 0.15 * Math.cos(longitude)
+      return [
+        (width / 2) * latCos * Math.sin(longitude),
+        (height / 2) * Math.sin(latitude) * gripMod,
+        (depth / 2) * latCos * Math.cos(longitude),
+      ]
+    }
   }
 }
 
@@ -570,6 +640,9 @@ export const surfaceFrontSampleAt = (
 
     case 'diamond':
       return lpFrontSample(config, x, y, diamondExponent(config), diamondNormal)
+
+    default:
+      return ellipsoidFrontSample(x, y, radiusX, radiusY, radiusZ)
   }
 }
 

@@ -2,12 +2,20 @@ import { surfaceLabels, surfacePresets, type SurfaceConfig, type SurfaceType } f
 
 export type BodyVector = readonly [number, number, number]
 
+export type BodyMaterial = 'solid' | 'glass' | 'glow' | 'metallic'
+export type BodyGradientType = 'none' | 'linear' | 'radial' | 'glow'
+
 export type BodyNode = {
   id: string
   name: string
   surface: SurfaceConfig
   position: BodyVector
   rotation: BodyVector
+  color?: string
+  colorTo?: string
+  gradientType?: BodyGradientType
+  opacity?: number
+  material?: BodyMaterial
 }
 
 export type AvatarBody = {
@@ -22,6 +30,11 @@ export const bodyPrimitiveTypes = [
   'cylinder',
   'cone',
   'diamond',
+  'torus',
+  'star',
+  'cloud',
+  'book',
+  'hand',
 ] as const
 
 export const MAX_BODY_NODES = 16
@@ -46,7 +59,11 @@ export const parseSurfaceConfig = (value: unknown, fallback: SurfaceConfig): Sur
     return { ...fallback }
   if (candidate.baseRoundness !== undefined && !finite(candidate.baseRoundness))
     return { ...fallback }
-  return { ...preset, ...candidate, type }
+  const pattern =
+    typeof candidate.pattern === 'string' && ['none', 'book', 'stripes'].includes(candidate.pattern)
+      ? (candidate.pattern as 'none' | 'book' | 'stripes')
+      : fallback.pattern
+  return { ...preset, ...candidate, type, ...(pattern ? { pattern } : {}) }
 }
 
 export const parseAvatarBody = (value: unknown, fallbackPrimary: SurfaceConfig): AvatarBody => {
@@ -80,6 +97,22 @@ export const parseAvatarBody = (value: unknown, fallbackPrimary: SurfaceConfig):
         .slice(0, MAX_BODY_NODES)
         .map(node => ({
           ...node,
+          color: typeof node.color === 'string' && node.color ? node.color : undefined,
+          colorTo: typeof node.colorTo === 'string' && node.colorTo ? node.colorTo : undefined,
+          gradientType:
+            typeof node.gradientType === 'string' &&
+            ['none', 'linear', 'radial', 'glow'].includes(node.gradientType)
+              ? node.gradientType
+              : undefined,
+          opacity:
+            typeof node.opacity === 'number' && node.opacity >= 0 && node.opacity <= 1
+              ? node.opacity
+              : undefined,
+          material:
+            typeof node.material === 'string' &&
+            ['solid', 'glass', 'glow', 'metallic'].includes(node.material)
+              ? node.material
+              : undefined,
           surface: parseSurfaceConfig(node.surface, surfacePresets[node.surface.type]),
         }))
     : []

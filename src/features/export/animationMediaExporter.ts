@@ -1,0 +1,565 @@
+import {
+  ambientBodyOffset,
+  ambientEyeOffset,
+  applyAmbientBodyMotion,
+} from '../avatar/ambientMotion'
+import { applyAvatarEyeDefaults, type AvatarColors, type StudioAvatar } from '../avatar/avatars'
+import {
+  expressionFields,
+  poseFromExpression,
+  renderAvatar,
+  type Expression,
+  type ExpressionNumericField,
+} from '../avatar/geometry'
+import type { AvatarSequence, SequenceTransition } from '../animation/sequences'
+import { GifEncoder } from './gifEncoder'
+import type { SnapshotBackground } from './snapshotExporter'
+
+export type AnimationMediaFormat = 'gif' | 'webm' | 'mp4'
+
+export type AnimationMediaOptions = {
+  format: AnimationMediaFormat
+  size: number
+  fps: number
+  background: SnapshotBackground
+  colorFrom: string
+  colorTo: string
+  loops?: number
+}
+
+export type AnimationExportProgress = (progress: number, label: string) => void
+
+export const defaultAnimationMediaOptions: AnimationMediaOptions = {
+  format: 'gif',
+  size: 512,
+  fps: 30,
+  background: 'transparent',
+  colorFrom: '#0d1117',
+  colorTo: '#1e293b',
+  loops: 1,
+}
+
+const escapeXml = (value: string) =>
+  value.replace(/[&<>"]/g, character => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    }
+    return entities[character]
+  })
+
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
+
+const easeTransition = (progress: number, transition: SequenceTransition) => {
+  const p = clamp01(progress)
+  if (transition === 'smooth') return p * p * (3 - 2 * p)
+  if (transition === 'snappy') return 1 - (1 - p) ** 3
+  // spring
+  return 1 - Math.exp(-6 * p) * Math.cos(8 * p)
+}
+
+const nearestAngle = (target: number, current: number) => {
+  let resolved = target
+  while (resolved - current > 180) resolved -= 360
+  while (resolved - current < -180) resolved += 360
+  return resolved
+}
+
+const parseHex = (color: string): [number, number, number] => {
+  const cleaned = color.replace('#', '').trim()
+  const hex =
+    cleaned.length === 3
+      ? cleaned
+          .split('')
+          .map(c => c + c)
+          .join('')
+      : cleaned
+  const numeric = Number.parseInt(hex || '000000', 16)
+  return [(numeric >> 16) & 255, (numeric >> 8) & 255, numeric & 255]
+}
+
+const interpolateColor = (fromHex: string, toHex: string, progress: number): string => {
+  const p = clamp01(progress)
+  const from = parseHex(fromHex)
+  const to = parseHex(toHex)
+  const r = Math.round(from[0] + (to[0] - from[0]) * p)
+  const g = Math.round(from[1] + (to[1] - from[1]) * p)
+  const b = Math.round(from[2] + (to[2] - from[2]) * p)
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
+const pathMarkup = (d: string, fill: string, opacity = 1) =>
+  d
+    ? `<path d="${escapeXml(d)}" fill="${escapeXml(fill)}"${opacity < 1 ? ` opacity="${opacity}"` : ''}/>`
+    : ''
+
+const backgroundMarkup = (options: AnimationMediaOptions) => {
+  if (options.background === 'transparent') return ''
+  const fill =
+    options.background === 'solid'
+      ? options.colorFrom
+      : options.background === 'linear'
+        ? 'url(#anim-linear)'
+        : 'url(#anim-radial)'
+  return `<rect x="-150" y="-150" width="300" height="300" fill="${fill}"/>`
+}
+
+const gradientMarkup = (options: AnimationMediaOptions) => {
+  if (options.background === 'linear') {
+    return `<linearGradient id="anim-linear" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${options.colorFrom}"/><stop offset="1" stop-color="${options.colorTo}"/></linearGradient>`
+  }
+  if (options.background === 'radial') {
+    return `<radialGradient id="anim-radial" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="${options.colorFrom}"/><stop offset="1" stop-color="${options.colorTo}"/></radialGradient>`
+  }
+  return ''
+}
+
+export type SampledAnimationFrame = {
+  svg: string
+  delayMs: number
+  elapsedMs: number
+}
+
+/**
+ * Samples all discrete animation frames over time for a given avatar sequence.
+ */
+export const sampleAnimationFrames = (
+  avatar: StudioAvatar,
+  sequence: AvatarSequence,
+  expressions: Expression[],
+  options: AnimationMediaOptions
+): SampledAnimationFrame[] => {
+  const expressionById = new Map(
+    expressions.map(exp => [exp.id, applyAvatarEyeDefaults(exp, avatar.eyes)])
+  )
+
+  const steps = sequence.steps.filter(step => expressionById.has(step.expressionId))
+  if (!steps.length) {
+    const fallbackExp = expressions[0] ?? {
+      id: 'default',
+      headX: 0,
+      headY: 0,
+      headZ: 0,
+      widthLeft: 30,
+      widthRight: 30,
+      heightLeft: 38,
+      heightRight: 38,
+      spacing: 50,
+      positionXLeft: -25,
+      positionXRight: 25,
+      positionYLeft: 0,
+      positionYRight: 0,
+      leftAngle: 0,
+      rightAngle: 0,
+      perspective: 0.08,
+      eyeMotion: 'none',
+      bodyMotion: 'none',
+    }
+    const pose = poseFromExpression(fallbackExp)
+    const scene = renderAvatar(pose, avatar.body.primary, 1, { bodyNodes: avatar.body.nodes })
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}">
+  <defs>${gradientMarkup(options)}<clipPath id="frame-clip-0"><path d="${escapeXml(scene.headPath)}"/></clipPath></defs>
+  ${backgroundMarkup(options)}
+  <g>${scene.backPaths.map(p => pathMarkup(p, avatar.colors.body)).join('')}${pathMarkup(scene.headPath, avatar.colors.body)}<g clip-path="url(#frame-clip-0)">${scene.leftVisible ? pathMarkup(scene.leftPath, avatar.colors.eyes) : ''}${scene.rightVisible ? pathMarkup(scene.rightPath, avatar.colors.eyes) : ''}</g>${scene.frontPaths.map(p => pathMarkup(p, avatar.colors.body)).join('')}</g>
+</svg>`
+    return [{ svg, delayMs: 1000, elapsedMs: 0 }]
+  }
+
+  // Build step timelines
+  type StepTimeline = {
+    stepIndex: number
+    expression: Expression
+    nextExpression: Expression
+    holdMs: number
+    transitionMs: number
+    transition: SequenceTransition
+    startMs: number
+    transitionStartMs: number
+    endMs: number
+  }
+
+  const stepList: StepTimeline[] = []
+  let accumulatedMs = 0
+
+  // If playbackMode is pingPong, we expand steps forward then backward
+  const expandedSteps =
+    sequence.playbackMode === 'pingPong' && steps.length > 2
+      ? [...steps, ...steps.slice(1, -1).reverse()]
+      : steps
+
+  const numLoops = Math.max(1, options.loops || 1)
+
+  for (let loop = 0; loop < numLoops; loop++) {
+    for (let i = 0; i < expandedSteps.length; i++) {
+      const step = expandedSteps[i]
+      const exp = expressionById.get(step.expressionId)!
+      const nextStep = expandedSteps[(i + 1) % expandedSteps.length]
+      const nextExp = expressionById.get(nextStep.expressionId)!
+
+      const hold = Math.max(20, step.holdMs)
+      const transition = Math.max(0, step.transitionMs)
+      const startMs = accumulatedMs
+      const transitionStartMs = startMs + hold
+      const endMs = transitionStartMs + transition
+      accumulatedMs = endMs
+
+      stepList.push({
+        stepIndex: i,
+        expression: exp,
+        nextExpression: nextExp,
+        holdMs: hold,
+        transitionMs: transition,
+        transition: step.transition,
+        startMs,
+        transitionStartMs,
+        endMs,
+      })
+    }
+  }
+
+  const totalDurationMs = Math.max(100, accumulatedMs)
+  const frameIntervalMs = Math.max(16, Math.round(1000 / Math.max(1, options.fps)))
+  const frames: SampledAnimationFrame[] = []
+
+  let blinkPhase = 0
+  const blinkSettings = sequence.blink
+  const blinkInterval = blinkSettings.enabled
+    ? (blinkSettings.minIntervalMs + blinkSettings.maxIntervalMs) / 2
+    : 4000
+  const blinkDuration = blinkSettings.durationMs || 160
+
+  let frameCounter = 0
+
+  for (let t = 0; t < totalDurationMs; t += frameIntervalMs) {
+    frameCounter++
+    // Locate active step
+    const currentStep =
+      stepList.find(s => t >= s.startMs && t < s.endMs) || stepList[stepList.length - 1]
+
+    let interpolated: Expression
+    let bodyColor = currentStep.expression.bodyColor || avatar.colors.body
+    let eyeColor = currentStep.expression.eyeColor || avatar.colors.eyes
+
+    if (t < currentStep.transitionStartMs || currentStep.transitionMs <= 0) {
+      interpolated = { ...currentStep.expression }
+    } else {
+      const rawProgress = (t - currentStep.transitionStartMs) / currentStep.transitionMs
+      const progress = easeTransition(rawProgress, currentStep.transition)
+      const from = currentStep.expression
+      const to = currentStep.nextExpression
+
+      const blended: Partial<Expression> = {
+        id: `interp-${t}`,
+        eyeMotion: to.eyeMotion !== 'none' ? to.eyeMotion : from.eyeMotion,
+        bodyMotion: to.bodyMotion !== 'none' ? to.bodyMotion : from.bodyMotion,
+      }
+
+      // Angles need nearest-angle resolution
+      const targetHeadX = nearestAngle(to.headX, from.headX)
+      const targetHeadY = nearestAngle(to.headY, from.headY)
+      const targetHeadZ = nearestAngle(to.headZ, from.headZ)
+      const targetLeftAngle = nearestAngle(to.leftAngle, from.leftAngle)
+      const targetRightAngle = nearestAngle(to.rightAngle, from.rightAngle)
+
+      blended.headX = from.headX + (targetHeadX - from.headX) * progress
+      blended.headY = from.headY + (targetHeadY - from.headY) * progress
+      blended.headZ = from.headZ + (targetHeadZ - from.headZ) * progress
+      blended.leftAngle = from.leftAngle + (targetLeftAngle - from.leftAngle) * progress
+      blended.rightAngle = from.rightAngle + (targetRightAngle - from.rightAngle) * progress
+
+      for (const field of expressionFields) {
+        if (
+          field !== 'headX' &&
+          field !== 'headY' &&
+          field !== 'headZ' &&
+          field !== 'leftAngle' &&
+          field !== 'rightAngle'
+        ) {
+          const fromVal = from[field as ExpressionNumericField]
+          const toVal = to[field as ExpressionNumericField]
+          blended[field as ExpressionNumericField] = fromVal + (toVal - fromVal) * progress
+        }
+      }
+
+      const fromBody = from.bodyColor || avatar.colors.body
+      const toBody = to.bodyColor || avatar.colors.body
+      const fromEye = from.eyeColor || avatar.colors.eyes
+      const toEye = to.eyeColor || avatar.colors.eyes
+
+      bodyColor = interpolateColor(fromBody, toBody, progress)
+      eyeColor = interpolateColor(fromEye, toEye, progress)
+
+      interpolated = blended as Expression
+    }
+
+    // Compute blinks
+    let blinkAmount = 1
+    if (blinkSettings.enabled) {
+      const cycleTime = (t + (blinkSettings.initialDelayMs || 600)) % blinkInterval
+      if (cycleTime < blinkDuration) {
+        const blinkProgress = cycleTime / blinkDuration
+        // Dip to 0 (closed) and back up to 1
+        blinkAmount =
+          Math.sin(blinkProgress * Math.PI) > 0.5
+            ? 0.05
+            : 1 - Math.sin(blinkProgress * Math.PI) * 0.95
+      }
+    }
+
+    // Apply ambient motion
+    const ambientExpression = applyAmbientBodyMotion(interpolated, t)
+    const bodyOffset = ambientBodyOffset(interpolated, t)
+    const eyeOffset = ambientEyeOffset(interpolated, t)
+
+    const pose = poseFromExpression(ambientExpression)
+    const scene = renderAvatar(pose, avatar.body.primary, blinkAmount, {
+      bodyNodes: avatar.body.nodes,
+      eyeOffset,
+    })
+
+    const clipId = `frame-clip-${frameCounter}`
+    const offsetX = (bodyOffset.x || 0).toFixed(2)
+    const offsetY = (bodyOffset.y || 0).toFixed(2)
+
+    const backPathsMarkup = scene.backPaths
+      .map((p, index) => {
+        const nodeId = scene.backNodeIds[index]
+        const style = nodeId ? scene.nodeStyles[nodeId] : undefined
+        const fill = style?.color || bodyColor
+        const opacity = style?.opacity ?? 1
+        return pathMarkup(p, fill, opacity)
+      })
+      .join('')
+
+    const frontPathsMarkup = scene.frontPaths
+      .map((p, index) => {
+        const nodeId = scene.frontNodeIds[index]
+        const style = nodeId ? scene.nodeStyles[nodeId] : undefined
+        const fill = style?.color || bodyColor
+        const opacity = style?.opacity ?? 1
+        return pathMarkup(p, fill, opacity)
+      })
+      .join('')
+
+    const mouthMarkup =
+      scene.mouthVisible && scene.mouthPath
+        ? `<path d="${escapeXml(scene.mouthPath)}" stroke="${escapeXml(eyeColor)}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+        : ''
+
+    const decalsMarkup = (scene.decals ?? [])
+      .map(decal => pathMarkup(decal.path, decal.fill, decal.opacity ?? 1))
+      .join('')
+
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}">
+  <defs>${gradientMarkup(options)}<clipPath id="${clipId}"><path d="${escapeXml(scene.headPath)}"/></clipPath></defs>
+  ${backgroundMarkup(options)}
+  <g transform="translate(${offsetX} ${offsetY})">${backPathsMarkup}${pathMarkup(scene.headPath, bodyColor)}<g clip-path="url(#${clipId})">${decalsMarkup}${scene.leftVisible ? pathMarkup(scene.leftPath, eyeColor) : ''}${scene.rightVisible ? pathMarkup(scene.rightPath, eyeColor) : ''}${mouthMarkup}</g>${frontPathsMarkup}</g>
+</svg>`
+
+    frames.push({
+      svg,
+      delayMs: frameIntervalMs,
+      elapsedMs: t,
+    })
+  }
+
+  return frames
+}
+
+/**
+ * Loads an SVG string and draws it onto a canvas.
+ */
+export const renderSvgToCanvas = async (
+  svgString: string,
+  canvas: HTMLCanvasElement,
+  size: number
+): Promise<void> => {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) return
+
+  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+
+  try {
+    const img = new Image()
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = reject
+      img.src = url
+    })
+
+    ctx.clearRect(0, 0, size, size)
+    ctx.drawImage(img, 0, 0, size, size)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+/**
+ * Exports an individual animation to an animated GIF Blob.
+ */
+export const exportAnimationToGif = async (
+  avatar: StudioAvatar,
+  sequence: AvatarSequence,
+  expressions: Expression[],
+  options: AnimationMediaOptions,
+  onProgress?: AnimationExportProgress
+): Promise<{ blob: Blob; filename: string }> => {
+  const size = Number(options.size) || 512
+  const frames = sampleAnimationFrames(avatar, sequence, expressions, options)
+  const encoder = new GifEncoder(size, size)
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) throw new Error('Could not create Canvas 2D context')
+
+  const total = frames.length
+  const transparent = options.background === 'transparent'
+
+  for (let i = 0; i < total; i++) {
+    const frame = frames[i]
+    await renderSvgToCanvas(frame.svg, canvas, size)
+    const imageData = ctx.getImageData(0, 0, size, size)
+
+    encoder.addFrame(imageData.data, {
+      delayMs: frame.delayMs,
+      transparent,
+    })
+
+    if (onProgress) {
+      const percent = Math.round(((i + 1) / total) * 100)
+      onProgress(percent, `Génération du GIF (${percent}%)...`)
+    }
+  }
+
+  const blob = encoder.toBlob()
+  const filename = animationMediaFileName(avatar.name, sequence.name, 'gif')
+  return { blob, filename }
+}
+
+/**
+ * Exports an individual animation to a Video (WebM or MP4) Blob using MediaRecorder.
+ */
+export const exportAnimationToVideo = async (
+  avatar: StudioAvatar,
+  sequence: AvatarSequence,
+  expressions: Expression[],
+  options: AnimationMediaOptions,
+  onProgress?: AnimationExportProgress
+): Promise<{ blob: Blob; filename: string }> => {
+  const size = Number(options.size) || 512
+  const fps = Number(options.fps) || 30
+  const frames = sampleAnimationFrames(avatar, sequence, expressions, options)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) throw new Error('Could not create Canvas 2D context')
+
+  // Detect supported mime type
+  const isMp4 = options.format === 'mp4'
+  let mimeType = 'video/webm;codecs=vp9'
+  if (isMp4 && MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+    mimeType = 'video/mp4;codecs=avc1'
+  } else if (isMp4 && MediaRecorder.isTypeSupported('video/mp4')) {
+    mimeType = 'video/mp4'
+  } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+    mimeType = 'video/webm;codecs=vp9'
+  } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+    mimeType = 'video/webm;codecs=vp8'
+  } else if (MediaRecorder.isTypeSupported('video/webm')) {
+    mimeType = 'video/webm'
+  } else {
+    mimeType = ''
+  }
+
+  const stream = canvas.captureStream(fps)
+  const recorder = mimeType
+    ? new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 })
+    : new MediaRecorder(stream)
+
+  const chunks: Blob[] = []
+  recorder.ondataavailable = e => {
+    if (e.data && e.data.size > 0) {
+      chunks.push(e.data)
+    }
+  }
+
+  const recordPromise = new Promise<Blob>(resolve => {
+    recorder.onstop = () => {
+      const outputBlob = new Blob(chunks, {
+        type: recorder.mimeType || (isMp4 ? 'video/mp4' : 'video/webm'),
+      })
+      resolve(outputBlob)
+    }
+  })
+
+  recorder.start()
+
+  const total = frames.length
+  const interval = 1000 / fps
+
+  for (let i = 0; i < total; i++) {
+    const frame = frames[i]
+    await renderSvgToCanvas(frame.svg, canvas, size)
+
+    if (onProgress) {
+      const percent = Math.round(((i + 1) / total) * 100)
+      onProgress(percent, `Enregistrement vidéo (${percent}%)...`)
+    }
+
+    // Frame pause to let canvas capture
+    await new Promise(r => setTimeout(r, interval))
+  }
+
+  // Finalize recorder
+  recorder.stop()
+  const blob = await recordPromise
+
+  const ext = recorder.mimeType?.includes('mp4') ? 'mp4' : 'webm'
+  const filename = animationMediaFileName(avatar.name, sequence.name, ext)
+  return { blob, filename }
+}
+
+/**
+ * Creates a clean slugged file name for animation media downloads.
+ */
+export const animationMediaFileName = (
+  avatarName: string,
+  sequenceName: string,
+  extension: string
+): string => {
+  const clean = (val: string) =>
+    val
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'avatar'
+
+  const aSlug = clean(avatarName)
+  const sSlug = clean(sequenceName)
+  return `${aSlug}-${sSlug}.${extension.toLowerCase()}`
+}
+
+/**
+ * Helper to download any Blob in the browser.
+ */
+export const downloadMediaBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}

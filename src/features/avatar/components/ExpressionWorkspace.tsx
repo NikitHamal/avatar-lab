@@ -58,16 +58,23 @@ export function ExpressionPreview({
           <path d={geometry.headPath} />
         </clipPath>
       </defs>
-      {geometry.backPaths.map((pathValue, index) => (
-        <path
-          className="preview-head"
-          d={pathValue}
-          key={index}
-          style={{ fill: resolvedColors.body }}
-        />
-      ))}
+      {geometry.backPaths.map((pathValue, index) => {
+        const nodeId = geometry.backNodeIds[index]
+        const style = nodeId ? geometry.nodeStyles?.[nodeId] : undefined
+        const fill = style?.color || resolvedColors.body
+        const opacity = style?.opacity
+        return <path className="preview-head" d={pathValue} key={index} style={{ fill, opacity }} />
+      })}
       <path className="preview-head" d={geometry.headPath} style={{ fill: resolvedColors.body }} />
       <g clipPath={`url(#${clipId})`}>
+        {geometry.decals?.map((decal, index) => (
+          <path
+            key={`decal-${index}`}
+            d={decal.path}
+            fill={decal.fill}
+            opacity={decal.opacity ?? 1}
+          />
+        ))}
         <path
           className="preview-eye"
           d={geometry.leftPath}
@@ -80,15 +87,31 @@ export function ExpressionPreview({
           opacity={geometry.rightVisible ? 1 : 0}
           style={{ fill: resolvedColors.eyes }}
         />
+        {geometry.mouthVisible && geometry.mouthPath && (
+          <path
+            d={geometry.mouthPath}
+            stroke={resolvedColors.eyes}
+            strokeWidth="3.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        )}
       </g>
-      {geometry.frontPaths.map((pathValue, index) => (
-        <path
-          className="preview-head"
-          d={pathValue}
-          key={`front-${index}`}
-          style={{ fill: resolvedColors.body }}
-        />
-      ))}
+      {geometry.frontPaths.map((pathValue, index) => {
+        const nodeId = geometry.frontNodeIds[index]
+        const style = nodeId ? geometry.nodeStyles?.[nodeId] : undefined
+        const fill = style?.color || resolvedColors.body
+        const opacity = style?.opacity
+        return (
+          <path
+            className="preview-head"
+            d={pathValue}
+            key={`front-${index}`}
+            style={{ fill, opacity }}
+          />
+        )
+      })}
     </svg>
   )
 }

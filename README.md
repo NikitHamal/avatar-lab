@@ -1,6 +1,6 @@
-# Bible Strong Avatar Lab
+# Avatar Lab
 
-Bible Strong Avatar Lab is a browser-based authoring studio for procedural 2D avatars. It combines 3D-inspired geometry with SVG rendering so you can construct a character, define its neutral appearance, create expressions, compose reusable animations, and export the result without depending on the Studio UI.
+Avatar Lab is a browser-based authoring studio for procedural 2D avatars. It combines 3D-inspired geometry with SVG rendering so you can construct a character, define its neutral appearance, create expressions, compose reusable animations, and export the result without depending on the Studio UI.
 
 Website: [avatars.bible-strong.app](https://avatars.bible-strong.app) · Source: [GitHub](https://github.com/smontlouis/bible-strong-avatar-lab)
 
@@ -165,7 +165,7 @@ For the domain vocabulary, invariants, and architecture boundaries, read [CONTEX
 
 ## License
 
-Bible Strong Avatar Lab is licensed under the [GNU Affero General Public License v3.0](./LICENSE).
+Avatar Lab is licensed under the [GNU Affero General Public License v3.0](./LICENSE).
 
 You may use, study, modify, and redistribute the project. If you distribute the application or a modified version, you must notably:
 

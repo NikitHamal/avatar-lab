@@ -20,6 +20,7 @@
   },
   "scripts": {
     "dev": "pnpm engine && vite",
+    "ai:server": "python server/ai_server.py",
     "build": "pnpm engine && vite build",
     "preview": "vite preview",
     "engine": "node scripts/generate-standalone-engine.mjs",

@@ -52,15 +52,46 @@ export const serializeAvatarSnapshot = (
   options: SnapshotOptions
 ) => {
   const headPath = scene.headPath.get()
-  const backPaths = scene.backPaths.map(item => item.get()).filter(Boolean)
-  const frontPaths = scene.frontPaths.map(item => item.get()).filter(Boolean)
+  const backPaths = scene.backPaths
+    .map((item, index) => {
+      const p = item.get()
+      if (!p) return ''
+      const nodeId = scene.backNodeIds.current[index]
+      const style = nodeId ? scene.nodeStyles.current[nodeId] : undefined
+      const fill = style?.color || colors.body
+      const opacity = style?.opacity ?? 1
+      return path(p, fill, opacity)
+    })
+    .join('')
+  const frontPaths = scene.frontPaths
+    .map((item, index) => {
+      const p = item.get()
+      if (!p) return ''
+      const nodeId = scene.frontNodeIds.current[index]
+      const style = nodeId ? scene.nodeStyles.current[nodeId] : undefined
+      const fill = style?.color || colors.body
+      const opacity = style?.opacity ?? 1
+      return path(p, fill, opacity)
+    })
+    .join('')
   const offsetX = scene.offsetX.get()
   const offsetY = scene.offsetY.get()
+  const mouthPath = scene.mouthPath.get()
+  const mouthOpacity = scene.mouthOpacity.get()
+  const mouthMarkup =
+    mouthPath && mouthOpacity > 0
+      ? `<path d="${escapeXml(mouthPath)}" stroke="${escapeXml(colors.eyes)}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="${mouthOpacity}"/>`
+      : ''
+
+  const decalsMarkup = (scene.decals.current ?? [])
+    .map(decal => path(decal.path, decal.fill, decal.opacity ?? 1))
+    .join('')
+
   const body = [
-    ...backPaths.map(value => path(value, colors.body)),
+    backPaths,
     path(headPath, colors.body),
-    `<g clip-path="url(#snapshot-head-clip)">${path(scene.leftPath.get(), colors.eyes, scene.leftOpacity.get())}${path(scene.rightPath.get(), colors.eyes, scene.rightOpacity.get())}</g>`,
-    ...frontPaths.map(value => path(value, colors.body)),
+    `<g clip-path="url(#snapshot-head-clip)">${decalsMarkup}${path(scene.leftPath.get(), colors.eyes, scene.leftOpacity.get())}${path(scene.rightPath.get(), colors.eyes, scene.rightOpacity.get())}${mouthMarkup}</g>`,
+    frontPaths,
   ].join('')
 
   return `<?xml version="1.0" encoding="UTF-8"?>

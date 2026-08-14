@@ -4,6 +4,8 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { StudioDialogs } from '@/features/studio/components/StudioDialogs'
 import { StudioInspector } from '@/features/studio/components/StudioInspector'
 import { StudioStage } from '@/features/studio/components/StudioStage'
+import { AgentSidebar } from '@/features/agent/components/AgentSidebar'
+import { useAgentController } from '@/features/agent/useAgentController'
 import type { StudioController } from '@/features/studio/useStudioController'
 
 const STACKED_LAYOUT_QUERY = '(max-width: 980px)'
@@ -12,6 +14,7 @@ export function StudioView(controller: StudioController) {
   const [stackedLayout, setStackedLayout] = useState(
     () => window.matchMedia(STACKED_LAYOUT_QUERY).matches
   )
+  const agent = useAgentController(controller)
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(STACKED_LAYOUT_QUERY)
@@ -23,32 +26,36 @@ export function StudioView(controller: StudioController) {
   return (
     <div className="studio-root" lang={controller.language}>
       {stackedLayout ? (
-        <ResizablePanelGroup
-          className="studio studio-mobile-resizable"
-          orientation="vertical"
-          resizeTargetMinimumSize={{ coarse: 40, fine: 12 }}
-        >
-          <ResizablePanel
-            id="preview"
-            className="mobile-stage-panel"
-            defaultSize="42%"
-            minSize={180}
+        <div className="studio-mobile-wrapper">
+          <ResizablePanelGroup
+            className="studio studio-mobile-resizable"
+            orientation="vertical"
+            resizeTargetMinimumSize={{ coarse: 40, fine: 12 }}
           >
-            <StudioStage controller={controller} />
-          </ResizablePanel>
-          <ResizableHandle
-            className="studio-resize-handle"
-            withHandle
-            aria-label={controller.t('Redimensionner l’aperçu et l’éditeur')}
-          />
-          <ResizablePanel id="editor" className="mobile-inspector-panel" minSize={260}>
-            <StudioInspector controller={controller} />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            <ResizablePanel
+              id="preview"
+              className="mobile-stage-panel"
+              defaultSize="42%"
+              minSize={180}
+            >
+              <StudioStage controller={controller} />
+            </ResizablePanel>
+            <ResizableHandle
+              className="studio-resize-handle"
+              withHandle
+              aria-label={controller.t('Redimensionner l’aperçu et l’éditeur')}
+            />
+            <ResizablePanel id="editor" className="mobile-inspector-panel" minSize={260}>
+              <StudioInspector controller={controller} />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+          <AgentSidebar agent={agent} studioController={controller} />
+        </div>
       ) : (
-        <div className="studio">
+        <div className="studio studio-with-agent">
           <StudioStage controller={controller} />
           <StudioInspector controller={controller} />
+          <AgentSidebar agent={agent} studioController={controller} />
         </div>
       )}
       <StudioDialogs controller={controller} />

@@ -1,6 +1,7 @@
 import {
   cursorLayout,
   surfaceFrontSampleAt,
+  surfaceNormalAt,
   surfacePointAt,
   surfaceSampleAt,
   type SurfaceConfig,
@@ -33,16 +34,32 @@ export type Expression = {
   bodyMotion: BodyMotion
   bodyColor?: string
   eyeColor?: string
+  mouth?: 'smile' | 'openSmile' | 'oMouth' | 'flat' | 'cat' | 'none'
+  mouthScale?: number
 }
 
 export type ExpressionNumericField = Exclude<
   keyof Expression,
-  'id' | 'bodyColor' | 'eyeColor' | 'eyeMotion' | 'bodyMotion'
+  'id' | 'bodyColor' | 'eyeColor' | 'eyeMotion' | 'bodyMotion' | 'mouth' | 'mouthScale'
 >
 
 export type AvatarPose = {
   expression: Expression
   orientation: Quaternion
+}
+
+export type AvatarNodeStyle = {
+  color?: string
+  colorTo?: string
+  gradientType?: string
+  opacity?: number
+  material?: string
+}
+
+export type DecalPath = {
+  path: string
+  fill: string
+  opacity?: number
 }
 
 export type AvatarGeometry = {
@@ -55,6 +72,10 @@ export type AvatarGeometry = {
   rightPath: string
   leftVisible: boolean
   rightVisible: boolean
+  mouthPath: string
+  mouthVisible: boolean
+  decals: DecalPath[]
+  nodeStyles: Record<string, AvatarNodeStyle>
   wirePaths: string[]
 }
 
@@ -350,17 +371,17 @@ export const renderBodyNodeEditor = (
       ]
     })
   ) as BodyNodeEditorGeometry['axes']
-  ;(['x', 'y', 'z'] as const).forEach(axis => {
-    const endpoint = axes[axis]
-    if (Math.hypot(endpoint[0] - center[0], endpoint[1] - center[1]) >= 12) return
-    const fallback: Point3 =
-      axis === 'x'
-        ? [center[0] + 18, center[1], endpoint[2]]
-        : axis === 'y'
-          ? [center[0], center[1] + 18, endpoint[2]]
-          : [center[0] + 14, center[1] + 14, endpoint[2]]
-    axes[axis] = fallback
-  })
+    ; (['x', 'y', 'z'] as const).forEach(axis => {
+      const endpoint = axes[axis]
+      if (Math.hypot(endpoint[0] - center[0], endpoint[1] - center[1]) >= 12) return
+      const fallback: Point3 =
+        axis === 'x'
+          ? [center[0] + 18, center[1], endpoint[2]]
+          : axis === 'y'
+            ? [center[0], center[1] + 18, endpoint[2]]
+            : [center[0] + 14, center[1] + 14, endpoint[2]]
+      axes[axis] = fallback
+    })
   const rings = Object.fromEntries(
     (['x', 'y', 'z'] as const).map(axis => [
       axis,
@@ -960,14 +981,14 @@ const projectedEllipsoid = (
   const cameraOffset: Point3 = [-center[0], -center[1], focalLength - center[2]]
   const cameraNormal: Point3 = [
     quadratic[0][0] * cameraOffset[0] +
-      quadratic[0][1] * cameraOffset[1] +
-      quadratic[0][2] * cameraOffset[2],
+    quadratic[0][1] * cameraOffset[1] +
+    quadratic[0][2] * cameraOffset[2],
     quadratic[1][0] * cameraOffset[0] +
-      quadratic[1][1] * cameraOffset[1] +
-      quadratic[1][2] * cameraOffset[2],
+    quadratic[1][1] * cameraOffset[1] +
+    quadratic[1][2] * cameraOffset[2],
     quadratic[2][0] * cameraOffset[0] +
-      quadratic[2][1] * cameraOffset[1] +
-      quadratic[2][2] * cameraOffset[2],
+    quadratic[2][1] * cameraOffset[1] +
+    quadratic[2][2] * cameraOffset[2],
   ]
   const cameraTerm =
     cameraOffset[0] * cameraNormal[0] +
@@ -1226,6 +1247,262 @@ const accessoryLayers = (pose: AvatarPose, nodes: BodyNode[]) => {
   }
 }
 
+const mouthPoints = (
+  pose: AvatarPose,
+  surface: SurfaceConfig,
+  type: string = 'smile',
+  scale = 1
+): { path: string; visible: boolean } => {
+  if (!type || type === 'none') return { path: '', visible: false }
+  const mouthLat = -0.36
+  const mouthWidthAngle = 0.24 * (scale || 1)
+  const mouthCurveLat = type === 'smile' ? -0.09 : type === 'openSmile' ? -0.18 : 0
+  const sampleCount = 9
+  const points: Point3[] = []
+  let totalNormalZ = 0
+
+  for (let i = 0; i < sampleCount; i++) {
+    const t = (i / (sampleCount - 1)) * 2 - 1
+    const long = t * mouthWidthAngle
+    const curveOffset = (1 - t * t) * mouthCurveLat
+    const lat = mouthLat + curveOffset
+    const sample = surfaceFrontSampleAt(surface, long, lat)
+    const projected = project(
+      rotateWithQuaternion(pose.orientation, sample.point),
+      pose.expression.perspective
+    )
+    points.push(projected)
+    const normal = rotateWithQuaternion(pose.orientation, sample.normal)
+    totalNormalZ += normal[2]
+  }
+
+  const visible = totalNormalZ > 0
+  if (points.length < 2) return { path: '', visible: false }
+
+  let d = `M${points[0][0].toFixed(2)} ${points[0][1].toFixed(2)}`
+  for (let i = 1; i < points.length; i++) {
+    d += ` L${points[i][0].toFixed(2)} ${points[i][1].toFixed(2)}`
+  }
+  return { path: d, visible }
+}
+
+const projectedSurfaceBand = (
+  pose: AvatarPose,
+  surface: SurfaceConfig,
+  latFn1: (long: number) => number,
+  latFn2: (long: number) => number
+): string => {
+  const steps = 36
+  const topPoints: Point3[] = []
+  const bottomPoints: Point3[] = []
+
+  for (let i = 0; i <= steps; i++) {
+    const long = -Math.PI + (i / steps) * Math.PI * 2
+    const lat1 = latFn1(long)
+    const lat2 = latFn2(long)
+
+    const p1 = surfacePointAt(surface, long, lat1)
+    const p2 = surfacePointAt(surface, long, lat2)
+
+    topPoints.push(project(rotateWithQuaternion(pose.orientation, p1), pose.expression.perspective))
+    bottomPoints.push(
+      project(rotateWithQuaternion(pose.orientation, p2), pose.expression.perspective)
+    )
+  }
+
+  const allPoints = [...topPoints, ...bottomPoints.reverse()]
+  if (allPoints.length < 3) return ''
+  let d = `M${allPoints[0][0].toFixed(2)} ${allPoints[0][1].toFixed(2)}`
+  for (let i = 1; i < allPoints.length; i++) {
+    d += ` L${allPoints[i][0].toFixed(2)} ${allPoints[i][1].toFixed(2)}`
+  }
+  return `${d}Z`
+}
+
+const projectedSurfaceBottomFill = (
+  pose: AvatarPose,
+  surface: SurfaceConfig,
+  latFn: (long: number) => number
+): string => {
+  const steps = 36
+  const points: Point3[] = []
+
+  for (let i = 0; i <= steps; i++) {
+    const long = -Math.PI + (i / steps) * Math.PI * 2
+    const lat = latFn(long)
+    const p = surfacePointAt(surface, long, lat)
+    points.push(project(rotateWithQuaternion(pose.orientation, p), pose.expression.perspective))
+  }
+
+  points.push([450, 450, 0], [-450, 450, 0])
+
+  if (points.length < 3) return ''
+  let d = `M${points[0][0].toFixed(2)} ${points[0][1].toFixed(2)}`
+  for (let i = 1; i < points.length; i++) {
+    d += ` L${points[i][0].toFixed(2)} ${points[i][1].toFixed(2)}`
+  }
+  return `${d}Z`
+}
+
+const projectedBookDecals = (pose: AvatarPose, surface: SurfaceConfig): DecalPath[] => {
+  if (surface.pattern !== 'book') return []
+
+  // Paint the book bands directly on the 3D surface in (longitude, latitude)
+  // space. Each small surface cell is clipped against the camera-facing
+  // hemisphere BEFORE projection. This is important: building one large SVG
+  // polygon from a front arc and then closing it in screen space can connect
+  // unrelated points across the silhouette and creates the blue side spikes.
+  //
+  // This UV mesh wraps through the full -π..π longitude range, so the pattern
+  // really exists on every side of the model and naturally becomes visible as
+  // the avatar rotates.
+  const LONGITUDE_STEPS = 144
+  const BASE_FILL_ROWS = 14
+  const BAND_ROWS = 2
+  const FRONT_EPSILON = 1e-5
+  const BOTTOM_LATITUDE = Math.PI / 2 - 0.001
+
+  // IMPORTANT: this is a real 3D belt, so its vertical position must be a
+  // property of the body, not of longitude. The old cos(longitude) term made
+  // the paint physically climb toward the equator on the sides and even higher
+  // on the back. When those regions rotated into view they appeared as the
+  // tall blue wedges seen at the silhouette.
+  const BAND_EDGE_LATITUDE = 0.4
+
+  type UvPoint = { u: number; v: number }
+
+  const edgeLatitude = (_longitude: number) => BAND_EDGE_LATITUDE
+
+  // Perspective-correct front test. normal.z > 0 is only exact for an
+  // orthographic camera; with perspective it can keep a thin strip past the
+  // true silhouette. Use the vector from the surface point to the camera so
+  // side/back cells disappear at the same place as the body silhouette.
+  const visibility = ({ u, v }: UvPoint) => {
+    const point = rotateWithQuaternion(pose.orientation, surfacePointAt(surface, u, v))
+    const normal = rotateWithQuaternion(pose.orientation, surfaceNormalAt(surface, u, v))
+    const perspective = pose.expression.perspective
+    if (Math.abs(perspective) < 1e-6) return normal[2] - FRONT_EPSILON
+
+    const cameraZ = FOCAL_LENGTH / perspective
+    const viewX = -point[0]
+    const viewY = -point[1]
+    const viewZ = cameraZ - point[2]
+    const viewLength = Math.hypot(viewX, viewY, viewZ) || 1
+    return (normal[0] * viewX + normal[1] * viewY + normal[2] * viewZ) / viewLength - FRONT_EPSILON
+  }
+
+  // Refine a front/back crossing in UV space. A bisection here gives the decal
+  // the same silhouette as the actual 3D surface instead of leaving a wedge or
+  // a visible gap at the edge.
+  const frontIntersection = (from: UvPoint, to: UvPoint): UvPoint => {
+    let inside = visibility(from) >= 0 ? from : to
+    let outside = visibility(from) >= 0 ? to : from
+    for (let iteration = 0; iteration < 12; iteration += 1) {
+      const midpoint: UvPoint = {
+        u: (inside.u + outside.u) / 2,
+        v: (inside.v + outside.v) / 2,
+      }
+      if (visibility(midpoint) >= 0) inside = midpoint
+      else outside = midpoint
+    }
+    return inside
+  }
+
+  // Sutherland-Hodgman clip against the implicit front-facing boundary
+  // normal.z = 0. The input cells are tiny quads, so clipping in UV coordinates
+  // is stable even during large pitch/yaw/roll rotations.
+  const clipToFront = (polygon: UvPoint[]): UvPoint[] => {
+    if (polygon.length < 3) return []
+    const clipped: UvPoint[] = []
+    for (let index = 0; index < polygon.length; index += 1) {
+      const current = polygon[index]
+      const next = polygon[(index + 1) % polygon.length]
+      const currentInside = visibility(current) >= 0
+      const nextInside = visibility(next) >= 0
+
+      if (currentInside && nextInside) {
+        clipped.push(next)
+      } else if (currentInside && !nextInside) {
+        clipped.push(frontIntersection(current, next))
+      } else if (!currentInside && nextInside) {
+        clipped.push(frontIntersection(current, next), next)
+      }
+    }
+    return clipped
+  }
+
+  const projectedSubpath = (polygon: UvPoint[]): string => {
+    const visible = clipToFront(polygon)
+    if (visible.length < 3) return ''
+    const projected = visible.map(({ u, v }) =>
+      project(
+        rotateWithQuaternion(pose.orientation, surfacePointAt(surface, u, v)),
+        pose.expression.perspective
+      )
+    )
+    let pathData = `M${projected[0][0].toFixed(2)} ${projected[0][1].toFixed(2)}`
+    for (let index = 1; index < projected.length; index += 1) {
+      pathData += ` L${projected[index][0].toFixed(2)} ${projected[index][1].toFixed(2)}`
+    }
+    return `${pathData}Z`
+  }
+
+  // Build a compound SVG path from a true surface strip. The strip boundaries
+  // may vary with longitude, which preserves the original curved book design.
+  const surfaceStripPath = (
+    topLatitude: (longitude: number) => number,
+    bottomLatitude: (longitude: number) => number,
+    rows: number
+  ) => {
+    let pathData = ''
+    for (let longitudeIndex = 0; longitudeIndex < LONGITUDE_STEPS; longitudeIndex += 1) {
+      const u0 = -Math.PI + (longitudeIndex / LONGITUDE_STEPS) * Math.PI * 2
+      const u1 = -Math.PI + ((longitudeIndex + 1) / LONGITUDE_STEPS) * Math.PI * 2
+      const top0 = topLatitude(u0)
+      const top1 = topLatitude(u1)
+      const bottom0 = bottomLatitude(u0)
+      const bottom1 = bottomLatitude(u1)
+
+      for (let row = 0; row < rows; row += 1) {
+        const t0 = row / rows
+        const t1 = (row + 1) / rows
+        const v00 = top0 + (bottom0 - top0) * t0
+        const v01 = top1 + (bottom1 - top1) * t0
+        const v11 = top1 + (bottom1 - top1) * t1
+        const v10 = top0 + (bottom0 - top0) * t1
+
+        pathData += projectedSubpath([
+          { u: u0, v: v00 },
+          { u: u1, v: v01 },
+          { u: u1, v: v11 },
+          { u: u0, v: v10 },
+        ])
+      }
+    }
+    return pathData
+  }
+
+  // Keep the original palette and relative band thicknesses. The dark-blue
+  // cover occupies the whole lower surface; the brighter stripe and pale trim
+  // are overlaid on top of it, exactly like before, but now as real 3D paint.
+  const coverPath = surfaceStripPath(edgeLatitude, () => BOTTOM_LATITUDE, BASE_FILL_ROWS)
+  const stripePath = surfaceStripPath(
+    edgeLatitude,
+    longitude => edgeLatitude(longitude) + 0.1,
+    BAND_ROWS
+  )
+  const trimPath = surfaceStripPath(
+    longitude => edgeLatitude(longitude) - 0.07,
+    edgeLatitude,
+    BAND_ROWS
+  )
+
+  return [
+    { path: coverPath, fill: '#1d4ed8', opacity: 1 },
+    { path: stripePath, fill: '#3b82f6', opacity: 1 },
+    { path: trimPath, fill: '#93c5fd', opacity: 0.92 },
+  ].filter(decal => Boolean(decal.path))
+}
 export const renderAvatar = (
   pose: AvatarPose,
   surface: SurfaceConfig,
@@ -1236,8 +1513,28 @@ export const renderAvatar = (
   const rightSamples = eyePoints(pose, surface, 1, blink, options.eyeOffset)
   const left = leftSamples.map(sample => sample.point)
   const right = rightSamples.map(sample => sample.point)
-  const accessories = accessoryLayers(pose, options.bodyNodes ?? [])
+  const bodyNodes = options.bodyNodes ?? []
+  const accessories = accessoryLayers(pose, bodyNodes)
   const compositePaths = compositeBackPaths(pose, surface)
+  const mouth = mouthPoints(
+    pose,
+    surface,
+    pose.expression.mouth || 'none',
+    pose.expression.mouthScale || 1
+  )
+  const decals = projectedBookDecals(pose, surface)
+
+  const nodeStyles: Record<string, AvatarNodeStyle> = {}
+  bodyNodes.forEach(node => {
+    nodeStyles[node.id] = {
+      color: node.color,
+      colorTo: node.colorTo,
+      gradientType: node.gradientType,
+      opacity: node.opacity,
+      material: node.material,
+    }
+  })
+
   return {
     backPaths: [...compositePaths, ...accessories.backPaths],
     frontPaths: accessories.frontPaths,
@@ -1248,6 +1545,10 @@ export const renderAvatar = (
     rightPath: path(right),
     leftVisible: leftSamples.reduce((total, sample) => total + sample.normal[2], 0) > 0,
     rightVisible: rightSamples.reduce((total, sample) => total + sample.normal[2], 0) > 0,
+    mouthPath: mouth.path,
+    mouthVisible: mouth.visible,
+    decals,
+    nodeStyles,
     wirePaths: options.includeWire === false ? [] : wirePaths(pose, surface),
   }
 }

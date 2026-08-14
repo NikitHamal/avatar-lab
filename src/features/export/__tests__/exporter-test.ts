@@ -77,13 +77,13 @@ describe('avatar export', () => {
     expect(source).toContain("createAvatar('#avatar'")
   })
 
-  it('localizes the exported playground', () => {
-    const source = generateJavaScriptAvatarHtml(payload, 'fr')
+  it('keeps the exported playground in English', () => {
+    const source = generateJavaScriptAvatarHtml(payload, 'en')
 
-    expect(source).toContain('<html lang="fr">')
-    expect(source).toContain('Choisissez une animation exportée')
-    expect(source).toContain('▶ Lire')
-    expect(source).toContain('En pause')
+    expect(source).toContain('<html lang="en">')
+    expect(source).toContain('Choose an exported animation')
+    expect(source).toContain('▶ Play')
+    expect(source).toContain('Paused')
   })
 
   it('keeps user-authored names and descriptions inside the generated script', () => {

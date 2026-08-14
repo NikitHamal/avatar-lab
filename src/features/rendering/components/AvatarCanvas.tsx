@@ -527,6 +527,12 @@ export function AvatarCanvas({
     rightPath,
     leftOpacity,
     rightOpacity,
+    mouthPath,
+    mouthOpacity,
+    decalPaths,
+    decalFills,
+    decalOpacities,
+    nodeStyles,
     offsetX,
     offsetY,
   } = scene
@@ -710,8 +716,9 @@ export function AvatarCanvas({
         interaction.expression[interaction.side < 0 ? 'leftAngle' : 'rightAngle'] +
         (deltaAngle * 180) / Math.PI
     }
+    const targetExpression = onPreview(next, 'eyes') ?? next
     if (canvasManipulation.current) {
-      previewManipulation(canvasManipulation.current, next, value => onPreview(value, 'eyes'))
+      previewManipulation(canvasManipulation.current, targetExpression)
     }
   }
   const commitDrag = () => {
@@ -769,16 +776,56 @@ export function AvatarCanvas({
           <clipPath id="avatar-head-clip">
             <motion.path d={headPath} />
           </clipPath>
+          <linearGradient id="liquid-glass-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.9" />
+            <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#1d4ed8" stopOpacity="1" />
+          </linearGradient>
+          <radialGradient id="cloud-ambient-grad" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="55%" stopColor="#e8f3fe" />
+            <stop offset="85%" stopColor="#c5e1fd" />
+            <stop offset="100%" stopColor="#99c8fc" />
+          </radialGradient>
+          <linearGradient id="halo-glow-grad" x1="0%" y1="0%" x2="100%" y2="50%">
+            <stop offset="0%" stopColor="#bae6fd" />
+            <stop offset="50%" stopColor="#60a5fa" />
+            <stop offset="100%" stopColor="#3b82f6" />
+          </linearGradient>
+          <linearGradient id="nebians-book-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6" />
+            <stop offset="50%" stopColor="#2563eb" />
+            <stop offset="100%" stopColor="#1d4ed8" />
+          </linearGradient>
+          <filter id="glass-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
         <motion.g style={{ x: offsetX, y: offsetY }}>
-          {backPaths.map((pathValue, index) => (
-            <motion.path
-              className={`avatar-head ${highlight === 'head' ? 'cyan-outline' : ''}`}
-              d={pathValue}
-              key={index}
-              onPointerDown={event => selectBodyPath(event, backNodeIds.current[index])}
-            />
-          ))}
+          {backPaths.map((pathValue, index) => {
+            const nodeId = backNodeIds.current[index]
+            const style = nodeId ? nodeStyles.current[nodeId] : undefined
+            const fill = style?.color || undefined
+            const opacity = style?.opacity
+            const filter = style?.material === 'glow' ? 'url(#glass-glow)' : undefined
+            return (
+              <motion.path
+                className={`avatar-head ${highlight === 'head' ? 'cyan-outline' : ''}`}
+                d={pathValue}
+                key={index}
+                style={{
+                  fill,
+                  opacity,
+                  filter,
+                }}
+                onPointerDown={event => selectBodyPath(event, backNodeIds.current[index])}
+              />
+            )
+          })}
           <motion.path
             className={`avatar-head ${highlight === 'head' ? 'cyan-outline' : ''}`}
             d={headPath}
@@ -788,6 +835,20 @@ export function AvatarCanvas({
             }}
           />
           <g clipPath="url(#avatar-head-clip)">
+            {decalPaths.map((pathValue, index) => {
+              const fill = decalFills.current[index]
+              if (!fill) return null
+              return (
+                <motion.path
+                  key={`decal-${index}`}
+                  d={pathValue}
+                  style={{
+                    fill,
+                    opacity: decalOpacities.current[index] ?? 1,
+                  }}
+                />
+              )
+            })}
             {(showWire || highlight === 'head') &&
               wirePaths.map((pathValue, index) => (
                 <motion.path className="wire" d={pathValue} key={index} />
@@ -804,15 +865,37 @@ export function AvatarCanvas({
               opacity={rightOpacity}
               onPointerDown={event => selectEye(1, event)}
             />
-          </g>
-          {frontPaths.map((pathValue, index) => (
             <motion.path
-              className={`avatar-head ${highlight === 'head' ? 'cyan-outline' : ''}`}
-              d={pathValue}
-              key={index}
-              onPointerDown={event => selectBodyPath(event, frontNodeIds.current[index])}
+              className="avatar-mouth"
+              d={mouthPath}
+              opacity={mouthOpacity}
+              stroke="var(--avatar-eye-color, #111316)"
+              strokeWidth="3.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
             />
-          ))}
+          </g>
+          {frontPaths.map((pathValue, index) => {
+            const nodeId = frontNodeIds.current[index]
+            const style = nodeId ? nodeStyles.current[nodeId] : undefined
+            const fill = style?.color || undefined
+            const opacity = style?.opacity
+            const filter = style?.material === 'glow' ? 'url(#glass-glow)' : undefined
+            return (
+              <motion.path
+                className={`avatar-head ${highlight === 'head' ? 'cyan-outline' : ''}`}
+                d={pathValue}
+                key={index}
+                style={{
+                  fill,
+                  opacity,
+                  filter,
+                }}
+                onPointerDown={event => selectBodyPath(event, frontNodeIds.current[index])}
+              />
+            )
+          })}
         </motion.g>
         {selectedBodyPath && (
           <motion.path className="selection-outline body-selection-outline" d={selectedBodyPath} />

@@ -1,7 +1,5 @@
 import { useEffect, useEffectEvent } from 'react'
 
-import { type StudioLanguage } from '@/i18n'
-
 import {
   applyAvatarEyeDefaults,
   defaultAvatarEyes,
@@ -112,8 +110,8 @@ export const scaleSurface = (
   }
 }
 
-export const formatSeconds = (milliseconds: number, language: StudioLanguage) =>
-  `${new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : language === 'zh-CN' ? 'zh-CN' : 'en-US', {
+export const formatSeconds = (milliseconds: number) =>
+  `${new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 1,
   }).format(milliseconds / 1000)} s`
 
