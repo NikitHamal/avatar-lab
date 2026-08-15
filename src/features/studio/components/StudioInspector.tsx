@@ -16,8 +16,8 @@ import {
   TriangleAlert,
   Upload,
 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
-import { type CSSProperties, useRef, useState } from 'react'
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
+import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
 
 import {
   Avatar as RuntimeAvatar,
@@ -74,7 +74,7 @@ import {
 import { defaultExpression } from '@/features/avatar/presets'
 import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
-import { AvatarDrawer } from '@/features/studio/components/AvatarDrawer'
+import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
 
@@ -116,7 +116,6 @@ const highlightedCode = (source: string) =>
   })
 
 export function StudioInspector({ controller }: { controller: StudioController }) {
-  const [avatarDrawerOpen, setAvatarDrawerOpen] = useState(false)
   const [runtimeExampleOpen, setRuntimeExampleOpen] = useState(false)
   const runtimeExampleRef = useRef<RuntimeAvatarController>(null)
   const {
@@ -328,7 +327,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     })
   }
   return (
-    <Drawer open={avatarDrawerOpen} onOpenChange={setAvatarDrawerOpen}>
+    <Drawer>
       <main
         className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen ? ' state-player-active' : ''}`}
       >
@@ -448,18 +447,33 @@ export function StudioInspector({ controller }: { controller: StudioController }
           >
             {!editorPageOpen && (
               <header className="mode-page-header">
-                <p className="eyebrow">{activeAvatar.name}</p>
-                <h1>
-                  {t(
-                    mode === 'manual'
-                      ? 'Pose'
-                      : mode === 'expressions'
-                        ? 'Expressions'
-                        : mode === 'states'
-                          ? 'Animations'
-                          : 'Exporter'
-                  )}
-                </h1>
+                <div>
+                  <p className="eyebrow">{activeAvatar.name}</p>
+                  <h1>
+                    {t(
+                      mode === 'manual'
+                        ? 'Pose'
+                        : mode === 'avatars'
+                          ? 'Avatars'
+                          : mode === 'expressions'
+                            ? 'Expressions'
+                            : mode === 'states'
+                              ? 'Animations'
+                              : 'Exporter'
+                    )}
+                  </h1>
+                </div>
+                {mode === 'manual' && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    type="button"
+                    aria-label={t('Réinitialiser')}
+                    onClick={() => transitionToExpression({ ...defaultExpression })}
+                  >
+                    <RotateCcw />
+                  </Button>
+                )}
               </header>
             )}
 
@@ -1394,20 +1408,13 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             aria-label={t('Afficher le maillage')}
                           />
                         </div>
-                        <Button
-                          className="reset"
-                          variant="outline"
-                          type="button"
-                          onClick={() => transitionToExpression({ ...defaultExpression })}
-                        >
-                          {t('Réinitialiser')}
-                        </Button>
                       </InspectorCard>
                     </ControlSection>
                   </>
                 )}
               </div>
             )}
+            {!editorPageOpen && mode === 'avatars' && <AvatarPage controller={controller} />}
 
             {!sequenceEditing && !editing && bodyEditing && (
               <footer className="workspace-footer">
@@ -2143,79 +2150,44 @@ export function StudioInspector({ controller }: { controller: StudioController }
         {activeSequence && !editorPageOpen && (
           <motion.footer
             className={`state-playback-footer${statePlayerExpanded ? ' is-expanded' : ''}`}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
+            style={{ y: playbackFooterY }}
           >
-            <Button
-              className="state-playback-expand"
-              variant="outline"
-              size="icon-sm"
-              type="button"
-              aria-expanded={statePlayerExpanded}
-              aria-label={t(
-                statePlayerExpanded
-                  ? 'Masquer les détails de l’animation'
-                  : 'Afficher les détails de l’animation'
-              )}
-              onClick={() => setStatePlayerExpanded(expanded => !expanded)}
-            >
-              {statePlayerExpanded ? <ChevronDown /> : <ChevronUp />}
-            </Button>
-            {statePlayerExpanded && (
-              <motion.div
-                className="state-playback-details"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <div className="state-playback-details-header">
-                  <div>
-                    <p className="eyebrow">{t('Détails de l’animation')}</p>
-                    <h2>{activeSequenceLabel}</h2>
-                    <p>
-                      {activeSequence.builtIn
-                        ? t(activeSequence.description)
-                        : activeSequence.description}
-                    </p>
-                  </div>
-                  <Badge variant="secondary">
-                    {t('Mode de lecture')} · {t(activeSequence.playbackMode)}
-                  </Badge>
-                </div>
-                <div className="state-playback-detail-grid">
-                  <div>
-                    <span>{t('Expressions')}</span>
-                    <strong>{activeSequence.steps.length}</strong>
-                    <small>
-                      {activeSequence.steps
-                        .map(step => formatSeconds(step.holdMs, language))
-                        .join(' · ')}
-                    </small>
-                  </div>
-                  <div>
-                    <span>{t('Premier clignement')}</span>
-                    <strong>
-                      {activeSequence.blink.enabled
-                        ? formatSeconds(activeSequence.blink.initialDelayMs, language)
-                        : t('Désactivé')}
-                    </strong>
-                    <small>{t('après le lancement')}</small>
-                  </div>
-                  <div>
-                    <span>{t('Intervalle du clignement')}</span>
-                    <strong>
-                      {formatSeconds(activeSequence.blink.minIntervalMs, language)}–
-                      {formatSeconds(activeSequence.blink.maxIntervalMs, language)}
-                    </strong>
-                    <small>{t('tirage aléatoire')}</small>
-                  </div>
-                  <div>
-                    <span>{t('Durée du clignement')}</span>
-                    <strong>{activeSequence.blink.durationMs} ms</strong>
-                    <small>{t('fermeture et ouverture')}</small>
-                  </div>
-                </div>
+            <div className="state-playback-drag-handle-slot">
+              <motion.div style={{ y: playbackHandleCounterY }}>
+                <motion.button
+                  className="state-playback-drag-handle"
+                  style={{ y: playbackHandleY }}
+                  type="button"
+                  drag="y"
+                  dragMomentum={false}
+                  aria-expanded={statePlayerExpanded}
+                  aria-label={t(
+                    statePlayerExpanded
+                      ? 'Masquer les détails de l’animation'
+                      : 'Afficher les détails de l’animation'
+                  )}
+                  onTap={() => snapPlaybackFooter(!statePlayerExpanded)}
+                  onDragStart={() => {
+                    playbackFooterDragOriginY.current = playbackFooterY.get()
+                  }}
+                  onDrag={(_, info) => {
+                    playbackFooterY.set(
+                      Math.min(
+                        playbackFooterCollapsedOffset,
+                        Math.max(0, playbackFooterDragOriginY.current + info.offset.y)
+                      )
+                    )
+                  }}
+                  onDragEnd={(_, info) => {
+                    playbackHandleY.set(0)
+                    const projectedY = playbackFooterY.get() + info.velocity.y * 0.16
+                    snapPlaybackFooter(projectedY < playbackFooterCollapsedOffset / 2)
+                  }}
+                >
+                  <span />
+                </motion.button>
               </motion.div>
-            )}
+            </div>
             <div className="state-playback-bar">
               <div className="state-playback-timeline">
                 {activeSequence.steps.map((step, position) => {
@@ -2266,6 +2238,62 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 />
               </div>
             </div>
+            <motion.div
+              ref={playbackDetailsRef}
+              className="state-playback-details-shell"
+              style={{ opacity: playbackDetailsOpacity }}
+              aria-hidden={!statePlayerExpanded}
+            >
+              <div className="state-playback-details">
+                <div className="state-playback-details-header">
+                  <div>
+                    <p className="eyebrow">{t('Détails de l’animation')}</p>
+                    <h2>{activeSequenceLabel}</h2>
+                    <p>
+                      {activeSequence.builtIn
+                        ? t(activeSequence.description)
+                        : activeSequence.description}
+                    </p>
+                  </div>
+                  <Badge variant="secondary">
+                    {t('Mode de lecture')} · {t(activeSequence.playbackMode)}
+                  </Badge>
+                </div>
+                <div className="state-playback-detail-grid">
+                  <div>
+                    <span>{t('Expressions')}</span>
+                    <strong>{activeSequence.steps.length}</strong>
+                    <small>
+                      {activeSequence.steps
+                        .map(step => formatSeconds(step.holdMs, language))
+                        .join(' · ')}
+                    </small>
+                  </div>
+                  <div>
+                    <span>{t('Premier clignement')}</span>
+                    <strong>
+                      {activeSequence.blink.enabled
+                        ? formatSeconds(activeSequence.blink.initialDelayMs, language)
+                        : t('Désactivé')}
+                    </strong>
+                    <small>{t('après le lancement')}</small>
+                  </div>
+                  <div>
+                    <span>{t('Intervalle du clignement')}</span>
+                    <strong>
+                      {formatSeconds(activeSequence.blink.minIntervalMs, language)}–
+                      {formatSeconds(activeSequence.blink.maxIntervalMs, language)}
+                    </strong>
+                    <small>{t('tirage aléatoire')}</small>
+                  </div>
+                  <div>
+                    <span>{t('Durée du clignement')}</span>
+                    <strong>{activeSequence.blink.durationMs} ms</strong>
+                    <small>{t('fermeture et ouverture')}</small>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </motion.footer>
         )}
         {!editorPageOpen && (
@@ -2274,9 +2302,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
               className="mobile-mode-tab mobile-avatar-tab"
               variant="ghost"
               type="button"
-              aria-pressed={avatarDrawerOpen}
+              aria-pressed={mode === 'avatars'}
               aria-label={t('Choisir un avatar')}
-              onClick={() => setAvatarDrawerOpen(true)}
+              onClick={() => setMode('avatars')}
             >
               <ExpressionPreview
                 expression={expressions[0] ?? defaultExpression}
@@ -2311,7 +2339,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
             ))}
           </nav>
         )}
-        <AvatarDrawer controller={controller} onOpenChange={setAvatarDrawerOpen} />
       </main>
     </Drawer>
   )
