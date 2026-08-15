@@ -4,15 +4,24 @@ import {
   surfaceNormalAt,
   surfacePointAt,
   surfaceSampleAt,
+  surfaceProfilePoints,
   type SurfaceConfig,
 } from './surfaces'
 import type { BodyNode } from './body'
+import {
+  CREATURE_FRAME_HALF_HEIGHT,
+  CREATURE_FRAME_HALF_WIDTH,
+  creatureEyeRigFromExpression,
+  type CreatureEyeRig,
+} from '../creature/creatureExpression'
 
 export type Quaternion = readonly [number, number, number, number]
 export type Point3 = readonly [number, number, number]
 export type EyeMotion = 'none' | 'microSaccades' | 'wander' | 'lookAround' | 'focusPulse' | 'shake'
 export type BodyMotion =
   'none' | 'slowDrift' | 'breathe' | 'bob' | 'bounce' | 'sway' | 'float' | 'shake'
+
+export type EyeStyle = 'dot' | 'circle' | 'cat' | 'acorn'
 
 export type Expression = {
   id: string
@@ -35,6 +44,7 @@ export type Expression = {
   bodyMotion: BodyMotion
   bodyColor?: string
   eyeColor?: string
+  eyeStyle?: EyeStyle
   mouth?:
     'smile' | 'openSmile' | 'oMouth' | 'flat' | 'cat' | 'frown' | 'smirk' | 'grin' | 'kiss' | 'none'
   mouthScale?: number
@@ -42,7 +52,7 @@ export type Expression = {
 
 export type ExpressionNumericField = Exclude<
   keyof Expression,
-  'id' | 'bodyColor' | 'eyeColor' | 'eyeMotion' | 'bodyMotion' | 'mouth' | 'mouthScale'
+  'id' | 'bodyColor' | 'eyeColor' | 'eyeMotion' | 'bodyMotion' | 'eyeStyle' | 'mouth' | 'mouthScale'
 >
 
 export type AvatarPose = {
@@ -64,6 +74,14 @@ export type DecalPath = {
   opacity?: number
 }
 
+export type CreatureEyeFrame = {
+  center: readonly [number, number]
+  xAxis: readonly [number, number]
+  yAxis: readonly [number, number]
+  visible: boolean
+  rig: CreatureEyeRig
+}
+
 export type AvatarGeometry = {
   backPaths: string[]
   frontPaths: string[]
@@ -72,8 +90,11 @@ export type AvatarGeometry = {
   headPath: string
   leftPath: string
   rightPath: string
+  leftPupilPath: string
+  rightPupilPath: string
   leftVisible: boolean
   rightVisible: boolean
+  creatureEyeFrame: CreatureEyeFrame
   mouthPath: string
   mouthVisible: boolean
   decals: DecalPath[]
@@ -280,9 +301,155 @@ const roundedRectangle = (width: number, height: number): (readonly [number, num
   addArc(halfWidth - cornerRadius, halfHeight - cornerRadius, 0)
   addLine([halfWidth - cornerRadius, halfHeight], [-halfWidth + cornerRadius, halfHeight])
   addArc(-halfWidth + cornerRadius, halfHeight - cornerRadius, Math.PI / 2)
-  addLine([-halfWidth, halfHeight - cornerRadius], [-halfWidth, -halfHeight + cornerRadius])
-  addArc(-halfWidth + cornerRadius, -halfHeight + cornerRadius, Math.PI)
+  addLine([-halfWidth, height / 2 - cornerRadius], [-halfWidth, -height / 2 + cornerRadius])
+  addArc(-halfWidth + cornerRadius, -height / 2 + cornerRadius, Math.PI)
   return points
+}
+
+export const eyeContourPoints = (
+  width: number,
+  height: number,
+  style: EyeStyle = 'dot'
+): (readonly [number, number])[] => {
+  const halfWidth = width / 2
+  const halfHeight = height / 2
+
+  if (style === 'circle') {
+    const samples = 48
+    const points: (readonly [number, number])[] = []
+    for (let i = 0; i < samples; i++) {
+      const angle = (i / samples) * Math.PI * 2
+      points.push([Math.cos(angle) * halfWidth, Math.sin(angle) * halfHeight])
+    }
+    return points
+  }
+
+  if (style === 'cat') {
+    const samplesPerSide = 24
+    const points: (readonly [number, number])[] = []
+    for (let i = 0; i <= samplesPerSide; i++) {
+      const t = i / samplesPerSide
+      const y = -halfHeight + t * height
+      const normY = y / (halfHeight || 1)
+      const profile = Math.pow(Math.max(0, 1 - normY * normY), 1.25)
+      points.push([halfWidth * profile, y])
+    }
+    for (let i = 0; i <= samplesPerSide; i++) {
+      const t = i / samplesPerSide
+      const y = halfHeight - t * height
+      const normY = y / (halfHeight || 1)
+      const profile = Math.pow(Math.max(0, 1 - normY * normY), 1.25)
+      points.push([-halfWidth * profile, y])
+    }
+    return points
+  }
+
+  if (style === 'acorn') {
+    const points: (readonly [number, number])[] = []
+    const domeSamples = 24
+    for (let i = 0; i <= domeSamples; i++) {
+      const angle = Math.PI + (i / domeSamples) * Math.PI
+      points.push([
+        Math.cos(angle) * halfWidth,
+        -halfHeight + (1 + Math.sin(angle)) * (halfHeight * 0.75),
+      ])
+    }
+    const flankSamples = 16
+    for (let i = 1; i <= flankSamples; i++) {
+      const t = i / flankSamples
+      const y = -halfHeight + halfHeight * 0.75 + t * (height - halfHeight * 0.75)
+      const normT = (y - (-halfHeight + halfHeight * 0.75)) / (height - halfHeight * 0.75 || 1)
+      const x = halfWidth * Math.cos(normT * (Math.PI / 2))
+      points.push([x, y])
+    }
+    for (let i = flankSamples - 1; i >= 1; i--) {
+      const t = i / flankSamples
+      const y = -halfHeight + halfHeight * 0.75 + t * (height - halfHeight * 0.75)
+      const normT = (y - (-halfHeight + halfHeight * 0.75)) / (height - halfHeight * 0.75 || 1)
+      const x = -halfWidth * Math.cos(normT * (Math.PI / 2))
+      points.push([x, y])
+    }
+    return points
+  }
+
+  return roundedRectangle(width, height)
+}
+
+export const pupilContourPoints = (
+  width: number,
+  height: number,
+  style: EyeStyle = 'dot'
+): (readonly [number, number])[] => {
+  const halfWidth = width / 2
+  const halfHeight = height / 2
+
+  if (style === 'cat') {
+    const slitWidth = halfWidth * 0.36
+    const slitHeight = halfHeight * 0.88
+    const samplesPerSide = 18
+    const points: (readonly [number, number])[] = []
+    for (let i = 0; i <= samplesPerSide; i++) {
+      const t = i / samplesPerSide
+      const y = -slitHeight + t * (slitHeight * 2)
+      const normY = y / (slitHeight || 1)
+      const profile = Math.pow(Math.max(0, 1 - normY * normY), 1.35)
+      points.push([slitWidth * profile, y])
+    }
+    for (let i = 0; i <= samplesPerSide; i++) {
+      const t = i / samplesPerSide
+      const y = slitHeight - t * (slitHeight * 2)
+      const normY = y / (slitHeight || 1)
+      const profile = Math.pow(Math.max(0, 1 - normY * normY), 1.35)
+      points.push([-slitWidth * profile, y])
+    }
+    return points
+  }
+
+  if (style === 'circle') {
+    const pupilRadiusX = halfWidth * 0.48
+    const pupilRadiusY = halfHeight * 0.48
+    const samples = 32
+    const points: (readonly [number, number])[] = []
+    for (let i = 0; i < samples; i++) {
+      const angle = (i / samples) * Math.PI * 2
+      points.push([Math.cos(angle) * pupilRadiusX, Math.sin(angle) * pupilRadiusY])
+    }
+    return points
+  }
+
+  if (style === 'acorn') {
+    const pupilWidth = halfWidth * 0.44
+    const pupilHeight = halfHeight * 0.58
+    const points: (readonly [number, number])[] = []
+    const domeSamples = 16
+    for (let i = 0; i <= domeSamples; i++) {
+      const angle = Math.PI + (i / domeSamples) * Math.PI
+      points.push([
+        Math.cos(angle) * pupilWidth,
+        -pupilHeight + (1 + Math.sin(angle)) * (pupilHeight * 0.75),
+      ])
+    }
+    const flankSamples = 12
+    for (let i = 1; i <= flankSamples; i++) {
+      const t = i / flankSamples
+      const y = -pupilHeight + pupilHeight * 0.75 + t * (pupilHeight * 2 - pupilHeight * 0.75)
+      const normT =
+        (y - (-pupilHeight + pupilHeight * 0.75)) / (pupilHeight * 2 - pupilHeight * 0.75 || 1)
+      const x = pupilWidth * Math.cos(normT * (Math.PI / 2))
+      points.push([x, y])
+    }
+    for (let i = flankSamples - 1; i >= 1; i--) {
+      const t = i / flankSamples
+      const y = -pupilHeight + pupilHeight * 0.75 + t * (pupilHeight * 2 - pupilHeight * 0.75)
+      const normT =
+        (y - (-pupilHeight + pupilHeight * 0.75)) / (pupilHeight * 2 - pupilHeight * 0.75 || 1)
+      const x = -pupilWidth * Math.cos(normT * (Math.PI / 2))
+      points.push([x, y])
+    }
+    return points
+  }
+
+  return roundedRectangle(width * 0.42, height * 0.62)
 }
 
 const project = (point: Point3, perspective: number): Point3 => {
@@ -572,6 +739,32 @@ const projectFacePoint = (
   return projectLocalSurfacePoint(pose, surfaceFrontSampleAt(surface, faceX, faceY))
 }
 
+const creatureEyeFrame = (
+  pose: AvatarPose,
+  surface: SurfaceConfig,
+  blink: number,
+  eyeOffset: Readonly<{ x: number; y: number }> = { x: 0, y: 0 }
+): CreatureEyeFrame => {
+  // Keep a stable facial frame and express emotion by deforming each Creature
+  // eye independently. The previous implementation resized only one shared box,
+  // which averaged the two eyes and made sleeping/wink poses stay visibly open.
+  const centerX = 0
+  const centerY = -7
+  const center = projectFacePoint(pose, surface, centerX, centerY)
+  const left = projectFacePoint(pose, surface, centerX - CREATURE_FRAME_HALF_WIDTH, centerY)
+  const right = projectFacePoint(pose, surface, centerX + CREATURE_FRAME_HALF_WIDTH, centerY)
+  const top = projectFacePoint(pose, surface, centerX, centerY - CREATURE_FRAME_HALF_HEIGHT)
+  const bottom = projectFacePoint(pose, surface, centerX, centerY + CREATURE_FRAME_HALF_HEIGHT)
+
+  return {
+    center: [center.point[0], center.point[1]],
+    xAxis: [(right.point[0] - left.point[0]) / 2, (right.point[1] - left.point[1]) / 2],
+    yAxis: [(bottom.point[0] - top.point[0]) / 2, (bottom.point[1] - top.point[1]) / 2],
+    visible: center.normal[2] > 0.08,
+    rig: creatureEyeRigFromExpression(pose.expression, blink, eyeOffset),
+  }
+}
+
 const eyePoints = (
   pose: AvatarPose,
   surface: SurfaceConfig,
@@ -587,7 +780,31 @@ const eyePoints = (
   const centerX = (side * expression.spacing) / 2 + expression[`positionX${suffix}`] + offset.x
   const centerY = expression[`positionY${suffix}`] + offset.y
   const angle = radians(side < 0 ? expression.leftAngle : expression.rightAngle)
-  return roundedRectangle(width, height).map(([localX, localY]) => {
+  const eyeStyle = expression.eyeStyle || 'dot'
+  return eyeContourPoints(width, height, eyeStyle).map(([localX, localY]) => {
+    const rotatedX = localX * Math.cos(angle) - localY * Math.sin(angle)
+    const rotatedY = localX * Math.sin(angle) + localY * Math.cos(angle)
+    return projectFacePoint(pose, surface, centerX + rotatedX, centerY + rotatedY)
+  })
+}
+
+const pupilPoints = (
+  pose: AvatarPose,
+  surface: SurfaceConfig,
+  side: -1 | 1,
+  blink: number,
+  offset: Readonly<{ x: number; y: number }> = { x: 0, y: 0 }
+): ProjectedSurfacePoint[] => {
+  const expression = pose.expression
+  const suffix = side < 0 ? 'Left' : 'Right'
+  const width = expression[`width${suffix}`]
+  const restingHeight = expression[`height${suffix}`]
+  const height = 5 + (restingHeight - 5) * blink
+  const centerX = (side * expression.spacing) / 2 + expression[`positionX${suffix}`] + offset.x
+  const centerY = expression[`positionY${suffix}`] + offset.y
+  const angle = radians(side < 0 ? expression.leftAngle : expression.rightAngle)
+  const eyeStyle = expression.eyeStyle || 'dot'
+  return pupilContourPoints(width, height, eyeStyle).map(([localX, localY]) => {
     const rotatedX = localX * Math.cos(angle) - localY * Math.sin(angle)
     const rotatedY = localX * Math.sin(angle) + localY * Math.cos(angle)
     return projectFacePoint(pose, surface, centerX + rotatedX, centerY + rotatedY)
@@ -1132,7 +1349,29 @@ const projectedCapsulePath = (pose: AvatarPose, surface: SurfaceConfig) => {
   return smoothHullPath(convexHull([...ellipsePoints(top), ...ellipsePoints(bottom)]))
 }
 
+const sharpProfileTypes = new Set<SurfaceConfig['type']>([
+  'star',
+  'book',
+  'hand',
+  'droplet',
+  'pyramid',
+  'hexagon',
+  'shield',
+  'gem',
+])
+
+const projectedSurfaceProfilePath = (pose: AvatarPose, surface: SurfaceConfig) => {
+  const profile = surfaceProfilePoints(surface)
+  if (!profile?.length) return ''
+  const projected = profile.map(([x, y]) => projectLocalPoint(pose, [x, y, 0]))
+  return sharpProfileTypes.has(surface.type)
+    ? path(projected)
+    : smoothClosedPath(densifyClosedPoints(projected))
+}
+
 const headPath = (pose: AvatarPose, surface: SurfaceConfig) => {
+  const profilePath = projectedSurfaceProfilePath(pose, surface)
+  if (profilePath) return profilePath
   if (surface.type === 'sphere' || surface.type === 'mickey') {
     const exactPath = projectedEllipsoidPath(pose, surface)
     if (exactPath) return exactPath
@@ -1168,6 +1407,27 @@ const headPath = (pose: AvatarPose, surface: SurfaceConfig) => {
 }
 
 const accessoryPath = (pose: AvatarPose, node: BodyNode) => {
+  const profile = surfaceProfilePoints(node.surface)
+  if (profile?.length) {
+    const localOrientation = quaternionFromEuler(
+      radians(node.rotation[0]),
+      radians(node.rotation[1]),
+      radians(node.rotation[2])
+    )
+    const projected = profile.map(([x, y]) => {
+      const locallyRotated = rotateWithQuaternion(localOrientation, [x, y, 0])
+      const positioned: Point3 = [
+        locallyRotated[0] + node.position[0],
+        locallyRotated[1] + node.position[1],
+        locallyRotated[2] + node.position[2],
+      ]
+      return project(rotateWithQuaternion(pose.orientation, positioned), pose.expression.perspective)
+    })
+    return sharpProfileTypes.has(node.surface.type)
+      ? path(projected)
+      : smoothClosedPath(densifyClosedPoints(projected))
+  }
+
   const key = surfaceCacheKey(node.surface)
   let localSamples = accessorySamplesCache.get(key)
   if (!localSamples) {
@@ -1529,17 +1789,19 @@ export const renderAvatar = (
 ): AvatarGeometry => {
   const leftSamples = eyePoints(pose, surface, -1, blink, options.eyeOffset)
   const rightSamples = eyePoints(pose, surface, 1, blink, options.eyeOffset)
+  const leftPupilSamples = pupilPoints(pose, surface, -1, blink, options.eyeOffset)
+  const rightPupilSamples = pupilPoints(pose, surface, 1, blink, options.eyeOffset)
   const left = leftSamples.map(sample => sample.point)
   const right = rightSamples.map(sample => sample.point)
+  const leftPupil = leftPupilSamples.map(sample => sample.point)
+  const rightPupil = rightPupilSamples.map(sample => sample.point)
   const bodyNodes = options.bodyNodes ?? []
   const accessories = accessoryLayers(pose, bodyNodes)
   const compositePaths = compositeBackPaths(pose, surface)
-  const mouth = mouthPoints(
-    pose,
-    surface,
-    pose.expression.mouth || 'none',
-    pose.expression.mouthScale || 1
-  )
+  const mouth =
+    surface.pattern === 'book' || (pose.expression.mouth || 'none') === 'none'
+      ? { path: '', visible: false }
+      : mouthPoints(pose, surface, pose.expression.mouth || 'none', pose.expression.mouthScale || 1)
   const decals = projectedBookDecals(pose, surface)
 
   const nodeStyles: Record<string, AvatarNodeStyle> = {}
@@ -1561,8 +1823,11 @@ export const renderAvatar = (
     headPath: headPath(pose, surface),
     leftPath: path(left),
     rightPath: path(right),
+    leftPupilPath: path(leftPupil),
+    rightPupilPath: path(rightPupil),
     leftVisible: leftSamples.reduce((total, sample) => total + sample.normal[2], 0) > 0,
     rightVisible: rightSamples.reduce((total, sample) => total + sample.normal[2], 0) > 0,
+    creatureEyeFrame: creatureEyeFrame(pose, surface, blink, options.eyeOffset),
     mouthPath: mouth.path,
     mouthVisible: mouth.visible,
     decals,

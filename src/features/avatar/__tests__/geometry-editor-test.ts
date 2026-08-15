@@ -72,6 +72,25 @@ describe('body node editor geometry', () => {
     expect(rotated.rotation[2]).toBeGreaterThan(300)
   })
 
+  it('preserves recognizable concave silhouettes for named primary shapes', () => {
+    const star = renderAvatar(poseFromExpression(defaultExpression), surfacePresets.star, 1, {
+      includeWire: false,
+    }).headPath
+    const flower = renderAvatar(poseFromExpression(defaultExpression), surfacePresets.flower, 1, {
+      includeWire: false,
+    }).headPath
+    const pyramid = renderAvatar(
+      poseFromExpression(defaultExpression),
+      surfacePresets.pyramid,
+      1,
+      { includeWire: false }
+    ).headPath
+
+    expect((star.match(/L/g) ?? []).length).toBeGreaterThanOrEqual(9)
+    expect(flower).toContain('C')
+    expect((pyramid.match(/L/g) ?? []).length).toBe(2)
+  })
+
   it('keeps a spherical silhouette path stable across head rotations', () => {
     const neutralPath = renderAvatar(
       poseFromExpression(defaultExpression),

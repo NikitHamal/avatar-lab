@@ -13,10 +13,13 @@ describe('editable avatar sequences', () => {
     const idle = createInitialSequences().find(sequence => sequence.id === 'idle')
 
     expect(idle?.steps.map(step => step.expressionId)).toEqual([
-      initialExpressions[0].id,
-      initialExpressions[8].id,
+      'idle-front',
+      'idle-glance-left',
+      'idle-front',
+      'idle-glance-right',
     ])
-    expect(idle?.steps[0].holdMs).toBe(5200)
+    expect(idle?.steps.map(step => step.holdMs)).toEqual([3600, 1200, 2600, 1200])
+    expect(idle?.steps.every(step => step.transitionMs === 650)).toBe(true)
     expect(idle?.blink.durationMs).toBe(280)
   })
 

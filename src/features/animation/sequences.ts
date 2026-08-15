@@ -76,8 +76,8 @@ export const createInitialSequences = (): AvatarSequence[] =>
         steps: (statePools[id] ?? [0]).map((expressionIndex, index) => ({
           id: `${id}-step-${index}`,
           expressionId: initialExpressions[expressionIndex]?.id ?? initialExpressions[0].id,
-          holdMs: playback.expressionIntervalMs,
-          transitionMs: 500,
+          holdMs: id === 'idle' ? [3600, 1200, 2600, 1200][index] : playback.expressionIntervalMs,
+          transitionMs: id === 'idle' ? 650 : 500,
           transition: 'smooth',
         })),
         blink: { enabled: true, ...playback.blink },

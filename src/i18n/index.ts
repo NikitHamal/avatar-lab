@@ -55,6 +55,12 @@ const english: Record<string, string> = {
   Yeux: 'Eyes',
   'Forme, placement et orientation propres au regard.': 'Eye shape, placement and orientation.',
   'Couleur des yeux': 'Eye color',
+  'Style des yeux': 'Eye style',
+  'Forme géométrique des yeux pour cet avatar.': 'Geometric eye shape for this avatar.',
+  'Remplacement de forme propre à cette expression.': 'Shape override specific to this expression.',
+  'Colorways & Swatches': 'Colorways & Swatches',
+  'Palettes iconiques avec forme et contrastes assortis.':
+    'Iconic palettes with matching shape and contrast.',
   Largeur: 'Width',
   Hauteur: 'Height',
   Échelle: 'Scale',
@@ -154,6 +160,10 @@ const english: Record<string, string> = {
   'Une forme principale porte les yeux. Les autres primitives se placent autour d’elle.':
     'One primary shape carries the eyes. Other primitives are placed around it.',
   'Forme principale': 'Primary shape',
+  Hexagone: 'Hexagon',
+  Bouclier: 'Shield',
+  Trèfle: 'Clover',
+  Gemme: 'Gem',
   'porte les yeux': 'carries the eyes',
   'Ajouter une forme': 'Add a shape',
   Dupliquer: 'Duplicate',

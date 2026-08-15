@@ -1,4 +1,4 @@
-import { getStatePlaybackConfig } from '@/features/avatar/presets'
+import { getStatePlaybackConfig, initialExpressions, statePools } from '@/features/avatar/presets'
 
 describe('state playback configuration', () => {
   it('keeps idle slower than an active sequence', () => {
@@ -12,6 +12,13 @@ describe('state playback configuration', () => {
     expect(blink.initialDelayMs).toBeGreaterThan(0)
     expect(blink.minIntervalMs).toBeLessThan(blink.maxIntervalMs)
     expect(blink.durationMs).toBe(280)
+  })
+
+  it('uses expressive poses for stock reactions', () => {
+    expect(initialExpressions[statePools.sleeping[0]].id).toBe('sleepy')
+    expect(initialExpressions[statePools.wink[0]].id).toBe('wink')
+    expect(initialExpressions[statePools.angry[0]].id).toBe('angry-hot')
+    expect(initialExpressions[statePools.idle[0]].id).toBe('idle-front')
   })
 
   it('uses a blink rhythm adapted to each sequence family', () => {

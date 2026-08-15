@@ -13,7 +13,11 @@ import {
   type Highlight,
   type PlaybackStatus,
 } from '@/app/studio-utils'
-import { applyAvatarEyeDefaults, type AvatarEyeDefaults } from '@/features/avatar/avatars'
+import {
+  applyAvatarEyeDefaults,
+  type AvatarEyeDefaults,
+  type AvatarEyeRenderer,
+} from '@/features/avatar/avatars'
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
 import {
@@ -39,9 +43,15 @@ import {
   type ManipulationSession,
 } from '@/features/avatar/manipulationSession'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
+import { CreatureEyeSvgLayer } from '@/features/creature/CreatureEyeSvgLayer'
+import type { CreatureShape } from '@/features/creature/creatureSwatches'
 import { type CanvasPreviewTarget } from '@/features/rendering/canvasPreview'
 import { type RenderedRotationGizmo } from '@/features/rendering/renderedRotationGizmo'
-import { findBodyNodePath, type RenderedScene } from '@/features/rendering/renderedScene'
+import {
+  findBodyNodePath,
+  type RenderedColors,
+  type RenderedScene,
+} from '@/features/rendering/renderedScene'
 import {
   nodeFilterId,
   nodeGradientId,
@@ -477,6 +487,8 @@ export function BodyNodeGizmo({
 export function AvatarCanvas({
   expression,
   avatarEyes,
+  eyeRenderer,
+  creaturePaletteIndex,
   surface,
   scene,
   rotationGizmo,
@@ -498,11 +510,15 @@ export function AvatarCanvas({
   onEyeChange,
   playback,
   onManipulationStart,
+  renderedColors,
 }: {
   expression: Expression
   avatarEyes: AvatarEyeDefaults
+  eyeRenderer: AvatarEyeRenderer
+  creaturePaletteIndex: number
   surface: SurfaceConfig
   scene: RenderedScene
+  renderedColors?: RenderedColors
   rotationGizmo: RenderedRotationGizmo
   showWire: boolean
   bodyEditing: boolean
@@ -533,6 +549,8 @@ export function AvatarCanvas({
     headPath,
     leftPath,
     rightPath,
+    leftPupilPath,
+    rightPupilPath,
     leftOpacity,
     rightOpacity,
     mouthPath,
@@ -543,7 +561,12 @@ export function AvatarCanvas({
     nodeStyles,
     offsetX,
     offsetY,
+    creatureEyeFrame,
+    creatureEyePaths,
   } = scene
+  const creatureEyesActive = eyeRenderer === 'creature'
+  const [creatureEyesReady, setCreatureEyesReady] = useState(false)
+  const creatureShape = (expression.eyeStyle ?? avatarEyes.eyeStyle ?? 'dot') as CreatureShape
   const svgRef = useRef<SVGSVGElement>(null)
   const [activeDragType, setActiveDragType] = useState<
     'arcball' | 'width' | 'height' | 'size' | 'spacing' | 'rotate' | null
@@ -569,6 +592,9 @@ export function AvatarCanvas({
     | null
   >(null)
   const canvasManipulation = useRef<ManipulationSession<Expression> | null>(null)
+  useEffect(() => {
+    if (!creatureEyesActive) setCreatureEyesReady(false)
+  }, [creatureEyesActive])
   const editor =
     selectedSide === null
       ? null
@@ -784,6 +810,12 @@ export function AvatarCanvas({
           <clipPath id="avatar-head-clip">
             <motion.path d={headPath} />
           </clipPath>
+          <clipPath id="avatar-left-eye-clip">
+            <motion.path d={leftPath} />
+          </clipPath>
+          <clipPath id="avatar-right-eye-clip">
+            <motion.path d={rightPath} />
+          </clipPath>
           <linearGradient id="liquid-glass-blue" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#93c5fd" stopOpacity="0.9" />
             <stop offset="50%" stopColor="#3b82f6" stopOpacity="0.95" />
@@ -912,18 +944,77 @@ export function AvatarCanvas({
               wirePaths.map((pathValue, index) => (
                 <motion.path className="wire" d={pathValue} key={index} />
               ))}
-            <motion.path
-              className={`avatar-eye ${selectedSide === -1 || highlight === 'left' || highlight === 'both' ? 'cyan-outline' : ''}`}
-              d={leftPath}
-              opacity={leftOpacity}
-              onPointerDown={event => selectEye(-1, event)}
-            />
-            <motion.path
-              className={`avatar-eye ${selectedSide === 1 || highlight === 'right' || highlight === 'both' ? 'cyan-outline' : ''}`}
-              d={rightPath}
-              opacity={rightOpacity}
-              onPointerDown={event => selectEye(1, event)}
-            />
+            {(!creatureEyesActive || !creatureEyesReady) && (
+              <>
+                <motion.path
+                  className={`avatar-eye ${selectedSide === -1 || highlight === 'left' || highlight === 'both' ? 'cyan-outline' : ''}`}
+                  d={leftPath}
+                  opacity={leftOpacity}
+                  style={renderedColors ? { fill: renderedColors.eyes } : undefined}
+                  onPointerDown={event => selectEye(-1, event)}
+                />
+                <motion.path
+                  className="avatar-pupil"
+                  d={leftPupilPath}
+                  opacity={leftOpacity}
+                  style={
+                    renderedColors
+                      ? { fill: renderedColors.pupil }
+                      : { fill: 'var(--avatar-pupil-color, var(--avatar-eye-color))' }
+                  }
+                  pointerEvents="none"
+                />
+                <motion.path
+                  className={`avatar-eye ${selectedSide === 1 || highlight === 'right' || highlight === 'both' ? 'cyan-outline' : ''}`}
+                  d={rightPath}
+                  opacity={rightOpacity}
+                  style={renderedColors ? { fill: renderedColors.eyes } : undefined}
+                  onPointerDown={event => selectEye(1, event)}
+                />
+                <motion.path
+                  className="avatar-pupil"
+                  d={rightPupilPath}
+                  opacity={rightOpacity}
+                  style={
+                    renderedColors
+                      ? { fill: renderedColors.pupil }
+                      : { fill: 'var(--avatar-pupil-color, var(--avatar-eye-color))' }
+                  }
+                  pointerEvents="none"
+                />
+              </>
+            )}
+            {creatureEyesActive && (
+              <>
+                <CreatureEyeSvgLayer
+                  shape={creatureShape}
+                  paletteIndex={creaturePaletteIndex}
+                  frame={creatureEyeFrame}
+                  pathSnapshot={creatureEyePaths}
+                  onReadyChange={setCreatureEyesReady}
+                />
+                <motion.path
+                  className={`creature-eye-hit-target ${selectedSide === -1 || highlight === 'left' || highlight === 'both' ? 'cyan-outline' : ''}`}
+                  d={leftPath}
+                  opacity={
+                    selectedSide === -1 || highlight === 'left' || highlight === 'both'
+                      ? leftOpacity
+                      : 0
+                  }
+                  onPointerDown={event => selectEye(-1, event)}
+                />
+                <motion.path
+                  className={`creature-eye-hit-target ${selectedSide === 1 || highlight === 'right' || highlight === 'both' ? 'cyan-outline' : ''}`}
+                  d={rightPath}
+                  opacity={
+                    selectedSide === 1 || highlight === 'right' || highlight === 'both'
+                      ? rightOpacity
+                      : 0
+                  }
+                  onPointerDown={event => selectEye(1, event)}
+                />
+              </>
+            )}
             <motion.path
               className="avatar-mouth"
               d={mouthPath}

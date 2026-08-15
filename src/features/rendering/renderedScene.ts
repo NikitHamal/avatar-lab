@@ -2,10 +2,21 @@ import { motionValue, type MotionValue } from 'motion'
 
 import type { AvatarColors } from '../avatar/avatars'
 import { MAX_BODY_NODES } from '../avatar/body'
-import type { AvatarGeometry, AvatarNodeStyle, DecalPath } from '../avatar/geometry'
+import type {
+  AvatarGeometry,
+  AvatarNodeStyle,
+  CreatureEyeFrame,
+  DecalPath,
+} from '../avatar/geometry'
 
 const bodyPathSlots = MAX_BODY_NODES + 2
 const decalPathSlots = 4
+
+export type RenderedCreatureEyePath = {
+  d: string
+  fill: string
+  blend: number
+}
 
 export type RenderedScene = {
   headPath: MotionValue<string>
@@ -20,8 +31,12 @@ export type RenderedScene = {
   decalOpacities: { current: number[] }
   leftPath: MotionValue<string>
   rightPath: MotionValue<string>
+  leftPupilPath: MotionValue<string>
+  rightPupilPath: MotionValue<string>
   leftOpacity: MotionValue<number>
   rightOpacity: MotionValue<number>
+  creatureEyeFrame: { current: CreatureEyeFrame }
+  creatureEyePaths: { current: RenderedCreatureEyePath[] }
   mouthPath: MotionValue<string>
   mouthOpacity: MotionValue<number>
   offsetX: MotionValue<number>
@@ -32,17 +47,26 @@ export type RenderedScene = {
 export type RenderedColors = {
   body: MotionValue<string>
   eyes: MotionValue<string>
+  pupil: MotionValue<string>
 }
 
 export const createRenderedColors = (colors: AvatarColors): RenderedColors => ({
   body: motionValue(colors.body),
   eyes: motionValue(colors.eyes),
+  pupil: motionValue(colors.pupil || colors.eyes),
 })
 
 export const paintRenderedColors = (rendered: RenderedColors, colors: AvatarColors) => {
   rendered.body.set(colors.body)
   rendered.eyes.set(colors.eyes)
+  rendered.pupil.set(colors.pupil || colors.eyes)
 }
+
+export const cloneRenderedColors = (colors: RenderedColors) => ({
+  body: colors.body.get(),
+  eyes: colors.eyes.get(),
+  pupil: colors.pupil.get(),
+})
 
 export const paintRenderedOffset = (scene: RenderedScene, offset: { x: number; y: number }) => {
   scene.offsetX.set(offset.x)
@@ -68,8 +92,12 @@ export const createRenderedScene = (geometry: AvatarGeometry): RenderedScene => 
   decalOpacities: { current: (geometry.decals ?? []).map(d => d.opacity ?? 1) },
   leftPath: motionValue(geometry.leftPath),
   rightPath: motionValue(geometry.rightPath),
+  leftPupilPath: motionValue(geometry.leftPupilPath ?? ''),
+  rightPupilPath: motionValue(geometry.rightPupilPath ?? ''),
   leftOpacity: motionValue(geometry.leftVisible ? 1 : 0),
   rightOpacity: motionValue(geometry.rightVisible ? 1 : 0),
+  creatureEyeFrame: { current: geometry.creatureEyeFrame },
+  creatureEyePaths: { current: [] },
   mouthPath: motionValue(geometry.mouthPath ?? ''),
   mouthOpacity: motionValue(geometry.mouthVisible ? 1 : 0),
   offsetX: motionValue(0),
@@ -90,8 +118,11 @@ export const paintRenderedScene = (scene: RenderedScene, geometry: AvatarGeometr
   scene.frontPaths.forEach((path, index) => path.set(geometry.frontPaths[index] ?? ''))
   scene.leftPath.set(geometry.leftPath)
   scene.rightPath.set(geometry.rightPath)
+  scene.leftPupilPath.set(geometry.leftPupilPath ?? '')
+  scene.rightPupilPath.set(geometry.rightPupilPath ?? '')
   scene.leftOpacity.set(geometry.leftVisible ? 1 : 0)
   scene.rightOpacity.set(geometry.rightVisible ? 1 : 0)
+  scene.creatureEyeFrame.current = geometry.creatureEyeFrame
   scene.mouthPath.set(geometry.mouthPath ?? '')
   scene.mouthOpacity.set(geometry.mouthVisible ? 1 : 0)
   scene.wirePaths.forEach((path, index) => path.set(geometry.wirePaths[index] ?? ''))

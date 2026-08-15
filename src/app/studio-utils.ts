@@ -135,4 +135,5 @@ export const interpolateHexColor = (from: string, to: string, progress: number) 
 export const resolveColors = (expression: Expression, colors: AvatarColors): AvatarColors => ({
   body: expression.bodyColor ?? colors.body,
   eyes: expression.eyeColor ?? colors.eyes,
+  pupil: colors.pupil ?? expression.eyeColor ?? colors.eyes,
 })

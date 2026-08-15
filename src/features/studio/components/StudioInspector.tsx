@@ -55,6 +55,8 @@ import { SequenceWorkspace } from '@/features/animation/components/SequenceWorks
 import { findExpressionIndex, groupSequences } from '@/features/animation/sequences'
 import { defaultAvatarEyes } from '@/features/avatar/avatars'
 import { bodyPrimitiveTypes, MAX_BODY_NODES } from '@/features/avatar/body'
+import { CreatureEyeCanvas } from '@/features/creature/CreatureEyeCanvas'
+import { CREATURE_COLORWAYS, type CreatureShape } from '@/features/creature/creatureSwatches'
 import {
   ExpressionCard,
   ExpressionPreview,
@@ -216,7 +218,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
     toggleStatePlayback,
     transitionToExpression,
     updateAvatarColors,
+    updateAvatarCreaturePalette,
     updateAvatarEyeDimension,
+    updateAvatarEyeRenderer,
     updateAvatarEyePosition,
     updateAvatarEyeSize,
     updateAvatarEyes,
@@ -238,6 +242,10 @@ export function StudioInspector({ controller }: { controller: StudioController }
   const playbackDetailsRef = useRef<HTMLDivElement>(null)
   const measuredSequenceIdRef = useRef<string | null>(null)
   const [playbackFooterCollapsedOffset, setPlaybackFooterCollapsedOffset] = useState(0)
+  const creatureShape = (activeAvatarEyes.eyeStyle ?? 'dot') as CreatureShape
+  const creaturePalette = activeAvatar.creaturePaletteIndex
+  const creatureEyesEnabled = activeAvatar.eyeRenderer === 'creature'
+  const [creatureSearch, setCreatureSearch] = useState<string>('')
   const playbackDetailsOpacity = useTransform(
     playbackFooterY,
     [0, Math.max(playbackFooterCollapsedOffset, 1)],
@@ -306,6 +314,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
               bodyNodes={bodyNodes}
               colors={activeAvatar.colors}
               avatarEyes={activeAvatarEyes}
+              eyeRenderer={activeAvatar.eyeRenderer}
+              creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
               selectedStepId={selectedSequenceStepId}
               backButtonRef={workspaceBackButtonRef}
               reduceMotion={Boolean(reduceMotion)}
@@ -1145,17 +1155,149 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           />
                         </div>
                       </InspectorCard>
+                      <InspectorCard className="creature-studio-card">
+                        <PanelTitle
+                          level={3}
+                          title="Creature Eyes & 100 Colorways"
+                          subtitle="Animated WASM eyes with expressive pupils, natural idle gaze and interactive micro-movements."
+                        />
+                        <div className="creature-renderer-choice">
+                          <div>
+                            <strong>Use expressive Creature eyes</strong>
+                            <span>Turn this off any time to keep the classic Avatar Lab eyes.</span>
+                          </div>
+                          <Switch
+                            checked={creatureEyesEnabled}
+                            onCheckedChange={enabled =>
+                              updateAvatarEyeRenderer(enabled ? 'creature' : 'classic')
+                            }
+                            aria-label="Use expressive Creature eyes"
+                          />
+                        </div>
+                        <div className="creature-preview-wrap">
+                          <CreatureEyeCanvas
+                            shape={creatureShape}
+                            paletteIndex={creaturePalette}
+                            size={120}
+                            className="creature-preview-screen"
+                          />
+                          <div className="creature-preview-meta">
+                            <span className="creature-meta-name">
+                              {CREATURE_COLORWAYS[creaturePalette]?.name || 'Seaglass'}
+                            </span>
+                            <span className="creature-meta-shape">
+                              Shape: {creatureShape.toUpperCase()}
+                            </span>
+                            <div className="creature-meta-colors">
+                              <span
+                                className="creature-meta-dot"
+                                style={{
+                                  backgroundColor: CREATURE_COLORWAYS[creaturePalette]?.body,
+                                }}
+                                title="Body"
+                              />
+                              <span
+                                className="creature-meta-dot"
+                                style={{
+                                  backgroundColor: CREATURE_COLORWAYS[creaturePalette]?.eyes,
+                                }}
+                                title="Eyes"
+                              />
+                              {CREATURE_COLORWAYS[creaturePalette]?.pupil && (
+                                <span
+                                  className="creature-meta-dot"
+                                  style={{
+                                    backgroundColor: CREATURE_COLORWAYS[creaturePalette]?.pupil,
+                                  }}
+                                  title="Pupil"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="style-pill-grid">
+                          {(
+                            [
+                              { id: 'cat', label: 'Cat' },
+                              { id: 'circle', label: 'Circle' },
+                              { id: 'acorn', label: 'Acorn' },
+                              { id: 'dot', label: 'Dot' },
+                            ] as const
+                          ).map(style => {
+                            const isSelected = creatureShape === style.id
+                            return (
+                              <Button
+                                key={style.id}
+                                variant={isSelected ? 'default' : 'outline'}
+                                size="sm"
+                                className="style-pill-button"
+                                onClick={() => updateAvatarEyes({ eyeStyle: style.id })}
+                              >
+                                {t(style.label)}
+                              </Button>
+                            )
+                          })}
+                        </div>
+
+                        <Input
+                          placeholder="Search 100 colorways (e.g. seaglass, lipgloss, slushie...)"
+                          value={creatureSearch}
+                          onChange={e => setCreatureSearch(e.target.value)}
+                          className="creature-search-input"
+                        />
+
+                        <div className="creature-colorways-scroll">
+                          {CREATURE_COLORWAYS.filter(
+                            item =>
+                              !creatureSearch.trim() ||
+                              item.name
+                                .toLowerCase()
+                                .includes(creatureSearch.toLowerCase().trim()) ||
+                              item.id.toLowerCase().includes(creatureSearch.toLowerCase().trim())
+                          ).map(swatch => {
+                            const isSelected = creaturePalette === swatch.index
+                            return (
+                              <button
+                                key={swatch.id}
+                                type="button"
+                                className={`creature-swatch-pill ${isSelected ? 'is-active' : ''}`}
+                                onClick={() => updateAvatarCreaturePalette(swatch.index)}
+                              >
+                                <span
+                                  className="creature-swatch-preview"
+                                  style={{ backgroundColor: swatch.body }}
+                                >
+                                  <span
+                                    className="creature-swatch-inner"
+                                    style={{ backgroundColor: swatch.eyes }}
+                                  />
+                                </span>
+                                <span className="creature-swatch-text">{swatch.name}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </InspectorCard>
+
                       <InspectorCard className="color-panel">
                         <PanelTitle
                           level={3}
-                          title="Couleur des yeux"
-                          subtitle="Couleur de base utilisée par les poses et les expressions."
+                          title="Couleur des yeux & Pupille"
+                          subtitle="Couleurs de base de l'œil et de la fente/pupille intérieure."
                         />
-                        <ColorField
-                          label="Yeux"
-                          value={activeAvatar.colors.eyes}
-                          onChange={eyes => updateAvatarColors({ eyes })}
-                        />
+                        <div className="flex flex-col gap-2">
+                          <ColorField
+                            label="Yeux"
+                            value={activeAvatar.colors.eyes}
+                            onChange={eyes => updateAvatarColors({ eyes })}
+                          />
+                          <ColorField
+                            label="Pupille / Fente"
+                            value={activeAvatar.colors.pupil || activeAvatar.colors.eyes}
+                            onChange={pupil => updateAvatarColors({ pupil })}
+                          />
+                        </div>
                       </InspectorCard>
                     </ControlSection>
                   </>
@@ -1252,6 +1394,40 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             <RotateCcw />
                           </Button>
                         )}
+                      </InspectorCard>
+                      <InspectorCard>
+                        <PanelTitle
+                          level={3}
+                          title={t('Style des yeux')}
+                          subtitle={t('Remplacement de forme propre à cette expression.')}
+                        />
+                        <div className="style-pill-grid">
+                          {(
+                            [
+                              { id: 'dot', label: 'Dot' },
+                              { id: 'circle', label: 'Circle' },
+                              { id: 'cat', label: 'Cat' },
+                              { id: 'acorn', label: 'Acorn' },
+                            ] as const
+                          ).map(style => {
+                            const isSelected =
+                              (expression.eyeStyle || activeAvatarEyes.eyeStyle || 'dot') ===
+                              style.id
+                            return (
+                              <Button
+                                key={style.id}
+                                variant={isSelected ? 'default' : 'outline'}
+                                size="sm"
+                                className="style-pill-button"
+                                onClick={() =>
+                                  updateImmediate({ ...expression, eyeStyle: style.id })
+                                }
+                              >
+                                {t(style.label)}
+                              </Button>
+                            )
+                          })}
+                        </div>
                       </InspectorCard>
                       {(['width', 'height', 'size'] as const).map(dimension => (
                         <InspectorCard className="compact" key={dimension}>
@@ -1572,6 +1748,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           bodyNodes={bodyNodes}
                           colors={activeAvatar.colors}
                           avatarEyes={activeAvatarEyes}
+                          eyeRenderer={activeAvatar.eyeRenderer}
+                          creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
                           previewId={String(index)}
                           onSelect={() => transitionToExpression(preset, index)}
                           onEdit={() => openExpressionEditor(index, preset)}
@@ -1718,6 +1896,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   bodyNodes={bodyNodes}
                                   colors={activeAvatar.colors}
                                   avatarEyes={activeAvatarEyes}
+                                  eyeRenderer={activeAvatar.eyeRenderer}
+                                  creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
                                   id={`state-card-${sequence.id}`}
                                 />
                                 <span>{sequence.builtIn ? t(sequence.name) : sequence.name}</span>
@@ -1826,6 +2006,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         bodyNodes={activeAvatar.body.nodes}
                         colors={activeAvatar.colors}
                         avatarEyes={activeAvatarEyes}
+                        eyeRenderer={activeAvatar.eyeRenderer}
+                        creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
                         id={`export-avatar-${activeAvatar.id}`}
                       />
                       <div>
@@ -1916,6 +2098,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                               bodyNodes={bodyNodes}
                               colors={activeAvatar.colors}
                               avatarEyes={activeAvatarEyes}
+                              eyeRenderer={activeAvatar.eyeRenderer}
+                              creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
                               id={`export-animation-${animation.id}`}
                             />
                             <span>{animation.builtIn ? t(animation.name) : animation.name}</span>
@@ -2378,6 +2562,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         bodyNodes={bodyNodes}
                         colors={activeAvatar.colors}
                         avatarEyes={activeAvatarEyes}
+                        eyeRenderer={activeAvatar.eyeRenderer}
+                        creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
                         id={`player-${activeSequence.id}-${position}`}
                       />
                       {playbackVisual.position === position && (
@@ -2478,6 +2664,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 bodyNodes={activeAvatar.body.nodes}
                 colors={activeAvatar.colors}
                 avatarEyes={activeAvatarEyes}
+                eyeRenderer={activeAvatar.eyeRenderer}
+                creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
                 id={`active-avatar-tab-${activeAvatar.id}`}
               />
               <span>{activeAvatar.name}</span>

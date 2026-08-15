@@ -16,10 +16,19 @@ import { useStudioLanguage } from '@/i18n'
 import { ControlSection } from '@/app/components/common'
 import { AmbientMotionField, ColorField, LinkButton, NumericField } from '@/app/components/controls'
 import { emptyBodyNodes, getPreviewGeometry, resolveColors, type Side } from '@/app/studio-utils'
-import { type AvatarColors, type AvatarEyeDefaults } from '@/features/avatar/avatars'
+import {
+  type AvatarColors,
+  type AvatarEyeDefaults,
+  type AvatarEyeRenderer,
+} from '@/features/avatar/avatars'
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
-import { type Expression } from '@/features/avatar/geometry'
+import { type CreatureEyeFrame, type Expression, type EyeStyle } from '@/features/avatar/geometry'
+import {
+  CREATURE_NATIVE_EYE_CENTER_X,
+  CREATURE_NATIVE_EYE_CENTER_Y,
+} from '@/features/creature/creatureExpression'
+import { CREATURE_COLORWAYS } from '@/features/creature/creatureSwatches'
 import { defaultExpression, getExpressionDisplayName } from '@/features/avatar/presets'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
 import {
@@ -29,6 +38,83 @@ import {
   resolveNodeFill,
   resolveNodeOpacity,
 } from '@/features/rendering/nodePaint'
+type PreviewPoint = readonly [number, number]
+
+const smoothPreviewPath = (points: PreviewPoint[]) => {
+  if (points.length < 3) return ''
+  const first = points[0]
+  let result = `M${first[0].toFixed(2)} ${first[1].toFixed(2)}`
+  for (let index = 0; index < points.length; index += 1) {
+    const previous = points[(index - 1 + points.length) % points.length]
+    const current = points[index]
+    const next = points[(index + 1) % points.length]
+    const afterNext = points[(index + 2) % points.length]
+    const control1: PreviewPoint = [
+      current[0] + (next[0] - previous[0]) / 6,
+      current[1] + (next[1] - previous[1]) / 6,
+    ]
+    const control2: PreviewPoint = [
+      next[0] - (afterNext[0] - current[0]) / 6,
+      next[1] - (afterNext[1] - current[1]) / 6,
+    ]
+    result += `C${control1[0].toFixed(2)} ${control1[1].toFixed(2)} ${control2[0].toFixed(2)} ${control2[1].toFixed(2)} ${next[0].toFixed(2)} ${next[1].toFixed(2)}`
+  }
+  return `${result}Z`
+}
+
+const creaturePreviewPoint = (eyeStyle: EyeStyle, layer: 'outer' | 'inner', angle: number) => {
+  if (layer === 'inner') return [Math.cos(angle) * 0.082, Math.sin(angle) * 0.11] as const
+
+  if (eyeStyle === 'circle') {
+    return [Math.cos(angle) * 0.39, Math.sin(angle) * 0.39] as const
+  }
+  if (eyeStyle === 'cat') {
+    const cosine = Math.cos(angle)
+    const sine = Math.sin(angle)
+    return [cosine * 0.43, Math.sign(sine) * Math.abs(sine) ** 1.35 * 0.34] as const
+  }
+  if (eyeStyle === 'acorn') {
+    const sine = Math.sin(angle)
+    const taper = 0.82 + (sine + 1) * 0.09
+    return [Math.cos(angle) * 0.4 * taper, sine * 0.44] as const
+  }
+  return [Math.cos(angle) * 0.35, Math.sin(angle) * 0.42] as const
+}
+
+const creaturePreviewPath = (
+  frame: CreatureEyeFrame,
+  side: -1 | 1,
+  layer: 'outer' | 'inner',
+  eyeStyle: EyeStyle
+) => {
+  if (!frame.visible) return ''
+  const rig = side < 0 ? frame.rig.left : frame.rig.right
+  const anchorX = side * CREATURE_NATIVE_EYE_CENTER_X
+  const anchorY = CREATURE_NATIVE_EYE_CENTER_Y
+  const pupilOffsetX = layer === 'inner' ? -side * 0.12 + frame.rig.gazeX * 0.08 : 0
+  const pupilOffsetY = layer === 'inner' ? -frame.rig.gazeY * 0.07 : 0
+  const cosine = Math.cos(rig.rotation)
+  const sine = Math.sin(rig.rotation)
+
+  const points = Array.from({ length: 24 }, (_, index) => {
+    const angle = (index / 24) * Math.PI * 2
+    const [contourX, contourY] = creaturePreviewPoint(eyeStyle, layer, angle)
+    const sourceX = anchorX + pupilOffsetX + contourX
+    const sourceY = anchorY + pupilOffsetY + contourY
+    const localX = (sourceX - anchorX) * rig.widthScale
+    const localY = (sourceY - anchorY) * rig.heightScale
+    const rotatedX = localX * cosine - localY * sine
+    const rotatedY = localX * sine + localY * cosine
+    const x = anchorX + rig.offsetX + rotatedX
+    const y = anchorY + rig.offsetY + rotatedY
+    return [
+      frame.center[0] + frame.xAxis[0] * x + frame.yAxis[0] * y,
+      frame.center[1] + frame.xAxis[1] * x + frame.yAxis[1] * y,
+    ] as PreviewPoint
+  })
+  return smoothPreviewPath(points)
+}
+
 export function SurfaceThumbnail({ surface }: { surface: SurfaceConfig }) {
   const geometry = getPreviewGeometry(defaultExpression, surface, emptyBodyNodes)
   return (
@@ -47,6 +133,8 @@ export function ExpressionPreview({
   bodyNodes,
   colors,
   avatarEyes,
+  eyeRenderer = 'classic',
+  creaturePaletteIndex = 52,
   id,
 }: {
   expression: Expression
@@ -54,10 +142,32 @@ export function ExpressionPreview({
   bodyNodes: BodyNode[]
   colors: AvatarColors
   avatarEyes: AvatarEyeDefaults
+  eyeRenderer?: AvatarEyeRenderer
+  creaturePaletteIndex?: number
   id: string
 }) {
   const geometry = getPreviewGeometry(expression, surface, bodyNodes, avatarEyes)
   const resolvedColors = resolveColors(expression, colors)
+  const creatureColorway =
+    CREATURE_COLORWAYS[creaturePaletteIndex] ?? CREATURE_COLORWAYS[52] ?? CREATURE_COLORWAYS[0]
+  const creatureFrame = geometry.creatureEyeFrame
+  const creatureEyeStyle = expression.eyeStyle ?? avatarEyes.eyeStyle ?? 'dot'
+  const creatureLeftOuter =
+    eyeRenderer === 'creature' && creatureFrame
+      ? creaturePreviewPath(creatureFrame, -1, 'outer', creatureEyeStyle)
+      : ''
+  const creatureRightOuter =
+    eyeRenderer === 'creature' && creatureFrame
+      ? creaturePreviewPath(creatureFrame, 1, 'outer', creatureEyeStyle)
+      : ''
+  const creatureLeftInner =
+    eyeRenderer === 'creature' && creatureFrame
+      ? creaturePreviewPath(creatureFrame, -1, 'inner', creatureEyeStyle)
+      : ''
+  const creatureRightInner =
+    eyeRenderer === 'creature' && creatureFrame
+      ? creaturePreviewPath(creatureFrame, 1, 'inner', creatureEyeStyle)
+      : ''
   const clipId = `preview-${id}`
   return (
     <svg viewBox="-150 -150 300 300" aria-hidden="true">
@@ -120,18 +230,65 @@ export function ExpressionPreview({
             opacity={decal.opacity ?? 1}
           />
         ))}
-        <path
-          className="preview-eye"
-          d={geometry.leftPath}
-          opacity={geometry.leftVisible ? 1 : 0}
-          style={{ fill: resolvedColors.eyes }}
-        />
-        <path
-          className="preview-eye"
-          d={geometry.rightPath}
-          opacity={geometry.rightVisible ? 1 : 0}
-          style={{ fill: resolvedColors.eyes }}
-        />
+        {eyeRenderer === 'creature' && creatureFrame ? (
+          <>
+            <path
+              className="preview-eye preview-creature-eye"
+              d={creatureLeftOuter}
+              opacity={geometry.leftVisible ? 1 : 0}
+              style={{ fill: creatureColorway.body }}
+            />
+            <path
+              className="preview-eye preview-creature-eye"
+              d={creatureRightOuter}
+              opacity={geometry.rightVisible ? 1 : 0}
+              style={{ fill: creatureColorway.body }}
+            />
+            <path
+              className="preview-pupil preview-creature-pupil"
+              d={creatureLeftInner}
+              opacity={geometry.leftVisible ? 1 : 0}
+              style={{ fill: creatureColorway.pupil ?? creatureColorway.eyes }}
+            />
+            <path
+              className="preview-pupil preview-creature-pupil"
+              d={creatureRightInner}
+              opacity={geometry.rightVisible ? 1 : 0}
+              style={{ fill: creatureColorway.pupil ?? creatureColorway.eyes }}
+            />
+          </>
+        ) : (
+          <>
+            <path
+              className="preview-eye"
+              d={geometry.leftPath}
+              opacity={geometry.leftVisible ? 1 : 0}
+              style={{ fill: resolvedColors.eyes }}
+            />
+            {geometry.leftPupilPath && (
+              <path
+                className="preview-pupil"
+                d={geometry.leftPupilPath}
+                opacity={geometry.leftVisible ? 1 : 0}
+                style={{ fill: resolvedColors.pupil || resolvedColors.eyes }}
+              />
+            )}
+            <path
+              className="preview-eye"
+              d={geometry.rightPath}
+              opacity={geometry.rightVisible ? 1 : 0}
+              style={{ fill: resolvedColors.eyes }}
+            />
+            {geometry.rightPupilPath && (
+              <path
+                className="preview-pupil"
+                d={geometry.rightPupilPath}
+                opacity={geometry.rightVisible ? 1 : 0}
+                style={{ fill: resolvedColors.pupil || resolvedColors.eyes }}
+              />
+            )}
+          </>
+        )}
         {geometry.mouthVisible && geometry.mouthPath && (
           <path
             d={geometry.mouthPath}
@@ -170,6 +327,8 @@ export function ExpressionCard({
   bodyNodes,
   colors,
   avatarEyes,
+  eyeRenderer = 'classic',
+  creaturePaletteIndex = 52,
   previewId,
   onSelect,
   onEdit,
@@ -189,6 +348,8 @@ export function ExpressionCard({
   bodyNodes: BodyNode[]
   colors: AvatarColors
   avatarEyes: AvatarEyeDefaults
+  eyeRenderer?: AvatarEyeRenderer
+  creaturePaletteIndex?: number
   previewId: string
   onSelect: () => void
   onEdit?: () => void
@@ -223,6 +384,8 @@ export function ExpressionCard({
         bodyNodes={bodyNodes}
         colors={colors}
         avatarEyes={avatarEyes}
+        eyeRenderer={eyeRenderer}
+        creaturePaletteIndex={creaturePaletteIndex}
         id={previewId}
       />
       <span title={expression.id}>{t(getExpressionDisplayName(expression, index))}</span>

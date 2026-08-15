@@ -6,6 +6,7 @@ import {
   createAvatar,
   defaultAvatarEyes,
   parseAvatarEyeDefaults,
+  parseAvatarLibrary,
   resolveAvatarBehavior,
   parseExpressions,
 } from '@/features/avatar/avatars'
@@ -27,6 +28,32 @@ describe('avatar eye defaults', () => {
     expect(expression.widthLeft).toBe(28)
   })
 
+  it('keeps classic eyes by default while storing Creature renderer choices per avatar', () => {
+    const avatar = createAvatar('Eyes')
+
+    expect(avatar.eyeRenderer).toBe('classic')
+    expect(avatar.creaturePaletteIndex).toBe(52)
+  })
+
+  it('migrates a legacy Creature colorway selection to the expressive renderer', () => {
+    const avatar = createAvatar('Legacy Lobster')
+    const legacy = {
+      ...avatar,
+      colors: { ...avatar.colors, eyes: '#F95320', pupil: '#044A5F' },
+    } as Partial<typeof avatar> & { id: string; name: string }
+    delete legacy.eyeRenderer
+    delete legacy.creaturePaletteIndex
+
+    const library = parseAvatarLibrary(
+      { activeAvatarId: avatar.id, avatars: [legacy] },
+      { activeAvatarId: avatar.id, avatars: [avatar] },
+      { expressions: initialExpressions, sequences: createInitialSequences() }
+    )
+
+    expect(library.avatars[0].eyeRenderer).toBe('creature')
+    expect(library.avatars[0].creaturePaletteIndex).toBe(4)
+  })
+
   it('preserves procedural mouth and expanded motion values when parsing expressions', () => {
     const parsed = parseExpressions([
       {
@@ -45,12 +72,17 @@ describe('avatar eye defaults', () => {
     expect(parsed[0].bodyMotion).toBe('breathe')
   })
 
-  it('sanitizes partial persisted values', () => {
-    const result = parseAvatarEyeDefaults({ widthLeft: 42, heightRight: Number.NaN })
+  it('sanitizes partial persisted values and supports eyeStyle', () => {
+    const result = parseAvatarEyeDefaults({
+      widthLeft: 42,
+      heightRight: Number.NaN,
+      eyeStyle: 'cat',
+    })
 
     expect(result.widthLeft).toBe(42)
     expect(result.heightRight).toBe(defaultAvatarEyes.heightRight)
     expect(result.spacing).toBe(defaultAvatarEyes.spacing)
+    expect(result.eyeStyle).toBe('cat')
   })
 })
 

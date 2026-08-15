@@ -79,6 +79,8 @@ describe('agent action execution and reversion', () => {
       body: { primary: surfacePresets.sphere, nodes: [] },
       colors: { ...defaultAvatarColors },
       eyes: { ...defaultAvatarEyes },
+      eyeRenderer: 'classic',
+      creaturePaletteIndex: 52,
     }
     const avatars = [avatar]
     const avatarsRef = { current: avatars }

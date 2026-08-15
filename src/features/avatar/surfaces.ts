@@ -22,6 +22,10 @@ export type SurfaceType =
   | 'pyramid'
   | 'flower'
   | 'disc'
+  | 'hexagon'
+  | 'shield'
+  | 'clover'
+  | 'gem'
 
 export type SurfaceConfig = {
   type: SurfaceType
@@ -69,7 +73,7 @@ export const surfacePresets: Record<SurfaceType, SurfaceConfig> = {
   star: { type: 'star', width: 180, height: 180, depth: 70, roundness: 0 },
   cloud: { type: 'cloud', width: 250, height: 190, depth: 180, roundness: 1 },
   book: { type: 'book', width: 210, height: 140, depth: 95, roundness: 0.5 },
-  hand: { type: 'hand', width: 85, height: 85, depth: 75, roundness: 1 },
+  hand: { type: 'hand', width: 220, height: 235, depth: 95, roundness: 0.72 },
   egg: { type: 'egg', width: 215, height: 260, depth: 205, roundness: 1 },
   bean: { type: 'bean', width: 235, height: 220, depth: 190, roundness: 1 },
   heart: { type: 'heart', width: 235, height: 220, depth: 150, roundness: 0.8 },
@@ -78,6 +82,10 @@ export const surfacePresets: Record<SurfaceType, SurfaceConfig> = {
   pyramid: { type: 'pyramid', width: 235, height: 255, depth: 215, roundness: 0.2 },
   flower: { type: 'flower', width: 185, height: 185, depth: 70, roundness: 0.75 },
   disc: { type: 'disc', width: 230, height: 230, depth: 72, roundness: 1 },
+  hexagon: { type: 'hexagon', width: 240, height: 225, depth: 150, roundness: 0.18 },
+  shield: { type: 'shield', width: 225, height: 255, depth: 150, roundness: 0.7 },
+  clover: { type: 'clover', width: 235, height: 235, depth: 135, roundness: 0.85 },
+  gem: { type: 'gem', width: 235, height: 245, depth: 175, roundness: 0.12 },
 }
 
 export const surfaceLabels: Record<SurfaceType, string> = {
@@ -102,6 +110,119 @@ export const surfaceLabels: Record<SurfaceType, string> = {
   pyramid: 'Pyramide',
   flower: 'Fleur',
   disc: 'Disque',
+  hexagon: 'Hexagone',
+  shield: 'Bouclier',
+  clover: 'Trèfle',
+  gem: 'Gemme',
+}
+
+export type SurfaceProfilePoint = readonly [number, number]
+
+const polarProfile = (
+  width: number,
+  height: number,
+  samples: number,
+  radiusAt: (angle: number) => number
+): SurfaceProfilePoint[] =>
+  Array.from({ length: samples }, (_, index) => {
+    const angle = -Math.PI / 2 + (index / samples) * Math.PI * 2
+    const radius = radiusAt(angle)
+    return [Math.cos(angle) * (width / 2) * radius, Math.sin(angle) * (height / 2) * radius]
+  })
+
+const normalizedProfile = (
+  config: SurfaceConfig,
+  points: readonly (readonly [number, number])[]
+): SurfaceProfilePoint[] => points.map(([x, y]) => [x * (config.width / 2), y * (config.height / 2)])
+
+/**
+ * Distinct front silhouettes for icon-like primitives. The procedural 3D
+ * surface is still used for face projection, but these profiles keep concave
+ * names such as Star, Flower and Clover from collapsing into a convex ball.
+ */
+export const surfaceProfilePoints = (config: SurfaceConfig): SurfaceProfilePoint[] | null => {
+  switch (config.type) {
+    case 'star':
+      return polarProfile(config.width, config.height, 10, angle => {
+        const point = Math.round(((angle + Math.PI / 2) / (Math.PI * 2)) * 10)
+        return point % 2 === 0 ? 1 : 0.44
+      })
+    case 'flower':
+      return polarProfile(config.width, config.height, 96, angle => 0.7 + 0.3 * (0.5 + 0.5 * Math.cos(angle * 6)))
+    case 'cloud':
+      return polarProfile(config.width, config.height, 96, angle => {
+        const lobes = 0.9 + 0.11 * Math.cos(angle * 3 - 0.35) + 0.055 * Math.cos(angle * 5 + 0.8)
+        const bottomFlatten = Math.sin(angle) > 0 ? 0.94 : 1
+        return lobes * bottomFlatten
+      })
+    case 'heart': {
+      const raw = Array.from({ length: 96 }, (_, index) => {
+        const t = (index / 96) * Math.PI * 2
+        const x = 16 * Math.sin(t) ** 3
+        const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
+        return [x / 17, (y + 1) / 17] as const
+      })
+      return normalizedProfile(config, raw)
+    }
+    case 'hand':
+      return normalizedProfile(config, [
+        [-0.74, 0.62], [-0.9, 0.28], [-0.78, 0.02], [-0.58, 0.04],
+        [-0.67, -0.34], [-0.52, -0.72], [-0.31, -0.7], [-0.23, -0.3],
+        [-0.12, -0.86], [0.1, -0.94], [0.22, -0.37], [0.35, -0.82],
+        [0.56, -0.76], [0.5, -0.24], [0.76, -0.42], [0.92, -0.2],
+        [0.76, 0.2], [0.66, 0.56], [0.35, 0.88], [-0.12, 0.98],
+      ])
+    case 'egg':
+      return polarProfile(config.width, config.height, 96, angle => 1 - 0.14 * Math.sin(angle))
+    case 'bean':
+      return Array.from({ length: 96 }, (_, index) => {
+        const angle = -Math.PI / 2 + (index / 96) * Math.PI * 2
+        const y = Math.sin(angle)
+        const bend = 0.15 * (y * y - 0.35)
+        const waist = 0.9 + 0.1 * Math.cos(angle * 2)
+        return [(Math.cos(angle) * waist + bend) * config.width / 2, y * config.height / 2] as const
+      })
+    case 'droplet':
+      return normalizedProfile(config, [
+        [0, -1], [0.28, -0.68], [0.58, -0.28], [0.78, 0.18], [0.72, 0.55],
+        [0.48, 0.84], [0, 1], [-0.48, 0.84], [-0.72, 0.55], [-0.78, 0.18],
+        [-0.58, -0.28], [-0.28, -0.68],
+      ])
+    case 'pebble':
+      return polarProfile(
+        config.width,
+        config.height,
+        96,
+        angle => 0.94 + 0.035 * Math.cos(angle * 3) + 0.02 * Math.sin(angle * 5)
+      )
+    case 'pyramid':
+      return normalizedProfile(config, [
+        [0, -1],
+        [0.94, 0.84],
+        [-0.94, 0.84],
+      ])
+    case 'book':
+      return normalizedProfile(config, [
+        [-1, -0.82], [-0.18, -0.94], [0, -0.82], [0.18, -0.94], [1, -0.82],
+        [1, 0.82], [0.18, 0.94], [0, 0.82], [-0.18, 0.94], [-1, 0.82],
+      ])
+    case 'hexagon':
+      return polarProfile(config.width, config.height, 6, () => 1)
+    case 'shield':
+      return normalizedProfile(config, [
+        [-0.9, -0.72], [0, -0.96], [0.9, -0.72], [0.82, 0.05], [0.58, 0.52],
+        [0, 1], [-0.58, 0.52], [-0.82, 0.05],
+      ])
+    case 'clover':
+      return polarProfile(config.width, config.height, 120, angle => 0.7 + 0.3 * (0.5 + 0.5 * Math.cos(angle * 4)))
+    case 'gem':
+      return normalizedProfile(config, [
+        [-0.78, -0.58], [-0.34, -0.96], [0.34, -0.96], [0.78, -0.58],
+        [0.96, 0.05], [0.54, 0.78], [0, 1], [-0.54, 0.78], [-0.96, 0.05],
+      ])
+    default:
+      return null
+  }
 }
 
 const signedPower = (value: number, exponent: number) =>
@@ -526,6 +647,29 @@ export const surfacePointAt = (
     }
     case 'disc':
       return superellipsoid(longitude, latitude, width, height, depth, 0.9, 0.9)
+    case 'hexagon':
+      return superellipsoid(longitude, latitude, width, height, depth, 0.72, 0.72)
+    case 'shield': {
+      const latSin = Math.sin(latitude)
+      const latCos = Math.cos(latitude)
+      const taper = 1 - 0.22 * Math.max(0, latSin)
+      return [
+        (width / 2) * latCos * Math.sin(longitude) * taper,
+        (height / 2) * latSin,
+        (depth / 2) * latCos * Math.cos(longitude) * taper,
+      ]
+    }
+    case 'clover': {
+      const latCos = Math.cos(latitude)
+      const petal = 0.76 + 0.24 * (0.5 + 0.5 * Math.cos(longitude * 4))
+      return [
+        (width / 2) * latCos * Math.sin(longitude) * petal,
+        (height / 2) * Math.sin(latitude) * petal,
+        (depth / 2) * latCos * Math.cos(longitude),
+      ]
+    }
+    case 'gem':
+      return lpSurface(config, longitude, latitude, 1.2)
   }
 }
 

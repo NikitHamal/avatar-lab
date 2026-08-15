@@ -1,6 +1,56 @@
-dist/
+# Dependencies
 node_modules/
-pnpm-debug.log*
-*.local
-.DS_Store
+.pnpm-store/
+
+# Production and test builds
+dist/
+build/
 coverage/
+.turbo/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and local configs
+.env
+.env*.local
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.pytest_cache/
+*.egg-info/
+
+# Scratch & temporary workspace files
+scratch/
+tmp/
+temp/
+.temp/
+
+# OS and editor files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

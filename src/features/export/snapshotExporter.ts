@@ -1,4 +1,4 @@
-import type { AvatarColors } from '../avatar/avatars'
+import type { AvatarColors, AvatarEyeRenderer } from '../avatar/avatars'
 import type { RenderedScene } from '../rendering/renderedScene'
 import {
   resolveNodeFill,
@@ -57,7 +57,8 @@ export const serializeAvatarSnapshot = (
   name: string,
   scene: RenderedScene,
   colors: AvatarColors,
-  options: SnapshotOptions
+  options: SnapshotOptions,
+  eyeRenderer: AvatarEyeRenderer = 'classic'
 ) => {
   const headPath = scene.headPath.get()
   const backPaths = scene.backPaths
@@ -103,16 +104,38 @@ export const serializeAvatarSnapshot = (
     colors.body
   )
 
+  const pupilColor = colors.pupil || colors.eyes
+  const leftPupil = scene.leftPupilPath?.get()
+  const rightPupil = scene.rightPupilPath?.get()
+  const leftPupilMarkup = leftPupil
+    ? `<g clip-path="url(#snapshot-left-eye-clip)">${path(leftPupil, pupilColor, scene.leftOpacity.get())}</g>`
+    : ''
+  const rightPupilMarkup = rightPupil
+    ? `<g clip-path="url(#snapshot-right-eye-clip)">${path(rightPupil, pupilColor, scene.rightOpacity.get())}</g>`
+    : ''
+
+  const creaturePaths = eyeRenderer === 'creature' ? scene.creatureEyePaths.current : []
+  const creatureOuter = creaturePaths.filter(item => item.blend !== 2)
+  const creatureInner = creaturePaths.filter(item => item.blend === 2)
+  const creatureEyeMarkup = creatureOuter.length
+    ? `${creatureOuter.map(item => path(item.d, item.fill)).join('')}<g clip-path="url(#snapshot-creature-eye-clip)">${creatureInner.map(item => path(item.d, item.fill)).join('')}</g>`
+    : ''
+  const creatureClipDefinition = creatureOuter.length
+    ? `<clipPath id="snapshot-creature-eye-clip">${creatureOuter.map(item => `<path d="${escapeXml(item.d)}" fill="white" fill-rule="evenodd" clip-rule="evenodd"/>`).join('')}</clipPath>`
+    : ''
+  const classicEyeMarkup = `${path(scene.leftPath.get(), colors.eyes, scene.leftOpacity.get())}${leftPupilMarkup}${path(scene.rightPath.get(), colors.eyes, scene.rightOpacity.get())}${rightPupilMarkup}`
+  const eyeMarkup = creatureEyeMarkup || classicEyeMarkup
+
   const body = [
     backPaths,
     path(headPath, colors.body),
-    `<g clip-path="url(#snapshot-head-clip)">${decalsMarkup}${path(scene.leftPath.get(), colors.eyes, scene.leftOpacity.get())}${path(scene.rightPath.get(), colors.eyes, scene.rightOpacity.get())}${mouthMarkup}</g>`,
+    `<g clip-path="url(#snapshot-head-clip)">${decalsMarkup}${eyeMarkup}${mouthMarkup}</g>`,
     frontPaths,
   ].join('')
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}" role="img" aria-label="${escapeXml(name)}">
-  <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath></defs>
+  <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath><clipPath id="snapshot-left-eye-clip"><path d="${escapeXml(scene.leftPath.get())}"/></clipPath><clipPath id="snapshot-right-eye-clip"><path d="${escapeXml(scene.rightPath.get())}"/></clipPath>${creatureClipDefinition}</defs>
   ${backgroundMarkup(options)}
   <g transform="translate(${offsetX} ${offsetY})">${body}</g>
 </svg>`

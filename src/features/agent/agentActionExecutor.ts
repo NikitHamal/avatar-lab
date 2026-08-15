@@ -20,6 +20,7 @@ import type {
 import {
   defaultAvatarColors,
   defaultAvatarEyes,
+  defaultCreaturePaletteIndex,
   parseExpressions,
   type StudioAvatar,
 } from '../avatar/avatars'
@@ -143,6 +144,12 @@ export function executeAgentAction(
             ...defaultAvatarEyes,
             ...(payload.eyes || {}),
           },
+          eyeRenderer: payload.eyeRenderer === 'creature' ? 'creature' : 'classic',
+          creaturePaletteIndex:
+            typeof payload.creaturePaletteIndex === 'number' &&
+            Number.isInteger(payload.creaturePaletteIndex)
+              ? Math.min(99, Math.max(0, payload.creaturePaletteIndex))
+              : defaultCreaturePaletteIndex,
         }
 
         const nextAvatars = [...controller.avatars, newAvatar]
@@ -159,16 +166,19 @@ export function executeAgentAction(
           controller.renameActiveAvatar(updateAct.name)
         }
         if (updateAct.colors) {
-          controller.updateAvatarColors({
-            body: updateAct.colors.body || controller.activeAvatar.colors.body,
-            eyes: updateAct.colors.eyes || controller.activeAvatar.colors.eyes,
-          })
+          controller.updateAvatarColors(updateAct.colors)
         }
         if (updateAct.eyes) {
           controller.updateAvatarEyes({
             ...controller.activeAvatarEyes,
             ...updateAct.eyes,
           })
+        }
+        if (updateAct.eyeRenderer) {
+          controller.updateAvatarEyeRenderer(updateAct.eyeRenderer)
+        }
+        if (typeof updateAct.creaturePaletteIndex === 'number') {
+          controller.updateAvatarCreaturePalette(updateAct.creaturePaletteIndex)
         }
         if (updateAct.body) {
           const parsedBody = parseAvatarBody(

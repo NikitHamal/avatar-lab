@@ -20,6 +20,7 @@ const fallbackBundle = async () => {
   const sources = {
     '/avatar/surfaces': 'src/features/avatar/surfaces.ts',
     '/avatar/geometry': 'src/features/avatar/geometry.ts',
+    '/creature/creatureExpression': 'src/features/creature/creatureExpression.ts',
     '/avatar/ambientMotion': 'src/features/avatar/ambientMotion.ts',
     '/export/standaloneEngine.entry': 'src/features/export/standaloneEngine.entry.ts',
   }

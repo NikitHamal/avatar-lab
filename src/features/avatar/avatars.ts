@@ -1,7 +1,8 @@
 import { parseAvatarBody, type AvatarBody } from './body'
 import { defaultExpression, initialExpressions } from './presets'
 import { surfacePresets } from './surfaces'
-import type { Expression } from './geometry'
+import { CREATURE_COLORWAYS } from '../creature/creatureSwatches'
+import type { Expression, EyeStyle } from './geometry'
 import { isBodyMotion, isEyeMotion } from './ambientMotion'
 import {
   normalizeSequencesForExpressions,
@@ -14,16 +15,22 @@ export type AvatarBehaviorLibrary = {
   sequences: AvatarSequence[]
 }
 
+export type AvatarEyeRenderer = 'classic' | 'creature'
+
+export const defaultCreaturePaletteIndex = 52
+
 export type StudioAvatar = {
   id: string
   name: string
   body: AvatarBody
   colors: AvatarColors
   eyes: AvatarEyeDefaults
+  eyeRenderer: AvatarEyeRenderer
+  creaturePaletteIndex: number
   behavior?: AvatarBehaviorLibrary
 }
 
-export type AvatarColors = { body: string; eyes: string }
+export type AvatarColors = { body: string; eyes: string; pupil?: string }
 export type AvatarEyeDefaults = Pick<
   Expression,
   | 'widthLeft'
@@ -37,7 +44,9 @@ export type AvatarEyeDefaults = Pick<
   | 'positionYRight'
   | 'leftAngle'
   | 'rightAngle'
->
+> & {
+  eyeStyle?: EyeStyle
+}
 export const defaultAvatarColors: AvatarColors = { body: '#5b7fe5', eyes: '#111316' }
 export const defaultAvatarEyes: AvatarEyeDefaults = {
   widthLeft: defaultExpression.widthLeft,
@@ -51,10 +60,41 @@ export const defaultAvatarEyes: AvatarEyeDefaults = {
   positionYRight: defaultExpression.positionYRight,
   leftAngle: defaultExpression.leftAngle,
   rightAngle: defaultExpression.rightAngle,
+  eyeStyle: 'dot',
 }
+
+export type ColorwayPreset = {
+  id: string
+  name: string
+  body: string
+  eyes: string
+  eyeStyle: EyeStyle
+}
+
+export const creatureColorways: ColorwayPreset[] = [
+  { id: 'cat-seaglass', name: 'Cat Seaglass', body: '#fbfbfb', eyes: '#167b61', eyeStyle: 'cat' },
+  { id: 'nightlight', name: 'Nightlight', body: '#7768fe', eyes: '#55fc87', eyeStyle: 'circle' },
+  { id: 'slushie', name: 'Slushie', body: '#c206ad', eyes: '#49f6d9', eyeStyle: 'dot' },
+  { id: 'lobster', name: 'Lobster', body: '#f95320', eyes: '#044a5f', eyeStyle: 'acorn' },
+  { id: 'blacklight', name: 'Blacklight', body: '#6922f0', eyes: '#a3f410', eyeStyle: 'cat' },
+  { id: 'matcha', name: 'Matcha', body: '#c7fba6', eyes: '#5e6e06', eyeStyle: 'acorn' },
+  { id: 'sunset', name: 'Sunset', body: '#ae2400', eyes: '#f855fc', eyeStyle: 'circle' },
+  { id: 'neapolitan', name: 'Neapolitan', body: '#87493b', eyes: '#eb76dd', eyeStyle: 'dot' },
+]
+
 const hexColor = /^#[0-9a-f]{6}$/i
+const parseEyeRenderer = (value: unknown): AvatarEyeRenderer =>
+  value === 'creature' ? 'creature' : 'classic'
+const parseCreaturePaletteIndex = (value: unknown) =>
+  typeof value === 'number' && Number.isInteger(value)
+    ? Math.min(99, Math.max(0, value))
+    : defaultCreaturePaletteIndex
 const parseColors = (value: unknown): AvatarColors => {
   const candidate = value as Partial<AvatarColors> | null
+  const pupil =
+    typeof candidate?.pupil === 'string' && hexColor.test(candidate.pupil)
+      ? candidate.pupil
+      : undefined
   return {
     body:
       typeof candidate?.body === 'string' && hexColor.test(candidate.body)
@@ -64,10 +104,27 @@ const parseColors = (value: unknown): AvatarColors => {
       typeof candidate?.eyes === 'string' && hexColor.test(candidate.eyes)
         ? candidate.eyes
         : defaultAvatarColors.eyes,
+    ...(pupil ? { pupil } : {}),
   }
 }
 
-const eyeDefaultFields = Object.keys(defaultAvatarEyes) as (keyof AvatarEyeDefaults)[]
+const inferLegacyCreaturePaletteIndex = (colors: AvatarColors): number | undefined => {
+  if (!colors.pupil) return undefined
+  const eye = colors.eyes.toLowerCase()
+  const pupil = colors.pupil.toLowerCase()
+  return CREATURE_COLORWAYS.find(
+    swatch =>
+      swatch.body.toLowerCase() === eye && (swatch.pupil ?? swatch.eyes).toLowerCase() === pupil
+  )?.index
+}
+
+const isEyeStyle = (value: unknown): value is EyeStyle =>
+  value === 'dot' || value === 'circle' || value === 'cat' || value === 'acorn'
+
+const eyeDefaultFields = Object.keys(defaultAvatarEyes).filter(
+  key => key !== 'eyeStyle'
+) as (keyof Omit<AvatarEyeDefaults, 'eyeStyle'>)[]
+
 export const parseAvatarEyeDefaults = (value: unknown): AvatarEyeDefaults => {
   const candidate = value as Partial<AvatarEyeDefaults> | null
   const parsed = { ...defaultAvatarEyes }
@@ -75,6 +132,9 @@ export const parseAvatarEyeDefaults = (value: unknown): AvatarEyeDefaults => {
     const stored = candidate?.[field]
     if (typeof stored === 'number' && Number.isFinite(stored)) parsed[field] = stored
   })
+  if (isEyeStyle(candidate?.eyeStyle)) {
+    parsed.eyeStyle = candidate.eyeStyle
+  }
   return parsed
 }
 
@@ -90,6 +150,9 @@ export const applyAvatarEyeDefaults = (
   result.widthRight = Math.max(10, result.widthRight)
   result.heightLeft = Math.max(10, result.heightLeft)
   result.heightRight = Math.max(10, result.heightRight)
+  if (eyes.eyeStyle && eyes.eyeStyle !== 'dot') {
+    result.eyeStyle = eyes.eyeStyle
+  }
   return result
 }
 
@@ -126,6 +189,7 @@ export const parseExpressions = (value: unknown): Expression[] => {
       parsed.bodyColor = candidate.bodyColor
     if (typeof candidate.eyeColor === 'string' && hexColor.test(candidate.eyeColor))
       parsed.eyeColor = candidate.eyeColor
+    if (isEyeStyle(candidate.eyeStyle)) parsed.eyeStyle = candidate.eyeStyle
     parsed.eyeMotion = isEyeMotion(storedEyeMotion) ? storedEyeMotion : defaultExpression.eyeMotion
     parsed.bodyMotion = isBodyMotion(storedBodyMotion)
       ? storedBodyMotion
@@ -199,6 +263,8 @@ export const createAvatar = (name: string): StudioAvatar => ({
   body: { primary: { ...surfacePresets.sphere }, nodes: [] },
   colors: { ...defaultAvatarColors },
   eyes: { ...defaultAvatarEyes },
+  eyeRenderer: 'classic',
+  creaturePaletteIndex: defaultCreaturePaletteIndex,
 })
 
 export const parseAvatarLibrary = (
@@ -220,12 +286,30 @@ export const parseAvatarLibrary = (
       })
       .map(avatar => {
         const behavior = parseAvatarBehavior(avatar.behavior, baseBehavior)
+        const colors = parseColors(avatar.colors)
+        const hasStoredEyeRenderer =
+          avatar.eyeRenderer === 'classic' || avatar.eyeRenderer === 'creature'
+        const hasStoredCreaturePalette =
+          typeof avatar.creaturePaletteIndex === 'number' &&
+          Number.isInteger(avatar.creaturePaletteIndex)
+        const legacyCreaturePaletteIndex =
+          !hasStoredEyeRenderer && !hasStoredCreaturePalette
+            ? inferLegacyCreaturePaletteIndex(colors)
+            : undefined
         return {
           id: avatar.id,
           name: avatar.name,
           body: parseAvatarBody(avatar.body, surfacePresets.sphere),
-          colors: parseColors(avatar.colors),
+          colors,
           eyes: parseAvatarEyeDefaults(avatar.eyes),
+          eyeRenderer: hasStoredEyeRenderer
+            ? parseEyeRenderer(avatar.eyeRenderer)
+            : legacyCreaturePaletteIndex === undefined
+              ? 'classic'
+              : 'creature',
+          creaturePaletteIndex: hasStoredCreaturePalette
+            ? parseCreaturePaletteIndex(avatar.creaturePaletteIndex)
+            : (legacyCreaturePaletteIndex ?? defaultCreaturePaletteIndex),
           ...(behavior ? { behavior } : {}),
         }
       })

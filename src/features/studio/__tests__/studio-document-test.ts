@@ -32,9 +32,70 @@ describe('Studio document', () => {
     expect(document.library.avatars).toHaveLength(29)
     expect(document.library.activeAvatarId).toBe(document.library.avatars[0].id)
     expect(document.library.avatars[0].name).toBe('Strobi')
-    expect(document.expressions).toHaveLength(52)
+    expect(document.library.avatars[0].eyeRenderer).toBe('classic')
+    expect(document.library.avatars[0].creaturePaletteIndex).toBe(52)
+    expect(document.expressions).toHaveLength(55)
     expect(document.sequences).toHaveLength(36)
-    expect(document.playback).toEqual({ stateId: 'proud', playing: true })
+    expect(document.playback).toEqual({ stateId: 'idle', playing: true })
+  })
+
+  it('migrates the old bundled idle pose away from the upper-right default', () => {
+    const legacy = structuredClone(loadStudioDocument(storage()))
+    const idle = legacy.sequences.find(sequence => sequence.id === 'idle')!
+    idle.steps = [
+      { ...idle.steps[0], id: 'idle-step-0', expressionId: 'expression-00', holdMs: 5200 },
+      { ...idle.steps[0], id: 'idle-step-1', expressionId: 'expression-08', holdMs: 5200 },
+    ]
+    legacy.library.activeAvatarId = legacy.library.avatars[1].id
+    legacy.library.avatars = legacy.library.avatars.filter(avatar => avatar.id !== 'strobi')
+    legacy.playback = { stateId: 'proud', playing: true }
+
+    const migrated = loadStudioDocument(storage(JSON.stringify(legacy)))
+    const migratedIdle = migrated.sequences.find(sequence => sequence.id === 'idle')!
+
+    expect(migratedIdle.steps.map(step => step.expressionId)).toEqual([
+      'idle-front',
+      'idle-glance-left',
+      'idle-front',
+      'idle-glance-right',
+    ])
+    expect(migrated.playback).toEqual({ stateId: 'idle', playing: true })
+  })
+
+  it('upgrades untouched stock reactions for both shared and avatar-owned behavior', () => {
+    const legacy = structuredClone(loadStudioDocument(storage()))
+    const sleeping = legacy.sequences.find(sequence => sequence.id === 'sleeping')!
+    const legacyIds = ['expression-13', 'expression-22', 'expression-04']
+    sleeping.steps = sleeping.steps.map((step, index) => ({
+      ...step,
+      expressionId: legacyIds[index],
+    }))
+
+    const avatar = legacy.library.avatars[0]
+    avatar.behavior = {
+      expressions: legacyIds.map(id => legacy.expressions.find(expression => expression.id === id)!),
+      sequences: [structuredClone(sleeping)],
+    }
+
+    const migrated = loadStudioDocument(storage(JSON.stringify(legacy)))
+    const migratedSleeping = migrated.sequences.find(sequence => sequence.id === 'sleeping')!
+    const migratedAvatarSleeping = migrated.library.avatars[0].behavior?.sequences.find(
+      sequence => sequence.id === 'sleeping'
+    )
+
+    expect(migratedSleeping.steps.map(step => step.expressionId)).toEqual([
+      'sleepy',
+      'expression-13',
+      'sleepy',
+    ])
+    expect(migratedAvatarSleeping?.steps.map(step => step.expressionId)).toEqual([
+      'sleepy',
+      'expression-13',
+      'sleepy',
+    ])
+    expect(migrated.library.avatars[0].behavior?.expressions.some(item => item.id === 'sleepy')).toBe(
+      true
+    )
   })
 
   it('keeps a locally saved project authoritative over the bundled snapshot', () => {

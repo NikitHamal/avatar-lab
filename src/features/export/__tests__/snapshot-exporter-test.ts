@@ -25,6 +25,29 @@ describe('avatar snapshot export', () => {
     expect(svg).not.toContain('<rect')
   })
 
+  it('uses the live Creature eye paths for expressive-eye snapshots', () => {
+    scene.creatureEyePaths.current = [
+      { d: 'M-20 -10C-10 -20 10 -20 20 -10Z', fill: 'rgba(249,83,32,1)', blend: 0 },
+      { d: 'M-5 -8C-2 -12 2 -12 5 -8Z', fill: 'rgba(4,74,95,1)', blend: 2 },
+    ]
+    const svg = serializeAvatarSnapshot(
+      'Creature Strobi',
+      scene,
+      colors,
+      {
+        background: 'transparent',
+        colorFrom: '#ffffff',
+        colorTo: '#000000',
+        size: 512,
+      },
+      'creature'
+    )
+
+    expect(svg).toContain('snapshot-creature-eye-clip')
+    expect(svg).toContain('fill="rgba(249,83,32,1)"')
+    expect(svg).toContain('fill="rgba(4,74,95,1)"')
+  })
+
   it('embeds a radial background without external dependencies', () => {
     const svg = serializeAvatarSnapshot('Strobi', scene, colors, {
       background: 'radial',

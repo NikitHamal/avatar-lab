@@ -53,6 +53,7 @@ import {
   type AvatarBehaviorLibrary,
   type AvatarColors,
   type AvatarEyeDefaults,
+  type AvatarEyeRenderer,
   type StudioAvatar,
 } from '@/features/avatar/avatars'
 import {
@@ -182,7 +183,12 @@ export function useStudioController() {
   } | null>(null)
   const workspaceBackButtonRef = useRef<HTMLButtonElement>(null)
   const [focusAvatarName, setFocusAvatarName] = useState(false)
-  const initialExpression = expressions[0] ?? defaultExpression
+  const initialSequence = initialStatePlayback.stateId
+    ? initialBehavior.sequences.find(sequence => sequence.id === initialStatePlayback.stateId)
+    : null
+  const initialSequenceExpressionId = initialSequence?.steps[0]?.expressionId
+  const initialExpression =
+    expressions.find(item => item.id === initialSequenceExpressionId) ?? defaultExpression
   const [expression, setExpression] = useState<Expression>({ ...initialExpression })
   const initialDisplayColors = resolveColors(initialExpression, initialAvatar.colors)
   const [renderedColors] = useState(() => createRenderedColors(initialDisplayColors))
@@ -775,6 +781,15 @@ export function useStudioController() {
     paintPose(displayedPose.current)
   }
 
+  const updateAvatarEyeRenderer = (eyeRenderer: AvatarEyeRenderer) => {
+    updateActiveAvatar(current => ({ ...current, eyeRenderer }))
+  }
+
+  const updateAvatarCreaturePalette = (value: number) => {
+    const creaturePaletteIndex = Math.min(99, Math.max(0, Math.round(value)))
+    updateActiveAvatar(current => ({ ...current, creaturePaletteIndex }))
+  }
+
   const activateAvatar = (id: string, editBody = false, preserveMode = false) => {
     const avatar = avatarsRef.current.find(item => item.id === id)
     if (!avatar) return
@@ -822,9 +837,7 @@ export function useStudioController() {
     setEditing(null)
     setBodyEditing(editBody)
     if (!preserveMode || editBody) setMode('manual')
-    const nextExpression = nextActiveSequence
-      ? currentStateExpression
-      : { ...(nextExpressions[0] ?? defaultExpression) }
+    const nextExpression = nextActiveSequence ? currentStateExpression : { ...defaultExpression }
     setExpression(nextExpression)
     setDisplayColors(resolveColors(nextExpression, avatar.colors))
     canonicalTarget.current = nextExpression
@@ -1547,13 +1560,15 @@ export function useStudioController() {
       {
         body: renderedColors.body.get(),
         eyes: renderedColors.eyes.get(),
+        pupil: renderedColors.pupil.get(),
       },
       {
         background: snapshotBackground,
         colorFrom: snapshotColorFrom,
         colorTo: snapshotColorTo,
         size: Number(snapshotSize),
-      }
+      },
+      activeAvatar.eyeRenderer
     )
 
   const downloadSnapshotSvg = () => {
@@ -1914,7 +1929,9 @@ export function useStudioController() {
     toggleStatePlayback,
     transitionToExpression,
     updateAvatarColors,
+    updateAvatarCreaturePalette,
     updateAvatarEyeDimension,
+    updateAvatarEyeRenderer,
     updateAvatarEyePosition,
     updateAvatarEyeSize,
     updateAvatarEyes,

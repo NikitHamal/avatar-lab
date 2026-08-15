@@ -165,7 +165,7 @@ export function AgentSidebar({
                 onClick={() => toggleOpen(true)}
                 aria-label={studioController.t('Ouvrir l’agent IA')}
               >
-                <Sparkles className="animate-pulse text-amber-300" size={18} />
+                <Sparkles size={18} />
               </Button>
             }
           />

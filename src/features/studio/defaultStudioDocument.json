@@ -43,13 +43,13 @@
             "width": 240,
             "height": 240,
             "depth": 215,
-            "roundness": 0.95,
+            "roundness": 2,
             "pattern": "book"
           },
           "nodes": []
         },
         "colors": {
-          "body": "#f0f5ff",
+          "body": "#cce2ff",
           "eyes": "#0a1c4d"
         },
         "eyes": {
@@ -3477,6 +3477,72 @@
       "bodyMotion": "bounce",
       "mouth": "grin",
       "mouthScale": 1.2
+    },
+    {
+      "headX": 0,
+      "headY": 0,
+      "headZ": 0,
+      "widthLeft": 24,
+      "widthRight": 24,
+      "heightLeft": 36,
+      "heightRight": 36,
+      "spacing": 36,
+      "positionXLeft": 0,
+      "positionXRight": 0,
+      "positionYLeft": -6,
+      "positionYRight": -6,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "microSaccades",
+      "bodyMotion": "breathe",
+      "mouth": "none",
+      "mouthScale": 1,
+      "id": "idle-front"
+    },
+    {
+      "headX": 0,
+      "headY": -6,
+      "headZ": -1.5,
+      "widthLeft": 24,
+      "widthRight": 24,
+      "heightLeft": 32,
+      "heightRight": 32,
+      "spacing": 36,
+      "positionXLeft": -7,
+      "positionXRight": -7,
+      "positionYLeft": -6,
+      "positionYRight": -6,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "breathe",
+      "mouth": "none",
+      "mouthScale": 1,
+      "id": "idle-glance-left"
+    },
+    {
+      "headX": 0,
+      "headY": 6,
+      "headZ": 1.5,
+      "widthLeft": 24,
+      "widthRight": 24,
+      "heightLeft": 32,
+      "heightRight": 32,
+      "spacing": 36,
+      "positionXLeft": 7,
+      "positionXRight": 7,
+      "positionYLeft": -6,
+      "positionYRight": -6,
+      "leftAngle": 0,
+      "rightAngle": 0,
+      "perspective": 1,
+      "eyeMotion": "none",
+      "bodyMotion": "breathe",
+      "mouth": "none",
+      "mouthScale": 1,
+      "id": "idle-glance-right"
     }
   ],
   "sequences": [
@@ -3490,21 +3556,21 @@
       "steps": [
         {
           "id": "sleeping-step-0",
-          "expressionId": "expression-13",
+          "expressionId": "sleepy",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "sleeping-step-1",
-          "expressionId": "expression-22",
+          "expressionId": "expression-13",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "sleeping-step-2",
-          "expressionId": "expression-04",
+          "expressionId": "sleepy",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3528,7 +3594,21 @@
       "steps": [
         {
           "id": "waking-step-0",
-          "expressionId": "expression-13",
+          "expressionId": "sleepy",
+          "holdMs": 2300,
+          "transitionMs": 500,
+          "transition": "smooth"
+        },
+        {
+          "id": "waking-step-1",
+          "expressionId": "soft-smile",
+          "holdMs": 2300,
+          "transitionMs": 500,
+          "transition": "smooth"
+        },
+        {
+          "id": "waking-step-2",
+          "expressionId": "idle-front",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3546,22 +3626,36 @@
       "id": "idle",
       "name": "idle",
       "group": "Cycle de vie",
-      "description": "Micro-mouvements lents, expressions 00 et 08, clignement rare.",
+      "description": "Regard frontal au repos, puis brèves œillades latérales avec respiration légère.",
       "builtIn": true,
       "playbackMode": "loop",
       "steps": [
         {
           "id": "idle-step-0",
-          "expressionId": "expression-00",
-          "holdMs": 5200,
-          "transitionMs": 500,
+          "expressionId": "idle-front",
+          "holdMs": 3600,
+          "transitionMs": 650,
           "transition": "smooth"
         },
         {
           "id": "idle-step-1",
-          "expressionId": "expression-08",
-          "holdMs": 5200,
-          "transitionMs": 500,
+          "expressionId": "idle-glance-left",
+          "holdMs": 1200,
+          "transitionMs": 650,
+          "transition": "smooth"
+        },
+        {
+          "id": "idle-step-2",
+          "expressionId": "idle-front",
+          "holdMs": 2600,
+          "transitionMs": 650,
+          "transition": "smooth"
+        },
+        {
+          "id": "idle-step-3",
+          "expressionId": "idle-glance-right",
+          "holdMs": 1200,
+          "transitionMs": 650,
           "transition": "smooth"
         }
       ],
@@ -3583,21 +3677,21 @@
       "steps": [
         {
           "id": "listening-step-0",
-          "expressionId": "expression-10",
+          "expressionId": "focus",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "listening-step-1",
-          "expressionId": "expression-01",
+          "expressionId": "soft-smile",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "listening-step-2",
-          "expressionId": "expression-19",
+          "expressionId": "focus",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3621,35 +3715,28 @@
       "steps": [
         {
           "id": "thinking-step-0",
-          "expressionId": "expression-08",
+          "expressionId": "skeptical",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "thinking-step-1",
-          "expressionId": "expression-16",
+          "expressionId": "side-eye",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "thinking-step-2",
-          "expressionId": "expression-14",
+          "expressionId": "focus",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "thinking-step-3",
-          "expressionId": "expression-17",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "thinking-step-4",
-          "expressionId": "expression-05",
+          "expressionId": "smug",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3673,42 +3760,21 @@
       "steps": [
         {
           "id": "searching-step-0",
-          "expressionId": "expression-15",
+          "expressionId": "scan-left",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "searching-step-1",
-          "expressionId": "expression-09",
+          "expressionId": "focus",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "searching-step-2",
-          "expressionId": "expression-03",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "searching-step-3",
-          "expressionId": "expression-20",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "searching-step-4",
-          "expressionId": "expression-12",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "searching-step-5",
-          "expressionId": "expression-18",
+          "expressionId": "scan-right",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3732,28 +3798,28 @@
       "steps": [
         {
           "id": "working-step-0",
-          "expressionId": "expression-07",
+          "expressionId": "focus",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "working-step-1",
-          "expressionId": "expression-16",
+          "expressionId": "scan-left",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "working-step-2",
-          "expressionId": "expression-11",
+          "expressionId": "focus",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "working-step-3",
-          "expressionId": "expression-10",
+          "expressionId": "scan-right",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3777,35 +3843,28 @@
       "steps": [
         {
           "id": "excited-step-0",
-          "expressionId": "expression-02",
+          "expressionId": "gasp",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "excited-step-1",
-          "expressionId": "expression-17",
+          "expressionId": "joy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "excited-step-2",
-          "expressionId": "expression-21",
+          "expressionId": "confetti",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "excited-step-3",
-          "expressionId": "expression-03",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "excited-step-4",
-          "expressionId": "expression-11",
+          "expressionId": "joy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3829,21 +3888,21 @@
       "steps": [
         {
           "id": "bored-step-0",
-          "expressionId": "expression-04",
+          "expressionId": "sleepy",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "bored-step-1",
-          "expressionId": "expression-22",
+          "expressionId": "smug",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "bored-step-2",
-          "expressionId": "expression-00",
+          "expressionId": "expression-22",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3867,21 +3926,21 @@
       "steps": [
         {
           "id": "suspicious-step-0",
-          "expressionId": "expression-14",
+          "expressionId": "skeptical",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "suspicious-step-1",
-          "expressionId": "expression-05",
+          "expressionId": "side-eye",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "suspicious-step-2",
-          "expressionId": "expression-23",
+          "expressionId": "smug",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3905,14 +3964,21 @@
       "steps": [
         {
           "id": "angry-step-0",
-          "expressionId": "expression-07",
+          "expressionId": "angry-hot",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "angry-step-1",
-          "expressionId": "expression-16",
+          "expressionId": "skeptical",
+          "holdMs": 2300,
+          "transitionMs": 500,
+          "transition": "smooth"
+        },
+        {
+          "id": "angry-step-2",
+          "expressionId": "error",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3936,21 +4002,21 @@
       "steps": [
         {
           "id": "drowsy-step-0",
-          "expressionId": "expression-04",
+          "expressionId": "sleepy",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "drowsy-step-1",
-          "expressionId": "expression-22",
+          "expressionId": "expression-13",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "drowsy-step-2",
-          "expressionId": "expression-13",
+          "expressionId": "sleepy",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
@@ -3974,28 +4040,21 @@
       "steps": [
         {
           "id": "happy-step-0",
-          "expressionId": "expression-02",
+          "expressionId": "joy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "happy-step-1",
-          "expressionId": "expression-11",
+          "expressionId": "soft-smile",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "happy-step-2",
-          "expressionId": "expression-17",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "happy-step-3",
-          "expressionId": "expression-19",
+          "expressionId": "success",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4019,28 +4078,21 @@
       "steps": [
         {
           "id": "curious-step-0",
-          "expressionId": "expression-03",
+          "expressionId": "gasp",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "curious-step-1",
-          "expressionId": "expression-21",
+          "expressionId": "focus",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "curious-step-2",
-          "expressionId": "expression-00",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "curious-step-3",
-          "expressionId": "expression-15",
+          "expressionId": "side-eye",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4064,21 +4116,21 @@
       "steps": [
         {
           "id": "confused-step-0",
-          "expressionId": "expression-14",
+          "expressionId": "skeptical",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "confused-step-1",
-          "expressionId": "expression-05",
+          "expressionId": "dizzy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "confused-step-2",
-          "expressionId": "expression-08",
+          "expressionId": "side-eye",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4102,14 +4154,14 @@
       "steps": [
         {
           "id": "surprised-step-0",
-          "expressionId": "expression-03",
+          "expressionId": "gasp",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "surprised-step-1",
-          "expressionId": "expression-21",
+          "expressionId": "notification",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4133,21 +4185,21 @@
       "steps": [
         {
           "id": "proud-step-0",
-          "expressionId": "expression-15",
+          "expressionId": "smug",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "proud-step-1",
-          "expressionId": "expression-08",
+          "expressionId": "soft-smile",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "proud-step-2",
-          "expressionId": "expression-02",
+          "expressionId": "success",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4171,21 +4223,21 @@
       "steps": [
         {
           "id": "shy-step-0",
-          "expressionId": "expression-00",
+          "expressionId": "soft-smile",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "shy-step-1",
-          "expressionId": "expression-24",
+          "expressionId": "kiss",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "shy-step-2",
-          "expressionId": "expression-13",
+          "expressionId": "sleepy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4209,21 +4261,21 @@
       "steps": [
         {
           "id": "sad-step-0",
-          "expressionId": "expression-04",
+          "expressionId": "sad-deep",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "sad-step-1",
-          "expressionId": "expression-13",
+          "expressionId": "sleepy",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "sad-step-2",
-          "expressionId": "expression-22",
+          "expressionId": "sad-deep",
           "holdMs": 3600,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4247,21 +4299,21 @@
       "steps": [
         {
           "id": "laughing-step-0",
-          "expressionId": "expression-02",
+          "expressionId": "joy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "laughing-step-1",
-          "expressionId": "expression-11",
+          "expressionId": "confetti",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "laughing-step-2",
-          "expressionId": "expression-17",
+          "expressionId": "joy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4285,14 +4337,21 @@
       "steps": [
         {
           "id": "scared-step-0",
-          "expressionId": "expression-03",
+          "expressionId": "panic",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "scared-step-1",
-          "expressionId": "expression-21",
+          "expressionId": "gasp",
+          "holdMs": 2300,
+          "transitionMs": 500,
+          "transition": "smooth"
+        },
+        {
+          "id": "scared-step-2",
+          "expressionId": "panic",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4316,28 +4375,21 @@
       "steps": [
         {
           "id": "playful-step-0",
-          "expressionId": "expression-02",
+          "expressionId": "wink",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "playful-step-1",
-          "expressionId": "expression-17",
+          "expressionId": "cat-cute",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "playful-step-2",
-          "expressionId": "expression-11",
-          "holdMs": 2300,
-          "transitionMs": 500,
-          "transition": "smooth"
-        },
-        {
-          "id": "playful-step-3",
-          "expressionId": "expression-08",
+          "expressionId": "joy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4361,21 +4413,21 @@
       "steps": [
         {
           "id": "celebrate-step-0",
-          "expressionId": "expression-02",
+          "expressionId": "confetti",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "celebrate-step-1",
-          "expressionId": "expression-08",
+          "expressionId": "success",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
         },
         {
           "id": "celebrate-step-2",
-          "expressionId": "expression-17",
+          "expressionId": "joy",
           "holdMs": 2300,
           "transitionMs": 500,
           "transition": "smooth"
@@ -4420,7 +4472,7 @@
         },
         {
           "id": "speaking-step-3",
-          "expressionId": "soft-smile",
+          "expressionId": "talk-a",
           "holdMs": 360,
           "transitionMs": 240,
           "transition": "smooth"
@@ -4458,14 +4510,14 @@
         },
         {
           "id": "presenting-step-2",
-          "expressionId": "joy",
+          "expressionId": "talk-c",
           "holdMs": 920,
           "transitionMs": 240,
           "transition": "smooth"
         },
         {
           "id": "presenting-step-3",
-          "expressionId": "confetti",
+          "expressionId": "success",
           "holdMs": 920,
           "transitionMs": 240,
           "transition": "smooth"
@@ -4504,13 +4556,6 @@
         {
           "id": "scanning-step-2",
           "expressionId": "scan-right",
-          "holdMs": 620,
-          "transitionMs": 240,
-          "transition": "smooth"
-        },
-        {
-          "id": "scanning-step-3",
-          "expressionId": "focus",
           "holdMs": 620,
           "transitionMs": 240,
           "transition": "smooth"
@@ -4586,7 +4631,7 @@
         },
         {
           "id": "agree-step-2",
-          "expressionId": "joy",
+          "expressionId": "focus",
           "holdMs": 360,
           "transitionMs": 180,
           "transition": "spring"
@@ -4617,14 +4662,14 @@
         },
         {
           "id": "disagree-step-1",
-          "expressionId": "side-eye",
+          "expressionId": "error",
           "holdMs": 430,
           "transitionMs": 180,
           "transition": "spring"
         },
         {
           "id": "disagree-step-2",
-          "expressionId": "angry-hot",
+          "expressionId": "side-eye",
           "holdMs": 430,
           "transitionMs": 180,
           "transition": "spring"
@@ -4648,21 +4693,21 @@
       "steps": [
         {
           "id": "wink-step-0",
-          "expressionId": "soft-smile",
-          "holdMs": 360,
-          "transitionMs": 180,
-          "transition": "spring"
-        },
-        {
-          "id": "wink-step-1",
           "expressionId": "wink",
           "holdMs": 360,
           "transitionMs": 180,
           "transition": "spring"
         },
         {
+          "id": "wink-step-1",
+          "expressionId": "soft-smile",
+          "holdMs": 360,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
           "id": "wink-step-2",
-          "expressionId": "smug",
+          "expressionId": "wink",
           "holdMs": 360,
           "transitionMs": 180,
           "transition": "spring"
@@ -4686,21 +4731,21 @@
       "steps": [
         {
           "id": "love-step-0",
-          "expressionId": "soft-smile",
-          "holdMs": 520,
-          "transitionMs": 180,
-          "transition": "spring"
-        },
-        {
-          "id": "love-step-1",
           "expressionId": "love",
           "holdMs": 520,
           "transitionMs": 180,
           "transition": "spring"
         },
         {
-          "id": "love-step-2",
+          "id": "love-step-1",
           "expressionId": "kiss",
+          "holdMs": 520,
+          "transitionMs": 180,
+          "transition": "spring"
+        },
+        {
+          "id": "love-step-2",
+          "expressionId": "soft-smile",
           "holdMs": 520,
           "transitionMs": 180,
           "transition": "spring"
@@ -4731,14 +4776,14 @@
         },
         {
           "id": "success-step-1",
-          "expressionId": "confetti",
+          "expressionId": "joy",
           "holdMs": 330,
           "transitionMs": 180,
           "transition": "spring"
         },
         {
           "id": "success-step-2",
-          "expressionId": "joy",
+          "expressionId": "soft-smile",
           "holdMs": 330,
           "transitionMs": 180,
           "transition": "spring"
@@ -4769,14 +4814,14 @@
         },
         {
           "id": "error-step-1",
-          "expressionId": "angry-hot",
+          "expressionId": "panic",
           "holdMs": 300,
           "transitionMs": 180,
           "transition": "spring"
         },
         {
           "id": "error-step-2",
-          "expressionId": "panic",
+          "expressionId": "sad-deep",
           "holdMs": 300,
           "transitionMs": 180,
           "transition": "spring"
@@ -4814,7 +4859,7 @@
         },
         {
           "id": "notification-step-2",
-          "expressionId": "soft-smile",
+          "expressionId": "focus",
           "holdMs": 320,
           "transitionMs": 180,
           "transition": "spring"
@@ -4845,14 +4890,14 @@
         },
         {
           "id": "dizzy-step-1",
-          "expressionId": "gasp",
+          "expressionId": "side-eye",
           "holdMs": 450,
           "transitionMs": 240,
           "transition": "smooth"
         },
         {
           "id": "dizzy-step-2",
-          "expressionId": "sleepy",
+          "expressionId": "dizzy",
           "holdMs": 450,
           "transitionMs": 240,
           "transition": "smooth"
@@ -4883,21 +4928,21 @@
         },
         {
           "id": "dance-step-1",
-          "expressionId": "wink",
-          "holdMs": 300,
-          "transitionMs": 240,
-          "transition": "smooth"
-        },
-        {
-          "id": "dance-step-2",
           "expressionId": "joy",
           "holdMs": 300,
           "transitionMs": 240,
           "transition": "smooth"
         },
         {
+          "id": "dance-step-2",
+          "expressionId": "wink",
+          "holdMs": 300,
+          "transitionMs": 240,
+          "transition": "smooth"
+        },
+        {
           "id": "dance-step-3",
-          "expressionId": "kiss",
+          "expressionId": "love",
           "holdMs": 300,
           "transitionMs": 240,
           "transition": "smooth"
@@ -4913,7 +4958,7 @@
     }
   ],
   "playback": {
-    "stateId": "proud",
+    "stateId": "idle",
     "playing": true
   }
 }

@@ -11,6 +11,7 @@ import type { StudioController } from '@/features/studio/useStudioController'
 
 export function StudioStage({ controller }: { controller: StudioController }) {
   const {
+    activeAvatar,
     activeAvatarEyes,
     activeSequenceLabel,
     bodyEditing,
@@ -53,6 +54,7 @@ export function StudioStage({ controller }: { controller: StudioController }) {
         {
           '--avatar-body-color': renderedColors.body,
           '--avatar-eye-color': renderedColors.eyes,
+          '--avatar-pupil-color': renderedColors.pupil,
         } as CSSProperties
       }
     >
@@ -60,8 +62,11 @@ export function StudioStage({ controller }: { controller: StudioController }) {
       <AvatarCanvas
         expression={canvasExpression}
         avatarEyes={activeAvatarEyes}
+        eyeRenderer={activeAvatar.eyeRenderer}
+        creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
         surface={surface}
         scene={renderedScene}
+        renderedColors={renderedColors}
         rotationGizmo={renderedRotationGizmo}
         showWire={showWire}
         bodyEditing={bodyEditing}

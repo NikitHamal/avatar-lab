@@ -43,6 +43,10 @@ export const bodyPrimitiveTypes = [
   'pyramid',
   'flower',
   'disc',
+  'hexagon',
+  'shield',
+  'clover',
+  'gem',
 ] as const
 
 export const MAX_BODY_NODES = 24
