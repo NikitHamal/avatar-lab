@@ -40,6 +40,51 @@ const resolveColors = expression => ({
   eyes: expression.eyeColor || DATA.avatar.colors.eyes,
 });
 const svgElement = name => document.createElementNS(SVG_NS, name);
+const canvasPath = (context, value, color, opacity = 1) => {
+  if (!value || opacity <= 0) return;
+  context.globalAlpha = opacity;
+  context.fillStyle = color;
+  context.fill(new Path2D(value));
+};
+const paintPixelGeometry = (context, geometry, offset, colors, resolution) => {
+  const scale = resolution / 300;
+  context.clearRect(0, 0, resolution, resolution);
+  context.imageSmoothingEnabled = false;
+  context.save();
+  context.setTransform(scale, 0, 0, scale, resolution / 2, resolution / 2);
+  context.translate(offset.x, offset.y);
+  geometry.backPaths.forEach(value => canvasPath(context, value, colors.body));
+  canvasPath(context, geometry.headPath, colors.body);
+  context.save();
+  context.clip(new Path2D(geometry.headPath));
+  canvasPath(context, geometry.leftPath, colors.eyes, geometry.leftVisible ? 1 : 0);
+  canvasPath(context, geometry.rightPath, colors.eyes, geometry.rightVisible ? 1 : 0);
+  context.restore();
+  geometry.frontPaths.forEach(value => canvasPath(context, value, colors.body));
+  context.restore();
+  const image = context.getImageData(0, 0, resolution, resolution);
+  const body = colorChannels(colors.body);
+  const eyes = colorChannels(colors.eyes);
+  for (let index = 0; index < image.data.length; index += 4) {
+    if (image.data[index + 3] < 128) {
+      image.data[index] = 0;
+      image.data[index + 1] = 0;
+      image.data[index + 2] = 0;
+      image.data[index + 3] = 0;
+      continue;
+    }
+    const bodyDistance = (image.data[index] - body[0]) ** 2 +
+      (image.data[index + 1] - body[1]) ** 2 + (image.data[index + 2] - body[2]) ** 2;
+    const eyeDistance = (image.data[index] - eyes[0]) ** 2 +
+      (image.data[index + 1] - eyes[1]) ** 2 + (image.data[index + 2] - eyes[2]) ** 2;
+    const color = bodyDistance <= eyeDistance ? body : eyes;
+    image.data[index] = color[0];
+    image.data[index + 1] = color[1];
+    image.data[index + 2] = color[2];
+    image.data[index + 3] = 255;
+  }
+  context.putImageData(image, 0, 0);
+};
 
 function mountAvatar(target, options = {}) {
   const host = typeof target === 'string' ? document.querySelector(target) : target;
@@ -56,6 +101,18 @@ function mountAvatar(target, options = {}) {
   svg.style.height = typeof options.size === 'number' ? options.size + 'px' : options.size || '100%';
   svg.style.display = 'block';
   svg.style.overflow = 'visible';
+  const pixelStyle = DATA.avatar.renderStyle?.type === 'pixel' ? DATA.avatar.renderStyle : null;
+  const canvas = document.createElement('canvas');
+  const pixelResolution = pixelStyle ? Math.max(8, Math.min(192, Math.round(pixelStyle.resolution))) : 64;
+  canvas.width = pixelResolution;
+  canvas.height = pixelResolution;
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', DATA.avatar.name);
+  canvas.style.width = typeof options.size === 'number' ? options.size + 'px' : options.size || '100%';
+  canvas.style.height = typeof options.size === 'number' ? options.size + 'px' : options.size || '100%';
+  canvas.style.display = 'block';
+  canvas.style.imageRendering = 'pixelated';
+  const pixelContext = canvas.getContext('2d', { willReadFrequently: true });
   const defs = svgElement('defs');
   const clipPath = svgElement('clipPath');
   const clipHead = svgElement('path');
@@ -74,7 +131,8 @@ function mountAvatar(target, options = {}) {
   eyesLayer.append(leftEye, rightEye);
   motionLayer.append(backLayer, head, eyesLayer, frontLayer);
   svg.append(motionLayer);
-  host.replaceChildren(svg);
+  const renderElement = pixelStyle ? canvas : svg;
+  host.replaceChildren(renderElement);
 
   const ensurePaths = (group, paths, fill) => {
     while (group.children.length < paths.length) group.append(svgElement('path'));
@@ -137,6 +195,10 @@ function mountAvatar(target, options = {}) {
       eyeOffset,
     });
     const offset = AvatarProceduralEngine.ambientBodyOffset(currentPose.expression, bodyElapsed, ambientStrength);
+    if (pixelStyle && pixelContext) {
+      paintPixelGeometry(pixelContext, geometry, offset, currentColors, pixelResolution);
+      return;
+    }
     motionLayer.setAttribute('transform', 'translate(' + offset.x + ' ' + offset.y + ')');
     ensurePaths(backLayer, geometry.backPaths, currentColors.body);
     ensurePaths(frontLayer, geometry.frontPaths, currentColors.body);
@@ -271,7 +333,7 @@ function mountAvatar(target, options = {}) {
     stepTimer = setTimeout(() => advance(animation), duration);
   };
   const api = {
-    element: svg,
+    element: renderElement,
     get animation() { return currentAnimation; },
     get playing() { return playing; },
     play(animationName) {
@@ -353,7 +415,7 @@ function mountAvatar(target, options = {}) {
     destroy() {
       clearSchedule();
       if (frameRequest !== null) cancelAnimationFrame(frameRequest);
-      svg.remove();
+      renderElement.remove();
     },
   };
   applyMotion(initialExpression);

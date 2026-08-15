@@ -64,6 +64,15 @@ const english: Record<string, string> = {
   'L’avatar à gauche affiche cette expression en direct.':
     'The avatar on the left previews this expression live.',
   Corps: 'Body',
+  Rendu: 'Rendering',
+  'Choisis la finition visuelle propre à cet avatar.':
+    'Choose the visual finish specific to this avatar.',
+  'Type de rendu': 'Rendering type',
+  'Pixel utilise une palette franche, sans lissage ni couleur intermédiaire.':
+    'Pixel uses a hard palette, with no smoothing or intermediate colors.',
+  Vectoriel: 'Vector',
+  Pixel: 'Pixel',
+  'Définition de la grille': 'Grid resolution',
   'Apparence et orientation générale de l’avatar.': 'General avatar appearance and orientation.',
   'Couleur du corps': 'Body color',
   'Rotation de la tête': 'Head rotation',

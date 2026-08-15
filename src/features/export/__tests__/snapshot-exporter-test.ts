@@ -1,7 +1,11 @@
 import { poseFromExpression, renderAvatar } from '@/features/avatar/geometry'
 import { defaultExpression } from '@/features/avatar/presets'
 import { createRenderedScene, paintRenderedOffset } from '@/features/rendering/renderedScene'
-import { serializeAvatarSnapshot, snapshotFileName } from '@/features/export/snapshotExporter'
+import {
+  serializeAvatarSnapshot,
+  serializePixelSnapshot,
+  snapshotFileName,
+} from '@/features/export/snapshotExporter'
 import { surfacePresets } from '@/features/avatar/surfaces'
 
 describe('avatar snapshot export', () => {
@@ -37,5 +41,14 @@ describe('avatar snapshot export', () => {
     expect(svg).toContain('fill="url(#snapshot-radial)"')
     expect(snapshotFileName('Étoile du soir')).toBe('etoile-du-soir-snapshot.svg')
     expect(snapshotFileName('Étoile du soir', 'png')).toBe('etoile-du-soir-snapshot.png')
+  })
+
+  it('embeds a pixel snapshot as a self-contained raster SVG', () => {
+    const svg = serializePixelSnapshot('Pixel & Co', 'data:image/png;base64,AAAA', 256)
+
+    expect(svg).toContain('viewBox="0 0 256 256"')
+    expect(svg).toContain('image-rendering="pixelated"')
+    expect(svg).toContain('data:image/png;base64,AAAA')
+    expect(svg).toContain('aria-label="Pixel &amp; Co"')
   })
 })

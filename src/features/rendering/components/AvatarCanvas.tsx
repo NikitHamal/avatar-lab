@@ -13,7 +13,11 @@ import {
   type Highlight,
   type PlaybackStatus,
 } from '@/app/studio-utils'
-import { applyAvatarEyeDefaults, type AvatarEyeDefaults } from '@/features/avatar/avatars'
+import {
+  applyAvatarEyeDefaults,
+  type AvatarEyeDefaults,
+  type AvatarRenderStyle,
+} from '@/features/avatar/avatars'
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
 import {
@@ -40,8 +44,14 @@ import {
 } from '@/features/avatar/manipulationSession'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
 import { type CanvasPreviewTarget } from '@/features/rendering/canvasPreview'
+import { LivePixelAvatarCanvas } from '@/features/rendering/components/PixelAvatarCanvas'
 import { type RenderedRotationGizmo } from '@/features/rendering/renderedRotationGizmo'
-import { findBodyNodePath, type RenderedScene } from '@/features/rendering/renderedScene'
+import {
+  findBodyNodePath,
+  type RenderedColors,
+  type RenderedScene,
+} from '@/features/rendering/renderedScene'
+
 export function RotationGizmo({
   expression,
   rendered,
@@ -471,6 +481,8 @@ export function AvatarCanvas({
   avatarEyes,
   surface,
   scene,
+  colors,
+  renderStyle,
   rotationGizmo,
   showWire,
   bodyEditing,
@@ -495,6 +507,8 @@ export function AvatarCanvas({
   avatarEyes: AvatarEyeDefaults
   surface: SurfaceConfig
   scene: RenderedScene
+  colors: RenderedColors
+  renderStyle: AvatarRenderStyle
   rotationGizmo: RenderedRotationGizmo
   showWire: boolean
   bodyEditing: boolean
@@ -744,7 +758,7 @@ export function AvatarCanvas({
   }
   useEscapeToCancel(cancelDrag)
   return (
-    <div className="avatar-wrap">
+    <div className={`avatar-wrap${renderStyle.type === 'pixel' ? ' is-pixel-rendered' : ''}`}>
       {playback && (
         <motion.div
           className="stage-playback-status"
@@ -754,6 +768,14 @@ export function AvatarCanvas({
         >
           <PlaybackIdentity name={playback.name} status={playback.status} />
         </motion.div>
+      )}
+      {renderStyle.type === 'pixel' && (
+        <LivePixelAvatarCanvas
+          scene={scene}
+          colors={colors}
+          style={renderStyle}
+          className="avatar-pixel-canvas"
+        />
       )}
       <svg
         ref={svgRef}

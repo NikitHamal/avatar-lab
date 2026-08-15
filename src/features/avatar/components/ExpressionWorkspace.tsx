@@ -15,12 +15,17 @@ import { useStudioLanguage } from '@/i18n'
 import { ControlSection } from '@/app/components/common'
 import { AmbientMotionField, ColorField, LinkButton, NumericField } from '@/app/components/controls'
 import { emptyBodyNodes, getPreviewGeometry, resolveColors, type Side } from '@/app/studio-utils'
-import { type AvatarColors, type AvatarEyeDefaults } from '@/features/avatar/avatars'
+import {
+  type AvatarColors,
+  type AvatarEyeDefaults,
+  type AvatarRenderStyle,
+} from '@/features/avatar/avatars'
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
 import { type Expression } from '@/features/avatar/geometry'
 import { defaultExpression } from '@/features/avatar/presets'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
+import { StaticPixelAvatarCanvas } from '@/features/rendering/components/PixelAvatarCanvas'
 export function SurfaceThumbnail({ surface }: { surface: SurfaceConfig }) {
   const geometry = getPreviewGeometry(defaultExpression, surface, emptyBodyNodes)
   return (
@@ -39,6 +44,7 @@ export function ExpressionPreview({
   bodyNodes,
   colors,
   avatarEyes,
+  renderStyle,
   id,
 }: {
   expression: Expression
@@ -46,13 +52,35 @@ export function ExpressionPreview({
   bodyNodes: BodyNode[]
   colors: AvatarColors
   avatarEyes: AvatarEyeDefaults
+  renderStyle: AvatarRenderStyle
   id: string
 }) {
   const geometry = getPreviewGeometry(expression, surface, bodyNodes, avatarEyes)
   const resolvedColors = resolveColors(expression, colors)
+  if (renderStyle.type === 'pixel') {
+    return (
+      <StaticPixelAvatarCanvas
+        className="avatar-preview"
+        style={renderStyle}
+        frame={{
+          headPath: geometry.headPath,
+          backPaths: geometry.backPaths,
+          frontPaths: geometry.frontPaths,
+          leftPath: geometry.leftPath,
+          rightPath: geometry.rightPath,
+          leftOpacity: geometry.leftVisible ? 1 : 0,
+          rightOpacity: geometry.rightVisible ? 1 : 0,
+          offsetX: 0,
+          offsetY: 0,
+          bodyColor: resolvedColors.body,
+          eyeColor: resolvedColors.eyes,
+        }}
+      />
+    )
+  }
   const clipId = `preview-${id}`
   return (
-    <svg viewBox="-150 -150 300 300" aria-hidden="true">
+    <svg className="avatar-preview" viewBox="-150 -150 300 300" aria-hidden="true">
       <defs>
         <clipPath id={clipId}>
           <path d={geometry.headPath} />
@@ -101,6 +129,7 @@ export function ExpressionCard({
   bodyNodes,
   colors,
   avatarEyes,
+  renderStyle,
   previewId,
   onSelect,
   onEdit,
@@ -120,6 +149,7 @@ export function ExpressionCard({
   bodyNodes: BodyNode[]
   colors: AvatarColors
   avatarEyes: AvatarEyeDefaults
+  renderStyle: AvatarRenderStyle
   previewId: string
   onSelect: () => void
   onEdit?: () => void
@@ -154,6 +184,7 @@ export function ExpressionCard({
         bodyNodes={bodyNodes}
         colors={colors}
         avatarEyes={avatarEyes}
+        renderStyle={renderStyle}
         id={previewId}
       />
       <span>{String(index).padStart(2, '0')}</span>

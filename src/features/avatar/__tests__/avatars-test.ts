@@ -6,6 +6,7 @@ import {
   createAvatar,
   defaultAvatarEyes,
   parseAvatarEyeDefaults,
+  parseAvatarRenderStyle,
   resolveAvatarBehavior,
 } from '@/features/avatar/avatars'
 import { initialExpressions } from '@/features/avatar/presets'
@@ -32,6 +33,28 @@ describe('avatar eye defaults', () => {
     expect(result.widthLeft).toBe(42)
     expect(result.heightRight).toBe(defaultAvatarEyes.heightRight)
     expect(result.spacing).toBe(defaultAvatarEyes.spacing)
+  })
+})
+
+describe('avatar render style', () => {
+  it('keeps vector rendering as the compatible default', () => {
+    expect(parseAvatarRenderStyle(undefined)).toEqual({ type: 'vector' })
+  })
+
+  it('sanitizes pixel settings', () => {
+    expect(
+      parseAvatarRenderStyle({
+        type: 'pixel',
+        resolution: 500,
+      })
+    ).toEqual({
+      type: 'pixel',
+      resolution: 192,
+    })
+    expect(parseAvatarRenderStyle({ type: 'pixel', resolution: 1 })).toEqual({
+      type: 'pixel',
+      resolution: 8,
+    })
   })
 })
 

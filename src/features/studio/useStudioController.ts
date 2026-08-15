@@ -53,6 +53,7 @@ import {
   type AvatarBehaviorLibrary,
   type AvatarColors,
   type AvatarEyeDefaults,
+  type AvatarRenderStyle,
   type StudioAvatar,
 } from '@/features/avatar/avatars'
 import {
@@ -84,6 +85,7 @@ import {
 } from '@/features/export/exporter'
 import {
   serializeAvatarSnapshot,
+  serializePixelSnapshot,
   snapshotFileName,
   type SnapshotBackground,
 } from '@/features/export/snapshotExporter'
@@ -102,6 +104,7 @@ import {
   paintRenderedOffset,
   paintRenderedScene,
 } from '@/features/rendering/renderedScene'
+import { paintPixelAvatar } from '@/features/rendering/pixelRenderer'
 import {
   createStudioDocumentStore,
   loadStudioDocument,
@@ -743,6 +746,10 @@ export function useStudioController() {
     const colors = { ...avatar.colors, ...changes }
     updateActiveAvatar(current => ({ ...current, colors }))
     setDisplayColors(resolveColors(expression, colors))
+  }
+
+  const updateAvatarRenderStyle = (renderStyle: AvatarRenderStyle) => {
+    updateActiveAvatar(avatar => ({ ...avatar, renderStyle }))
   }
 
   const updateAvatarEyes = (changes: Partial<AvatarEyeDefaults>) => {
@@ -1524,13 +1531,92 @@ export function useStudioController() {
       }
     )
 
+  const createPixelSnapshotCanvas = () => {
+    const renderStyle = activeAvatar.renderStyle
+    if (renderStyle.type !== 'pixel') return null
+    const size = Number(snapshotSize)
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const context = canvas.getContext('2d')
+    if (!context) return null
+    if (snapshotBackground === 'solid') {
+      context.fillStyle = snapshotColorFrom
+      context.fillRect(0, 0, size, size)
+    } else if (snapshotBackground === 'linear') {
+      const gradient = context.createLinearGradient(0, 0, size, size)
+      gradient.addColorStop(0, snapshotColorFrom)
+      gradient.addColorStop(1, snapshotColorTo)
+      context.fillStyle = gradient
+      context.fillRect(0, 0, size, size)
+    } else if (snapshotBackground === 'radial') {
+      const gradient = context.createRadialGradient(
+        size * 0.5,
+        size * 0.42,
+        0,
+        size * 0.5,
+        size * 0.42,
+        size * 0.7
+      )
+      gradient.addColorStop(0, snapshotColorFrom)
+      gradient.addColorStop(1, snapshotColorTo)
+      context.fillStyle = gradient
+      context.fillRect(0, 0, size, size)
+    }
+    const avatarCanvas = document.createElement('canvas')
+    avatarCanvas.width = renderStyle.resolution
+    avatarCanvas.height = renderStyle.resolution
+    const avatarContext = avatarCanvas.getContext('2d', { willReadFrequently: true })
+    if (!avatarContext) return null
+    paintPixelAvatar(
+      avatarContext,
+      {
+        headPath: renderedScene.headPath.get(),
+        backPaths: renderedScene.backPaths.flatMap(item => {
+          const value = item.get()
+          return value ? [value] : []
+        }),
+        frontPaths: renderedScene.frontPaths.flatMap(item => {
+          const value = item.get()
+          return value ? [value] : []
+        }),
+        leftPath: renderedScene.leftPath.get(),
+        rightPath: renderedScene.rightPath.get(),
+        leftOpacity: renderedScene.leftOpacity.get(),
+        rightOpacity: renderedScene.rightOpacity.get(),
+        offsetX: renderedScene.offsetX.get(),
+        offsetY: renderedScene.offsetY.get(),
+        bodyColor: renderedColors.body.get(),
+        eyeColor: renderedColors.eyes.get(),
+      },
+      renderStyle
+    )
+    context.imageSmoothingEnabled = false
+    context.drawImage(avatarCanvas, 0, 0, size, size)
+    return canvas
+  }
   const downloadSnapshotSvg = () => {
+    const pixelCanvas = createPixelSnapshotCanvas()
+    const source = pixelCanvas
+      ? serializePixelSnapshot(
+          activeAvatar.name,
+          pixelCanvas.toDataURL('image/png'),
+          Number(snapshotSize)
+        )
+      : currentSnapshotSvg()
     downloadBlob(
-      new Blob([currentSnapshotSvg()], { type: 'image/svg+xml;charset=utf-8' }),
+      new Blob([source], { type: 'image/svg+xml;charset=utf-8' }),
       snapshotFileName(activeAvatar.name)
     )
   }
   const downloadSnapshotPng = () => {
+    const pixelCanvas = createPixelSnapshotCanvas()
+    if (pixelCanvas) {
+      pixelCanvas.toBlob(blob => {
+        if (blob) downloadBlob(blob, snapshotFileName(activeAvatar.name, 'png'))
+      }, 'image/png')
+      return
+    }
     const size = Number(snapshotSize)
     const source = new Blob([currentSnapshotSvg()], { type: 'image/svg+xml;charset=utf-8' })
     const sourceUrl = URL.createObjectURL(source)
@@ -1802,6 +1888,7 @@ export function useStudioController() {
     toggleStatePlayback,
     transitionToExpression,
     updateAvatarColors,
+    updateAvatarRenderStyle,
     updateAvatarEyeDimension,
     updateAvatarEyePosition,
     updateAvatarEyeSize,

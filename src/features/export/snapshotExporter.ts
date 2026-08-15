@@ -71,6 +71,12 @@ export const serializeAvatarSnapshot = (
 </svg>`
 }
 
+export const serializePixelSnapshot = (name: string, imageDataUrl: string, size: number) =>
+  `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${escapeXml(name)}">
+  <image href="${escapeXml(imageDataUrl)}" width="${size}" height="${size}" image-rendering="pixelated"/>
+</svg>`
+
 export const snapshotFileName = (name: string, extension: 'svg' | 'png' = 'svg') => {
   const slug =
     name

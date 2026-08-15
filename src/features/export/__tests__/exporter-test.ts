@@ -28,6 +28,20 @@ describe('avatar export', () => {
     )
     expect(payload).not.toHaveProperty('frames')
     expect(payload.avatar.name).toBe('Strobi')
+    expect(payload.avatar.renderStyle).toEqual({ type: 'vector' })
+  })
+
+  it('preserves pixel rendering in standalone exports', () => {
+    const pixelPayload = createAvatarExportPayload(
+      { ...avatar, renderStyle: { type: 'pixel', resolution: 72 } },
+      initialExpressions,
+      animations
+    )
+    const source = generateJavaScriptAvatarModule(pixelPayload)
+
+    expect(pixelPayload.avatar.renderStyle).toEqual({ type: 'pixel', resolution: 72 })
+    expect(source).toContain('paintPixelGeometry')
+    expect(source).toContain('Math.max(8, Math.min(192')
   })
 
   it('generates a standalone JavaScript module without a Web Component', () => {

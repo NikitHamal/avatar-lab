@@ -12,6 +12,7 @@ import type { StudioController } from '@/features/studio/useStudioController'
 export function StudioStage({ controller }: { controller: StudioController }) {
   const [photoHelpOpen, setPhotoHelpOpen] = useState(false)
   const {
+    activeAvatar,
     activeAvatarEyes,
     activeSequenceLabel,
     bodyEditing,
@@ -67,6 +68,8 @@ export function StudioStage({ controller }: { controller: StudioController }) {
         avatarEyes={activeAvatarEyes}
         surface={surface}
         scene={renderedScene}
+        colors={renderedColors}
+        renderStyle={activeAvatar.renderStyle}
         rotationGizmo={renderedRotationGizmo}
         showWire={showWire}
         bodyEditing={bodyEditing}

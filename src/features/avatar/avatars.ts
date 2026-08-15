@@ -20,10 +20,16 @@ export type StudioAvatar = {
   body: AvatarBody
   colors: AvatarColors
   eyes: AvatarEyeDefaults
+  renderStyle: AvatarRenderStyle
   behavior?: AvatarBehaviorLibrary
 }
 
 export type AvatarColors = { body: string; eyes: string }
+export type PixelRenderStyle = {
+  type: 'pixel'
+  resolution: number
+}
+export type AvatarRenderStyle = { type: 'vector' } | PixelRenderStyle
 export type AvatarEyeDefaults = Pick<
   Expression,
   | 'widthLeft'
@@ -39,6 +45,11 @@ export type AvatarEyeDefaults = Pick<
   | 'rightAngle'
 >
 export const defaultAvatarColors: AvatarColors = { body: '#5b7fe5', eyes: '#111316' }
+export const defaultAvatarRenderStyle: AvatarRenderStyle = { type: 'vector' }
+export const defaultPixelRenderStyle: PixelRenderStyle = {
+  type: 'pixel',
+  resolution: 64,
+}
 export const defaultAvatarEyes: AvatarEyeDefaults = {
   widthLeft: defaultExpression.widthLeft,
   widthRight: defaultExpression.widthRight,
@@ -64,6 +75,22 @@ const parseColors = (value: unknown): AvatarColors => {
       typeof candidate?.eyes === 'string' && hexColor.test(candidate.eyes)
         ? candidate.eyes
         : defaultAvatarColors.eyes,
+  }
+}
+
+const finiteBounded = (value: unknown, fallback: number, min: number, max: number) =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, value))
+    : fallback
+
+export const parseAvatarRenderStyle = (value: unknown): AvatarRenderStyle => {
+  const candidate = value as Partial<PixelRenderStyle> | null
+  if (candidate?.type !== 'pixel') return { ...defaultAvatarRenderStyle }
+  return {
+    type: 'pixel',
+    resolution: Math.round(
+      finiteBounded(candidate.resolution, defaultPixelRenderStyle.resolution, 8, 192)
+    ),
   }
 }
 
@@ -174,6 +201,7 @@ export const createAvatar = (name: string): StudioAvatar => ({
   body: { primary: { ...surfacePresets.sphere }, nodes: [] },
   colors: { ...defaultAvatarColors },
   eyes: { ...defaultAvatarEyes },
+  renderStyle: { ...defaultAvatarRenderStyle },
 })
 
 export const parseAvatarLibrary = (
@@ -201,6 +229,7 @@ export const parseAvatarLibrary = (
           body: parseAvatarBody(avatar.body, surfacePresets.sphere),
           colors: parseColors(avatar.colors),
           eyes: parseAvatarEyeDefaults(avatar.eyes),
+          renderStyle: parseAvatarRenderStyle(avatar.renderStyle),
           ...(behavior ? { behavior } : {}),
         }
       })

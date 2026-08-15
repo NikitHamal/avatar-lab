@@ -29,7 +29,11 @@ import {
   type AvatarSequence,
   type SequenceStep,
 } from '@/features/animation/sequences'
-import { type AvatarColors, type AvatarEyeDefaults } from '@/features/avatar/avatars'
+import {
+  type AvatarColors,
+  type AvatarEyeDefaults,
+  type AvatarRenderStyle,
+} from '@/features/avatar/avatars'
 import { type BodyNode } from '@/features/avatar/body'
 import { ExpressionPreview } from '@/features/avatar/components/ExpressionWorkspace'
 import { type Expression } from '@/features/avatar/geometry'
@@ -41,6 +45,7 @@ export function SequenceWorkspace({
   bodyNodes,
   colors,
   avatarEyes,
+  renderStyle,
   selectedStepId,
   backButtonRef,
   reduceMotion,
@@ -64,6 +69,7 @@ export function SequenceWorkspace({
   bodyNodes: BodyNode[]
   colors: AvatarColors
   avatarEyes: AvatarEyeDefaults
+  renderStyle: AvatarRenderStyle
   selectedStepId: string | null
   backButtonRef: RefObject<HTMLButtonElement | null>
   reduceMotion: boolean
@@ -252,6 +258,7 @@ export function SequenceWorkspace({
                         bodyNodes={bodyNodes}
                         colors={colors}
                         avatarEyes={avatarEyes}
+                        renderStyle={renderStyle}
                         id={`sequence-${editing.draft.id}-${step.id}`}
                       />
                       <span>{String(expressionIndex).padStart(2, '0')}</span>
@@ -389,6 +396,7 @@ export function SequenceWorkspace({
                     bodyNodes={bodyNodes}
                     colors={colors}
                     avatarEyes={avatarEyes}
+                    renderStyle={renderStyle}
                     id={`sequence-library-${index}`}
                   />
                   <span>{String(index).padStart(2, '0')}</span>

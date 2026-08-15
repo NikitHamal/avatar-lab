@@ -50,7 +50,11 @@ import { ColorField, LinkButton, NumericField } from '@/app/components/controls'
 import { formatSeconds, scaleSurface, type Side, type SnapshotFormat } from '@/app/studio-utils'
 import { SequenceWorkspace } from '@/features/animation/components/SequenceWorkspace'
 import { findExpressionIndex, groupSequences } from '@/features/animation/sequences'
-import { defaultAvatarEyes } from '@/features/avatar/avatars'
+import {
+  defaultAvatarEyes,
+  defaultPixelRenderStyle,
+  type AvatarRenderStyle,
+} from '@/features/avatar/avatars'
 import { bodyPrimitiveTypes, MAX_BODY_NODES } from '@/features/avatar/body'
 import {
   ExpressionCard,
@@ -188,6 +192,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     toggleStatePlayback,
     transitionToExpression,
     updateAvatarColors,
+    updateAvatarRenderStyle,
     updateAvatarEyeDimension,
     updateAvatarEyePosition,
     updateAvatarEyeSize,
@@ -203,6 +208,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
     updateWireVisibility,
     workspaceBackButtonRef,
   } = controller
+  const pixelRenderStyle =
+    activeAvatar.renderStyle.type === 'pixel' ? activeAvatar.renderStyle : null
   const playbackFooterY = useMotionValue(0)
   const playbackHandleY = useMotionValue(0)
   const playbackHandleCounterY = useTransform(playbackHandleY, value => -value)
@@ -289,6 +296,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               bodyNodes={bodyNodes}
               colors={activeAvatar.colors}
               avatarEyes={activeAvatarEyes}
+              renderStyle={activeAvatar.renderStyle}
               selectedStepId={selectedSequenceStepId}
               backButtonRef={workspaceBackButtonRef}
               reduceMotion={Boolean(reduceMotion)}
@@ -790,6 +798,62 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           value={activeAvatar.colors.body}
                           onChange={body => updateAvatarColors({ body })}
                         />
+                      </InspectorCard>
+                    </ControlSection>
+                    <ControlSection
+                      title="Rendu"
+                      subtitle="Choisis la finition visuelle propre à cet avatar."
+                    >
+                      <InspectorCard className="render-style-panel">
+                        <PanelTitle
+                          level={3}
+                          title="Type de rendu"
+                          subtitle="Pixel utilise une palette franche, sans lissage ni couleur intermédiaire."
+                        />
+                        <Field className="render-style-field" orientation="horizontal">
+                          <FieldTitle>{t('Style')}</FieldTitle>
+                          <Select
+                            value={activeAvatar.renderStyle.type}
+                            items={[
+                              { value: 'vector', label: t('Vectoriel') },
+                              { value: 'pixel', label: t('Pixel') },
+                            ]}
+                            onValueChange={next => {
+                              if (!next) return
+                              const renderStyle: AvatarRenderStyle =
+                                next === 'pixel'
+                                  ? { ...defaultPixelRenderStyle }
+                                  : { type: 'vector' }
+                              updateAvatarRenderStyle(renderStyle)
+                            }}
+                          >
+                            <SelectTrigger aria-label={t('Type de rendu')}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="vector">{t('Vectoriel')}</SelectItem>
+                              <SelectItem value="pixel">{t('Pixel')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        {pixelRenderStyle && (
+                          <div className="pixel-render-options">
+                            <NumericField
+                              label="Définition de la grille"
+                              value={pixelRenderStyle.resolution}
+                              min={8}
+                              max={192}
+                              step={8}
+                              unit="px"
+                              onChange={resolution =>
+                                updateAvatarRenderStyle({
+                                  ...pixelRenderStyle,
+                                  resolution: Math.round(resolution),
+                                })
+                              }
+                            />
+                          </div>
+                        )}
                       </InspectorCard>
                     </ControlSection>
                     <ControlSection
@@ -1349,6 +1413,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           bodyNodes={bodyNodes}
                           colors={activeAvatar.colors}
                           avatarEyes={activeAvatarEyes}
+                          renderStyle={activeAvatar.renderStyle}
                           previewId={String(index)}
                           onSelect={() => transitionToExpression(preset, index)}
                           onEdit={() => openExpressionEditor(index, preset)}
@@ -1495,6 +1560,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   bodyNodes={bodyNodes}
                                   colors={activeAvatar.colors}
                                   avatarEyes={activeAvatarEyes}
+                                  renderStyle={activeAvatar.renderStyle}
                                   id={`state-card-${sequence.id}`}
                                 />
                                 <span>{sequence.builtIn ? t(sequence.name) : sequence.name}</span>
@@ -1578,6 +1644,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         bodyNodes={activeAvatar.body.nodes}
                         colors={activeAvatar.colors}
                         avatarEyes={activeAvatarEyes}
+                        renderStyle={activeAvatar.renderStyle}
                         id={`export-avatar-${activeAvatar.id}`}
                       />
                       <div>
@@ -1668,6 +1735,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                               bodyNodes={bodyNodes}
                               colors={activeAvatar.colors}
                               avatarEyes={activeAvatarEyes}
+                              renderStyle={activeAvatar.renderStyle}
                               id={`export-animation-${animation.id}`}
                             />
                             <span>{animation.builtIn ? t(animation.name) : animation.name}</span>
@@ -1704,6 +1772,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                       background={snapshotBackground}
                       colorFrom={snapshotColorFrom}
                       colorTo={snapshotColorTo}
+                      renderStyle={activeAvatar.renderStyle}
                     />
                     <div>
                       <small>{t('Aperçu du mode photo')}</small>
@@ -1914,6 +1983,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         bodyNodes={bodyNodes}
                         colors={activeAvatar.colors}
                         avatarEyes={activeAvatarEyes}
+                        renderStyle={activeAvatar.renderStyle}
                         id={`player-${activeSequence.id}-${position}`}
                       />
                       {playbackVisual.position === position && (
@@ -2016,6 +2086,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 bodyNodes={activeAvatar.body.nodes}
                 colors={activeAvatar.colors}
                 avatarEyes={activeAvatarEyes}
+                renderStyle={activeAvatar.renderStyle}
                 id={`active-avatar-tab-${activeAvatar.id}`}
               />
               <span>{activeAvatar.name}</span>
