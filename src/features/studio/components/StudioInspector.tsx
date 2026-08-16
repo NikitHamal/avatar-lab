@@ -1714,6 +1714,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         bodyNodes={activeAvatar.body.nodes}
                         colors={activeAvatar.colors}
                         avatarEyes={activeAvatarEyes}
+                        renderStyle={activeAvatar.renderStyle}
                         id={`runtime-avatar-${activeAvatar.id}`}
                       />
                       <div>

@@ -44,6 +44,7 @@ const avatarFixture = (): StudioAvatar => ({
     ],
   },
   colors: { body: '#abcdef', eyes: '#123456' },
+  renderStyle: { type: 'vector' },
   eyes: {
     ...defaultAvatarEyes,
     widthLeft: defaultAvatarEyes.widthLeft + 3,
