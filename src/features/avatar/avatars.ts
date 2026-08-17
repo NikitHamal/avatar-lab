@@ -27,6 +27,7 @@ export type StudioAvatar = {
   eyes: AvatarEyeDefaults
   eyeRenderer: AvatarEyeRenderer
   creaturePaletteIndex: number
+  mouthEnabled: boolean
   behavior?: AvatarBehaviorLibrary
 }
 
@@ -219,6 +220,40 @@ export const parseExpressions = (value: unknown): Expression[] => {
       typeof storedMouthScale === 'number' && Number.isFinite(storedMouthScale)
         ? Math.min(1.8, Math.max(0.45, storedMouthScale))
         : defaultExpression.mouthScale
+    const numericMouthFields = {
+      mouthOffsetX: [-48, 48, 0],
+      mouthOffsetY: [-48, 48, 0],
+      mouthWidth: [0.45, 2.2, 1],
+      mouthCurve: [0.2, 2.4, 1],
+      mouthStrokeWidth: [1, 8, 3.2],
+    } as const
+    for (const [field, [minimum, maximum, fallback]] of Object.entries(numericMouthFields)) {
+      const stored = (item as Record<string, unknown>)[field]
+      ;(parsed as unknown as Record<string, unknown>)[field] =
+        typeof stored === 'number' && Number.isFinite(stored)
+          ? Math.min(maximum, Math.max(minimum, stored))
+          : (defaultExpression as unknown as Record<string, unknown>)[field] ?? fallback
+    }
+    const storedEffect = (item as { effect?: unknown }).effect
+    if (
+      typeof storedEffect === 'string' &&
+      [
+        'none',
+        'confetti',
+        'sparkles',
+        'hearts',
+        'alert',
+        'successBurst',
+        'errorPulse',
+        'zzz',
+        'question',
+        'introGlow',
+      ].includes(storedEffect)
+    ) {
+      parsed.effect = storedEffect as Expression['effect']
+    } else {
+      parsed.effect = defaultExpression.effect
+    }
     return parsed
   })
 }
@@ -265,6 +300,7 @@ export const createAvatar = (name: string): StudioAvatar => ({
   eyes: { ...defaultAvatarEyes },
   eyeRenderer: 'classic',
   creaturePaletteIndex: defaultCreaturePaletteIndex,
+  mouthEnabled: false,
 })
 
 export const parseAvatarLibrary = (
@@ -310,6 +346,7 @@ export const parseAvatarLibrary = (
           creaturePaletteIndex: hasStoredCreaturePalette
             ? parseCreaturePaletteIndex(avatar.creaturePaletteIndex)
             : (legacyCreaturePaletteIndex ?? defaultCreaturePaletteIndex),
+          mouthEnabled: avatar.mouthEnabled === true,
           ...(behavior ? { behavior } : {}),
         }
       })

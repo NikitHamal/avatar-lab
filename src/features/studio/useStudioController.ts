@@ -155,7 +155,9 @@ export function useStudioController() {
   const [animationExportSequenceId, setAnimationExportSequenceId] = useState<string | null>(null)
   const [animationExportFormat, setAnimationExportFormat] = useState<AnimationMediaFormat>('gif')
   const [animationExportSize, setAnimationExportSize] = useState('512')
-  const [animationExportFps, setAnimationExportFps] = useState('30')
+  const [animationExportFps, setAnimationExportFps] = useState('24')
+  const [animationExportQuality, setAnimationExportQuality] = useState<'fast' | 'balanced' | 'high'>('balanced')
+  const [animationExportPlaybackRate, setAnimationExportPlaybackRate] = useState('1.15')
   const [animationExportBackground, setAnimationExportBackground] =
     useState<SnapshotBackground>('transparent')
   const [animationExportColorFrom, setAnimationExportColorFrom] = useState('#F5F7FC')
@@ -297,10 +299,13 @@ export function useStudioController() {
   }
   const [initialRender] = useState(() => {
     const pose = poseFromExpression(initialExpression)
+    const renderExpression = initialAvatar.mouthEnabled
+      ? initialExpression
+      : { ...initialExpression, mouth: 'none' as const }
     return {
       pose,
       geometry: renderAvatar(
-        poseWithAvatarEyes(initialExpression, initialAvatar.eyes),
+        poseWithAvatarEyes(renderExpression, initialAvatar.eyes),
         surface,
         1,
         { bodyNodes }
@@ -349,6 +354,8 @@ export function useStudioController() {
   const blinkAnimating = useRef(false)
   const blinkValue = useMotionValue(1)
   const [renderedScene] = useState(() => createRenderedScene(initialGeometry))
+  const [renderedEffect, setRenderedEffect] = useState<Expression['effect']>(initialExpression.effect ?? 'none')
+  const renderedEffectRef = useRef<Expression['effect']>(initialExpression.effect ?? 'none')
   const [renderedRotationGizmo] = useState(() => createRenderedRotationGizmo(initialExpression))
   const bodyColorAnimation = useRef<ReturnType<typeof animate> | null>(null)
   const eyeColorAnimation = useRef<ReturnType<typeof animate> | null>(null)
@@ -387,19 +394,24 @@ export function useStudioController() {
       if (bodyAmbientStartedAt.current < 0) bodyAmbientStartedAt.current = frameTimeMs
       lastBodyAmbientElapsed.current = frameTimeMs - bodyAmbientStartedAt.current
     }
-    const renderedExpression = bodyAmbientEnabled
-      ? applyAmbientBodyMotion(
-          pose.expression,
-          lastBodyAmbientElapsed.current,
-          resolvedAmbientStrength
-        )
+    const ambientElapsed = Math.max(lastEyeAmbientElapsed.current, lastBodyAmbientElapsed.current)
+    const renderedExpression = bodyAmbientEnabled || eyeAmbientEnabled
+      ? applyAmbientBodyMotion(pose.expression, ambientElapsed, resolvedAmbientStrength)
       : pose.expression
     const eyeOffset = eyeAmbientEnabled
       ? ambientEyeOffset(pose.expression, lastEyeAmbientElapsed.current, resolvedAmbientStrength)
       : { x: 0, y: 0 }
+    const activeEffect = pose.expression.effect ?? 'none'
+    if (activeEffect !== renderedEffectRef.current) {
+      renderedEffectRef.current = activeEffect
+      setRenderedEffect(activeEffect)
+    }
+    const renderExpression = avatar?.mouthEnabled
+      ? renderedExpression
+      : { ...renderedExpression, mouth: 'none' as const }
     const renderPose = avatar
-      ? poseWithAvatarEyes(renderedExpression, avatar.eyes ?? defaultAvatarEyes)
-      : poseFromExpression(renderedExpression)
+      ? poseWithAvatarEyes(renderExpression, avatar.eyes ?? defaultAvatarEyes)
+      : poseFromExpression(renderExpression)
     const geometry = renderAvatar(renderPose, surfaceRef.current, blink ?? blinkValue.get(), {
       includeWire: showWireRef.current || highlightRef.current === 'head',
       bodyNodes: bodyNodesRef.current,
@@ -564,7 +576,20 @@ export function useStudioController() {
             : transitionSettings.transition === 'snappy'
               ? 1 - (1 - progress) ** 3
               : 1 - Math.exp(-6 * progress) * Math.cos(8 * progress)
-        const animated = { ...from, eyeMotion: next.eyeMotion, bodyMotion: next.bodyMotion }
+        const animated = {
+          ...from,
+          eyeMotion: next.eyeMotion,
+          bodyMotion: next.bodyMotion,
+          eyeStyle: next.eyeStyle,
+          mouth: next.mouth,
+          mouthScale: next.mouthScale,
+          mouthOffsetX: next.mouthOffsetX,
+          mouthOffsetY: next.mouthOffsetY,
+          mouthWidth: next.mouthWidth,
+          mouthCurve: next.mouthCurve,
+          mouthStrokeWidth: next.mouthStrokeWidth,
+          effect: next.effect,
+        }
         expressionFields.forEach(field => {
           animated[field] = from[field] + (resolvedTarget[field] - from[field]) * eased
         })
@@ -671,6 +696,15 @@ export function useStudioController() {
       const animated = { ...currentExpression }
       animated.eyeMotion = target.eyeMotion
       animated.bodyMotion = target.bodyMotion
+      animated.eyeStyle = target.eyeStyle
+      animated.mouth = target.mouth
+      animated.mouthScale = target.mouthScale
+      animated.mouthOffsetX = target.mouthOffsetX
+      animated.mouthOffsetY = target.mouthOffsetY
+      animated.mouthWidth = target.mouthWidth
+      animated.mouthCurve = target.mouthCurve
+      animated.mouthStrokeWidth = target.mouthStrokeWidth
+      animated.effect = target.effect
 
       expressionFields.forEach(field => {
         const displacement = target[field] - currentExpression[field]
@@ -783,6 +817,11 @@ export function useStudioController() {
 
   const updateAvatarEyeRenderer = (eyeRenderer: AvatarEyeRenderer) => {
     updateActiveAvatar(current => ({ ...current, eyeRenderer }))
+  }
+
+  const updateAvatarMouthEnabled = (mouthEnabled: boolean) => {
+    updateActiveAvatar(current => ({ ...current, mouthEnabled }))
+    requestAnimationFrame(() => paintPose(displayedPose.current))
   }
 
   const updateAvatarCreaturePalette = (value: number) => {
@@ -1568,7 +1607,12 @@ export function useStudioController() {
         colorTo: snapshotColorTo,
         size: Number(snapshotSize),
       },
-      activeAvatar.eyeRenderer
+      activeAvatar.eyeRenderer,
+      {
+        effect: renderedEffectRef.current,
+        elapsedMs: performance.now(),
+        mouthStrokeWidth: displayedPose.current.expression.mouthStrokeWidth,
+      }
     )
 
   const downloadSnapshotSvg = () => {
@@ -1612,7 +1656,9 @@ export function useStudioController() {
 
     const format = overrideOptions?.format || animationExportFormat
     const size = overrideOptions?.size || Number(animationExportSize) || 512
-    const fps = overrideOptions?.fps || Number(animationExportFps) || 30
+    const fps = overrideOptions?.fps || Number(animationExportFps) || 24
+    const quality = overrideOptions?.quality || animationExportQuality
+    const playbackRate = overrideOptions?.playbackRate || Number(animationExportPlaybackRate) || 1
     const background = overrideOptions?.background || animationExportBackground
     const colorFrom = overrideOptions?.colorFrom || animationExportColorFrom
     const colorTo = overrideOptions?.colorTo || animationExportColorTo
@@ -1626,6 +1672,8 @@ export function useStudioController() {
       colorFrom,
       colorTo,
       loops,
+      quality,
+      playbackRate,
     }
 
     setIsExportingAnimation(true)
@@ -1848,6 +1896,7 @@ export function useStudioController() {
     renameActiveAvatar,
     remixAvatarVariant,
     renderedColors,
+    renderedEffect,
     renderedRotationGizmo,
     renderedScene,
     saveAvatarEditing,
@@ -1896,6 +1945,10 @@ export function useStudioController() {
     setAnimationExportSize,
     animationExportFps,
     setAnimationExportFps,
+    animationExportQuality,
+    setAnimationExportQuality,
+    animationExportPlaybackRate,
+    setAnimationExportPlaybackRate,
     animationExportBackground,
     setAnimationExportBackground,
     animationExportColorFrom,
@@ -1932,6 +1985,7 @@ export function useStudioController() {
     updateAvatarCreaturePalette,
     updateAvatarEyeDimension,
     updateAvatarEyeRenderer,
+    updateAvatarMouthEnabled,
     updateAvatarEyePosition,
     updateAvatarEyeSize,
     updateAvatarEyes,

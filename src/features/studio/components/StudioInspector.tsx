@@ -88,6 +88,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
     animationExportColorTo,
     animationExportFormat,
     animationExportFps,
+    animationExportQuality,
+    animationExportPlaybackRate,
     animationExportLoops,
     animationExportProgress,
     animationExportSequenceId,
@@ -180,6 +182,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
     setAnimationExportColorTo,
     setAnimationExportFormat,
     setAnimationExportFps,
+    setAnimationExportQuality,
+    setAnimationExportPlaybackRate,
     setAnimationExportLoops,
     setAnimationExportSequenceId,
     setAnimationExportSize,
@@ -221,6 +225,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     updateAvatarCreaturePalette,
     updateAvatarEyeDimension,
     updateAvatarEyeRenderer,
+    updateAvatarMouthEnabled,
     updateAvatarEyePosition,
     updateAvatarEyeSize,
     updateAvatarEyes,
@@ -352,6 +357,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
             <ExpressionWorkspace
               editing={editing}
               avatarColors={activeAvatar.colors}
+              mouthEnabled={activeAvatar.mouthEnabled}
+              onMouthEnabledChange={updateAvatarMouthEnabled}
               backButtonRef={workspaceBackButtonRef}
               onChange={previewExpressionDraft}
               onCancel={cancelExpressionEditing}
@@ -1614,48 +1621,108 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           subtitle="Choisis une forme de bouche ou désactive-la."
                         />
                         <div className="switch">
-                          <span>{t('Activer la bouche')}</span>
+                          <div>
+                            <strong>{t('Bouche de cet avatar')}</strong>
+                            <small>{t('Désactivée par défaut : les yeux restent la source principale d’émotion.')}</small>
+                          </div>
                           <Switch
-                            checked={Boolean(expression.mouth && expression.mouth !== 'none')}
-                            onCheckedChange={enabled =>
-                              updateImmediate({
-                                ...expression,
-                                mouth: enabled ? 'smile' : 'none',
-                              })
-                            }
-                            aria-label={t('Activer la bouche')}
+                            checked={activeAvatar.mouthEnabled}
+                            onCheckedChange={updateAvatarMouthEnabled}
+                            aria-label={t('Activer la bouche pour cet avatar')}
                           />
                         </div>
-                        {expression.mouth && expression.mouth !== 'none' && (
+                        {activeAvatar.mouthEnabled && (
                           <>
-                            <AmbientMotionField<NonNullable<Expression['mouth']>>
-                              label="Forme"
-                              value={expression.mouth}
-                              options={[
-                                { value: 'none', label: 'Aucune' },
-                                { value: 'smile', label: 'Sourire' },
-                                { value: 'grin', label: 'Grand sourire' },
-                                { value: 'openSmile', label: 'Sourire ouvert' },
-                                { value: 'flat', label: 'Neutre' },
-                                { value: 'frown', label: 'Triste' },
-                                { value: 'smirk', label: 'Malicieux' },
-                                { value: 'cat', label: 'Chat' },
-                                { value: 'oMouth', label: 'Surprise' },
-                                { value: 'kiss', label: 'Bisou' },
-                              ]}
-                              onChange={mouth => updateImmediate({ ...expression, mouth })}
-                            />
-                            <NumericField
-                              label="Taille de bouche"
-                              value={expression.mouthScale ?? 1}
-                              min={0.45}
-                              max={1.8}
-                              step={0.05}
-                              unit="×"
-                              onChange={mouthScale =>
-                                updateImmediate({ ...expression, mouthScale })
-                              }
-                            />
+                            <div className="switch">
+                              <span>{t('Bouche dans cette expression')}</span>
+                              <Switch
+                                checked={Boolean(expression.mouth && expression.mouth !== 'none')}
+                                onCheckedChange={enabled =>
+                                  updateImmediate({
+                                    ...expression,
+                                    mouth: enabled ? 'smile' : 'none',
+                                  })
+                                }
+                                aria-label={t('Bouche dans cette expression')}
+                              />
+                            </div>
+                            {expression.mouth && expression.mouth !== 'none' && (
+                              <>
+                                <AmbientMotionField<NonNullable<Expression['mouth']>>
+                                  label="Forme"
+                                  value={expression.mouth}
+                                  options={[
+                                    { value: 'none', label: 'Aucune' },
+                                    { value: 'smile', label: 'Sourire' },
+                                    { value: 'grin', label: 'Grand sourire' },
+                                    { value: 'openSmile', label: 'Sourire ouvert' },
+                                    { value: 'flat', label: 'Neutre' },
+                                    { value: 'frown', label: 'Triste' },
+                                    { value: 'smirk', label: 'Malicieux' },
+                                    { value: 'cat', label: 'Chat' },
+                                    { value: 'oMouth', label: 'Surprise' },
+                                    { value: 'kiss', label: 'Bisou' },
+                                  ]}
+                                  onChange={mouth => updateImmediate({ ...expression, mouth })}
+                                />
+                                <NumericField
+                                  label="Taille"
+                                  value={expression.mouthScale ?? 1}
+                                  min={0.45}
+                                  max={1.8}
+                                  step={0.05}
+                                  unit="×"
+                                  onChange={mouthScale => updateImmediate({ ...expression, mouthScale })}
+                                />
+                                <NumericField
+                                  label="Largeur"
+                                  value={expression.mouthWidth ?? 1}
+                                  min={0.45}
+                                  max={2.2}
+                                  step={0.05}
+                                  unit="×"
+                                  onChange={mouthWidth => updateImmediate({ ...expression, mouthWidth })}
+                                />
+                                <div className="eye-columns">
+                                  <NumericField
+                                    label="Position X"
+                                    value={expression.mouthOffsetX ?? 0}
+                                    min={-48}
+                                    max={48}
+                                    step={1}
+                                    unit="u"
+                                    onChange={mouthOffsetX => updateImmediate({ ...expression, mouthOffsetX })}
+                                  />
+                                  <NumericField
+                                    label="Position Y"
+                                    value={expression.mouthOffsetY ?? 0}
+                                    min={-48}
+                                    max={48}
+                                    step={1}
+                                    unit="u"
+                                    onChange={mouthOffsetY => updateImmediate({ ...expression, mouthOffsetY })}
+                                  />
+                                </div>
+                                <NumericField
+                                  label="Courbure"
+                                  value={expression.mouthCurve ?? 1}
+                                  min={0.2}
+                                  max={2.4}
+                                  step={0.05}
+                                  unit="×"
+                                  onChange={mouthCurve => updateImmediate({ ...expression, mouthCurve })}
+                                />
+                                <NumericField
+                                  label="Épaisseur"
+                                  value={expression.mouthStrokeWidth ?? 3.2}
+                                  min={1}
+                                  max={8}
+                                  step={0.2}
+                                  unit="px"
+                                  onChange={mouthStrokeWidth => updateImmediate({ ...expression, mouthStrokeWidth })}
+                                />
+                              </>
+                            )}
                           </>
                         )}
                       </InspectorCard>
@@ -2286,13 +2353,21 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     <Field className="snapshot-background-field" orientation="horizontal">
                       <div>
                         <FieldTitle>{t('Format')}</FieldTitle>
-                        <small>{t('GIF animé ou vidéo.')}</small>
+                        <small>
+                          {t(
+                            animationExportFormat === 'webm'
+                              ? 'WebM utilise l’encodage accéléré hors lecture quand le navigateur le permet.'
+                              : animationExportFormat === 'gif'
+                                ? 'Le GIF adapte intelligemment les images pour limiter le temps d’encodage.'
+                                : 'MP4 utilise le mode de compatibilité du navigateur quand nécessaire.'
+                          )}
+                        </small>
                       </div>
                       <Select
                         value={animationExportFormat}
                         items={[
                           { value: 'gif', label: 'GIF animé' },
-                          { value: 'webm', label: 'Vidéo WebM' },
+                          { value: 'webm', label: t('Vidéo WebM · rapide') },
                           { value: 'mp4', label: 'Vidéo MP4' },
                         ]}
                         onValueChange={next =>
@@ -2304,7 +2379,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="gif">GIF animé</SelectItem>
-                          <SelectItem value="webm">Vidéo WebM</SelectItem>
+                          <SelectItem value="webm">{t('Vidéo WebM · rapide')}</SelectItem>
                           <SelectItem value="mp4">Vidéo MP4</SelectItem>
                         </SelectContent>
                       </Select>
@@ -2360,6 +2435,64 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           <SelectItem value="24">24 fps</SelectItem>
                           <SelectItem value="30">30 fps</SelectItem>
                           <SelectItem value="60">60 fps</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+
+                    <Separator className="snapshot-settings-separator" />
+
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <div>
+                        <FieldTitle>{t('Optimisation')}</FieldTitle>
+                        <small>{t('Équilibre vitesse, poids et finesse de rendu.')}</small>
+                      </div>
+                      <Select
+                        value={animationExportQuality}
+                        items={[
+                          { value: 'fast', label: t('Export rapide') },
+                          { value: 'balanced', label: t('Équilibré') },
+                          { value: 'high', label: t('Haute qualité') },
+                        ]}
+                        onValueChange={next =>
+                          next && setAnimationExportQuality(next as 'fast' | 'balanced' | 'high')
+                        }
+                      >
+                        <SelectTrigger aria-label={t('Optimisation export')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fast">{t('Export rapide')}</SelectItem>
+                          <SelectItem value="balanced">{t('Équilibré')}</SelectItem>
+                          <SelectItem value="high">{t('Haute qualité')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+
+                    <Separator className="snapshot-settings-separator" />
+
+                    <Field className="snapshot-background-field" orientation="horizontal">
+                      <div>
+                        <FieldTitle>{t('Tempo')}</FieldTitle>
+                        <small>{t('Accélère ou détend les poses sans changer leur ordre.')}</small>
+                      </div>
+                      <Select
+                        value={animationExportPlaybackRate}
+                        items={[
+                          { value: '0.9', label: '0.90×' },
+                          { value: '1', label: '1.00×' },
+                          { value: '1.15', label: '1.15×' },
+                          { value: '1.35', label: '1.35×' },
+                        ]}
+                        onValueChange={next => next && setAnimationExportPlaybackRate(next)}
+                      >
+                        <SelectTrigger aria-label={t('Tempo export')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0.9">0.90×</SelectItem>
+                          <SelectItem value="1">1.00×</SelectItem>
+                          <SelectItem value="1.15">1.15×</SelectItem>
+                          <SelectItem value="1.35">1.35×</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>

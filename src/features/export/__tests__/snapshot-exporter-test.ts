@@ -48,6 +48,33 @@ describe('avatar snapshot export', () => {
     expect(svg).toContain('fill="rgba(4,74,95,1)"')
   })
 
+
+  it('preserves live reaction effects and custom mouth stroke in snapshots', () => {
+    const mouthGeometry = renderAvatar(
+      poseFromExpression({ ...defaultExpression, mouth: 'smile', mouthStrokeWidth: 6.2 }),
+      surfacePresets.sphere,
+      1
+    )
+    const mouthScene = createRenderedScene(mouthGeometry)
+    const svg = serializeAvatarSnapshot(
+      'Celebration',
+      mouthScene,
+      colors,
+      {
+        background: 'transparent',
+        colorFrom: '#ffffff',
+        colorTo: '#000000',
+        size: 512,
+      },
+      'classic',
+      { effect: 'confetti', elapsedMs: 500, mouthStrokeWidth: 6.2 }
+    )
+
+    expect(svg).toContain('stroke-width="6.20"')
+    expect(svg).toContain('<rect')
+    expect(svg).toContain('#ff4d8d')
+  })
+
   it('embeds a radial background without external dependencies', () => {
     const svg = serializeAvatarSnapshot('Strobi', scene, colors, {
       background: 'radial',

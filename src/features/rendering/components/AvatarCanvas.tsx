@@ -32,6 +32,7 @@ import {
   translateBodyNodeAlongLocalAxis,
   translateBodyNodeInCameraPlane,
   type AvatarPose,
+  type AvatarVisualEffect,
   type Expression,
   type Point3,
 } from '@/features/avatar/geometry'
@@ -46,6 +47,7 @@ import { type SurfaceConfig } from '@/features/avatar/surfaces'
 import { CreatureEyeSvgLayer } from '@/features/creature/CreatureEyeSvgLayer'
 import type { CreatureShape } from '@/features/creature/creatureSwatches'
 import { type CanvasPreviewTarget } from '@/features/rendering/canvasPreview'
+import { AvatarEffectLayer } from '@/features/rendering/avatarEffects'
 import { type RenderedRotationGizmo } from '@/features/rendering/renderedRotationGizmo'
 import {
   findBodyNodePath,
@@ -511,6 +513,7 @@ export function AvatarCanvas({
   playback,
   onManipulationStart,
   renderedColors,
+  visualEffect,
 }: {
   expression: Expression
   avatarEyes: AvatarEyeDefaults
@@ -519,6 +522,7 @@ export function AvatarCanvas({
   surface: SurfaceConfig
   scene: RenderedScene
   renderedColors?: RenderedColors
+  visualEffect?: AvatarVisualEffect
   rotationGizmo: RenderedRotationGizmo
   showWire: boolean
   bodyEditing: boolean
@@ -1020,7 +1024,7 @@ export function AvatarCanvas({
               d={mouthPath}
               opacity={mouthOpacity}
               stroke="var(--avatar-eye-color, #111316)"
-              strokeWidth="3.2"
+              strokeWidth={expression.mouthStrokeWidth ?? 3.2}
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
@@ -1050,6 +1054,7 @@ export function AvatarCanvas({
             )
           })}
         </motion.g>
+        <AvatarEffectLayer effect={visualEffect} />
         {selectedBodyPath && (
           <motion.path className="selection-outline body-selection-outline" d={selectedBodyPath} />
         )}

@@ -469,6 +469,42 @@ const english: Record<string, string> = {
   'Choisis une forme de bouche ou désactive-la.': 'Choose a mouth shape or disable it.',
   'Ajoute une bouche procédurale légère sans casser le style minimal de l’avatar.':
     'Add a lightweight procedural mouth without breaking the avatar’s minimal style.',
+  'Bouche de cet avatar': 'Mouth for this avatar',
+  'Désactivée par défaut : les yeux restent la source principale d’émotion.':
+    'Off by default: the eyes remain the primary source of emotion.',
+  'Désactivée par défaut : le jeu émotionnel reste porté par les yeux.':
+    'Off by default: emotional acting stays driven by the eyes.',
+  'Activer la bouche pour cet avatar': 'Enable mouth for this avatar',
+  'Bouche dans cette expression': 'Mouth in this expression',
+  Taille: 'Size',
+  'Position X': 'X position',
+  'Position Y': 'Y position',
+  Courbure: 'Curve',
+  Épaisseur: 'Thickness',
+  'Saccades rapides': 'Quick darts',
+  'Orbites / eye-roll': 'Orbit / eye roll',
+  'Plissement vivant': 'Expressive squint',
+  'Pétillant / euphorique': 'Sparkle / euphoric',
+  Anticipation: 'Anticipation',
+  'Anime le regard avec des micro-jeux, darts, squints, orbites et anticipations pensés pour jouer l’émotion sans bouche.':
+    'Animates the gaze with micro-acting, darts, squints, orbits and anticipation designed to carry emotion without a mouth.',
+  Optimisation: 'Optimization',
+  'Équilibre vitesse, poids et finesse de rendu.': 'Balances speed, file size and render detail.',
+  'Export rapide': 'Fast',
+  Équilibré: 'Balanced',
+  'Haute qualité': 'High quality',
+  'Optimisation export': 'Export optimization',
+  Tempo: 'Tempo',
+  'Accélère ou détend les poses sans changer leur ordre.':
+    'Speeds up or relaxes pose timing without changing the pose order.',
+  'Tempo export': 'Export tempo',
+  'WebM utilise l’encodage accéléré hors lecture quand le navigateur le permet.':
+    'WebM uses accelerated offline encoding when the browser supports it.',
+  'Le GIF adapte intelligemment les images pour limiter le temps d’encodage.':
+    'GIF intelligently adapts frame sampling to reduce encoding time.',
+  'MP4 utilise le mode de compatibilité du navigateur quand nécessaire.':
+    'MP4 uses the browser compatibility recording path when necessary.',
+  'Vidéo WebM · rapide': 'WebM video · fast',
 }
 
 const dynamicTranslations: [RegExp, string][] = [

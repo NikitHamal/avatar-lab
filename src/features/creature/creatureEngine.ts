@@ -116,7 +116,8 @@ const IDLE_ACCENT_ANIMS = ['pup_mov_1', 'pup_mov_2', 'pup_scale']
 
 export async function createCreatureInstance(
   initialShape: CreatureShape = 'cat',
-  initialPalette = 52 // seaglass by default
+  initialPalette = 52, // seaglass by default
+  autonomous = true
 ): Promise<CreatureEngineInstance> {
   const Module = await getCreatureWasmModule()
   if (!animDataBuffer) throw new Error('animDataBuffer not initialized')
@@ -208,7 +209,7 @@ export async function createCreatureInstance(
       scheduleNextBlink()
     }, delay)
   }
-  scheduleNextBlink()
+  if (autonomous) scheduleNextBlink()
 
   // Start centered and dwell there. Idle gaze then favors side glances and returns to front.
   let gazeTimeout: ReturnType<typeof setTimeout> | null = null
@@ -234,7 +235,7 @@ export async function createCreatureInstance(
       scheduleNextGaze()
     }, delay)
   }
-  scheduleNextGaze(true)
+  if (autonomous) scheduleNextGaze(true)
 
   // Small pupil accents keep the face alive without changing its default forward orientation.
   let accentTimeout: ReturnType<typeof setTimeout> | null = null
@@ -256,7 +257,7 @@ export async function createCreatureInstance(
       5400 + Math.random() * 6200
     )
   }
-  scheduleNextAccent()
+  if (autonomous) scheduleNextAccent()
 
   const instance: CreatureEngineInstance = {
     handle,

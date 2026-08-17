@@ -30,6 +30,7 @@ export function StudioStage({ controller }: { controller: StudioController }) {
     previewExpressionDraft,
     previewSelectedBodyNode,
     renderedColors,
+    renderedEffect,
     renderedRotationGizmo,
     renderedScene,
     selectBodyNode,
@@ -67,6 +68,7 @@ export function StudioStage({ controller }: { controller: StudioController }) {
         surface={surface}
         scene={renderedScene}
         renderedColors={renderedColors}
+        visualEffect={renderedEffect}
         rotationGizmo={renderedRotationGizmo}
         showWire={showWire}
         bodyEditing={bodyEditing}

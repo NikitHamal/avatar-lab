@@ -28,7 +28,8 @@ const BASE_Y = -7
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
-const widthScale = (width: number) => clamp(0.72 + (Math.max(10, width) / BASE_WIDTH) * 0.28, 0.72, 1.58)
+const widthScale = (width: number) =>
+  clamp(0.64 + Math.pow(Math.max(8, width) / BASE_WIDTH, 0.92) * 0.36, 0.62, 1.72)
 
 // Expression height was authored for the classic eye renderer. Map that range to
 // the Creature rig non-linearly so sleepy/wink poses can genuinely close while
@@ -36,7 +37,7 @@ const widthScale = (width: number) => clamp(0.72 + (Math.max(10, width) / BASE_W
 // vertically squashed.
 const heightScale = (height: number, blink: number) => {
   const authored = clamp((Math.max(5, height) - 5) / (BASE_HEIGHT - 5), 0, 1.65)
-  const expressionScale = 0.075 + Math.pow(authored, 0.78) * 0.925
+  const expressionScale = 0.055 + Math.pow(authored, 0.74) * 0.945
   const blinkScale = 0.055 + clamp(blink, 0, 1) * 0.945
   return clamp(expressionScale * blinkScale, 0.045, 1.52)
 }
@@ -52,7 +53,12 @@ const gazeNeedsLock = (expression: Expression, avgX: number, avgY: number, avgHe
   expression.eyeMotion === 'lookAround' ||
   expression.eyeMotion === 'focusPulse' ||
   expression.eyeMotion === 'shake' ||
-  expression.eyeMotion === 'microSaccades'
+  expression.eyeMotion === 'microSaccades' ||
+  expression.eyeMotion === 'dart' ||
+  expression.eyeMotion === 'orbit' ||
+  expression.eyeMotion === 'squintPulse' ||
+  expression.eyeMotion === 'sparkle' ||
+  expression.eyeMotion === 'anticipate'
 
 export const creatureEyeRigFromExpression = (
   expression: Expression,
@@ -77,8 +83,8 @@ export const creatureEyeRigFromExpression = (
   // Classic expressions encode a strong gaze cue in eye translation. Preserve
   // that cue in Creature mode, while leaving truly neutral/manual poses free to
   // use the Creature engine's natural front -> side -> front idle choreography.
-  const gazeX = clamp(avgX / 18, -0.82, 0.82)
-  const gazeY = clamp(-(avgY - BASE_Y) / 20, -0.62, 0.62)
+  const gazeX = clamp(avgX / 14.5, -0.94, 0.94)
+  const gazeY = clamp(-(avgY - BASE_Y) / 16.5, -0.78, 0.78)
 
   return {
     left: side('Left', -1),

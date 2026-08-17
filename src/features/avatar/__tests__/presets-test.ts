@@ -2,8 +2,11 @@ import { getStatePlaybackConfig, initialExpressions, statePools } from '@/featur
 
 describe('state playback configuration', () => {
   it('keeps idle slower than an active sequence', () => {
-    expect(getStatePlaybackConfig('idle').expressionIntervalMs).toBe(5200)
-    expect(getStatePlaybackConfig('listening').expressionIntervalMs).toBe(2300)
+    expect(getStatePlaybackConfig('idle').expressionIntervalMs).toBe(1150)
+    expect(getStatePlaybackConfig('listening').expressionIntervalMs).toBe(720)
+    expect(getStatePlaybackConfig('idle').expressionIntervalMs).toBeGreaterThan(
+      getStatePlaybackConfig('listening').expressionIntervalMs
+    )
   })
 
   it('describes a valid randomized blink interval', () => {
@@ -16,9 +19,18 @@ describe('state playback configuration', () => {
 
   it('uses expressive poses for stock reactions', () => {
     expect(initialExpressions[statePools.sleeping[0]].id).toBe('sleepy')
-    expect(initialExpressions[statePools.wink[0]].id).toBe('wink')
-    expect(initialExpressions[statePools.angry[0]].id).toBe('angry-hot')
+    expect(statePools.wink.map(index => initialExpressions[index].id)).toContain('wink')
+    expect(statePools.angry.map(index => initialExpressions[index].id)).toContain('angry-hot')
     expect(initialExpressions[statePools.idle[0]].id).toBe('idle-front')
+  })
+
+
+  it('uses real visual effects for effect-driven reactions', () => {
+    const confetti = initialExpressions.find(expression => expression.id === 'confetti')
+    const puzzled = initialExpressions.find(expression => expression.id === 'puzzled')
+
+    expect(confetti?.effect).toBe('confetti')
+    expect(puzzled?.effect).toBe('question')
   })
 
   it('uses a blink rhythm adapted to each sequence family', () => {

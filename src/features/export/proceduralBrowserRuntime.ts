@@ -39,6 +39,83 @@ const resolveColors = expression => ({
   body: expression.bodyColor || DATA.avatar.colors.body,
   eyes: expression.eyeColor || DATA.avatar.colors.eyes,
 });
+const EFFECT_COLORS = ['#ff4d8d', '#ffd166', '#38d9a9', '#5b8cff', '#a970ff', '#ff7a45'];
+const EFFECT_TAU = Math.PI * 2;
+const effectHash01 = seed => {
+  const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return value - Math.floor(value);
+};
+const effectStarPath = (cx, cy, radius) => {
+  const points = [];
+  for (let index = 0; index < 8; index += 1) {
+    const angle = -Math.PI / 2 + (index / 8) * EFFECT_TAU;
+    const r = index % 2 === 0 ? radius : radius * 0.34;
+    points.push((cx + Math.cos(angle) * r).toFixed(2) + ',' + (cy + Math.sin(angle) * r).toFixed(2));
+  }
+  return 'M' + points.join(' L') + ' Z';
+};
+const effectHeartPath = (cx, cy, scale) =>
+  'M' + cx + ' ' + (cy + 7 * scale) +
+  ' C' + (cx - 18 * scale) + ' ' + (cy - 4 * scale) + ' ' + (cx - 12 * scale) + ' ' + (cy - 20 * scale) + ' ' + cx + ' ' + (cy - 10 * scale) +
+  ' C' + (cx + 12 * scale) + ' ' + (cy - 20 * scale) + ' ' + (cx + 18 * scale) + ' ' + (cy - 4 * scale) + ' ' + cx + ' ' + (cy + 7 * scale) + 'Z';
+const effectMarkup = (effect, elapsedMs) => {
+  if (!effect || effect === 'none') return '';
+  const time = elapsedMs / 1000;
+  if (effect === 'confetti') {
+    return Array.from({ length: 22 }, (_, index) => {
+      const xBase = -138 + effectHash01(index + 1) * 276;
+      const speed = 95 + effectHash01(index + 31) * 85;
+      const y = ((-170 + speed * time + effectHash01(index + 71) * 260 + 180) % 350) - 180;
+      const sway = Math.sin(time * (2.2 + effectHash01(index + 91) * 2.4) + index) * 10;
+      const rotation = (time * (180 + effectHash01(index + 111) * 420) + index * 37) % 360;
+      const width = 5 + effectHash01(index + 131) * 5;
+      const height = 2.8 + effectHash01(index + 151) * 3;
+      const x = xBase + sway;
+      return '<rect x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '" width="' + width.toFixed(2) + '" height="' + height.toFixed(2) + '" rx="1.5" fill="' + EFFECT_COLORS[index % EFFECT_COLORS.length] + '" opacity="0.94" transform="rotate(' + rotation.toFixed(2) + ' ' + x.toFixed(2) + ' ' + y.toFixed(2) + ')"/>';
+    }).join('');
+  }
+  if (effect === 'hearts') {
+    return Array.from({ length: 7 }, (_, index) => {
+      const duration = 1.9 + (index % 3) * 0.35;
+      const progress = (time / duration + index * 0.17) % 1;
+      const x = -88 + index * 29 + Math.sin(progress * EFFECT_TAU + index) * 8;
+      const y = 112 - progress * 238;
+      const opacity = Math.sin(progress * Math.PI) * 0.9;
+      return '<path d="' + effectHeartPath(x, y, 0.58 + (index % 3) * 0.11) + '" fill="' + (index % 2 ? '#ff4d8d' : '#ff7aa8') + '" opacity="' + opacity.toFixed(3) + '"/>';
+    }).join('');
+  }
+  if (effect === 'sparkles' || effect === 'introGlow') {
+    const positions = [[-104,-78,10],[108,-55,8],[-118,45,7],[112,64,11],[78,-112,6]];
+    const rings = effect === 'introGlow'
+      ? '<circle cx="0" cy="0" r="' + (124 + Math.sin(time * 2.4) * 10).toFixed(2) + '" fill="none" stroke="#93c5fd" stroke-width="2" opacity="0.18"/><circle cx="0" cy="0" r="' + (136 + Math.cos(time * 1.9) * 8).toFixed(2) + '" fill="none" stroke="#60a5fa" stroke-width="1" opacity="0.12"/>'
+      : '';
+    return rings + positions.map((entry, index) => {
+      const x = entry[0], y = entry[1], r = entry[2];
+      const pulse = 0.72 + (Math.sin(time * (4 + index * 0.33) + index) + 1) * 0.22;
+      return '<path d="' + effectStarPath(x, y, r * pulse) + '" fill="' + EFFECT_COLORS[(index + 1) % EFFECT_COLORS.length] + '" opacity="' + (0.45 + pulse * 0.45).toFixed(3) + '"/>';
+    }).join('');
+  }
+  if (effect === 'alert') {
+    const phase = (time % 0.9) / 0.9;
+    return '<circle cx="0" cy="0" r="' + (112 + phase * 30).toFixed(2) + '" fill="none" stroke="#ffd166" stroke-width="4" opacity="' + (0.55 * (1 - phase)).toFixed(3) + '"/><path d="M0 -140 L-8 -122 L8 -122 Z" fill="#ffd166" opacity="' + (0.55 + Math.sin(time * 8.5) * 0.35).toFixed(3) + '"/>';
+  }
+  if (effect === 'successBurst') {
+    return Array.from({ length: 12 }, (_, index) => {
+      const angle = (index / 12) * EFFECT_TAU;
+      const pulse = 0.45 + (Math.sin(time * 6.4 - index * 0.2) + 1) * 0.25;
+      return '<line x1="' + (Math.cos(angle) * 112).toFixed(2) + '" y1="' + (Math.sin(angle) * 112).toFixed(2) + '" x2="' + (Math.cos(angle) * 137).toFixed(2) + '" y2="' + (Math.sin(angle) * 137).toFixed(2) + '" stroke="' + EFFECT_COLORS[index % EFFECT_COLORS.length] + '" stroke-width="4" stroke-linecap="round" opacity="' + pulse.toFixed(3) + '"/>';
+    }).join('');
+  }
+  if (effect === 'errorPulse') {
+    const phase = (time % 0.56) / 0.56;
+    return '<circle cx="0" cy="0" r="' + (116 + phase * 22).toFixed(2) + '" fill="none" stroke="#ff5f6d" stroke-width="4" opacity="' + (0.72 * Math.sin(phase * Math.PI)).toFixed(3) + '"/>';
+  }
+  if (effect === 'zzz' || effect === 'question') {
+    const glyph = effect === 'zzz' ? 'Z' : '?';
+    return [0,1,2].map(index => '<text x="' + (76 + index * 20) + '" y="' + (-78 - index * 22) + '" font-size="' + (18 + index * 5) + '" font-weight="700" text-anchor="middle" fill="#64748b" opacity="' + (0.45 + Math.sin(time * (2.2 + index * 0.2) + index) * 0.25).toFixed(3) + '">' + glyph + '</text>').join('');
+  }
+  return '';
+};
 const svgElement = name => document.createElementNS(SVG_NS, name);
 
 function mountAvatar(target, options = {}) {
@@ -69,11 +146,18 @@ function mountAvatar(target, options = {}) {
   const eyesLayer = svgElement('g');
   const leftEye = svgElement('path');
   const rightEye = svgElement('path');
+  const mouth = svgElement('path');
   const frontLayer = svgElement('g');
+  const effectLayer = svgElement('g');
   eyesLayer.setAttribute('clip-path', 'url(#' + clipId + ')');
-  eyesLayer.append(leftEye, rightEye);
+  mouth.setAttribute('fill', 'none');
+  mouth.setAttribute('stroke-linecap', 'round');
+  mouth.setAttribute('stroke-linejoin', 'round');
+  eyesLayer.append(leftEye, rightEye, mouth);
   motionLayer.append(backLayer, head, eyesLayer, frontLayer);
-  svg.append(motionLayer);
+  effectLayer.setAttribute('pointer-events', 'none');
+  effectLayer.setAttribute('aria-hidden', 'true');
+  svg.append(motionLayer, effectLayer);
   host.replaceChildren(svg);
 
   const ensurePaths = (group, paths, fill) => {
@@ -126,8 +210,8 @@ function mountAvatar(target, options = {}) {
   const render = (time = performance.now()) => {
     const eyeElapsed = time - eyeAmbientStartedAt;
     const bodyElapsed = time - bodyAmbientStartedAt;
-    const expression = currentPose.expression.bodyMotion !== 'none'
-      ? AvatarProceduralEngine.applyAmbientBodyMotion(currentPose.expression, bodyElapsed, ambientStrength)
+    const expression = AvatarProceduralEngine.hasAmbientMotion(currentPose.expression)
+      ? AvatarProceduralEngine.applyAmbientBodyMotion(currentPose.expression, Math.max(eyeElapsed, bodyElapsed), ambientStrength)
       : currentPose.expression;
     const eyeOffset = AvatarProceduralEngine.ambientEyeOffset(currentPose.expression, eyeElapsed, ambientStrength);
     const renderedPose = AvatarProceduralEngine.poseFromExpression(expression);
@@ -149,6 +233,12 @@ function mountAvatar(target, options = {}) {
     rightEye.setAttribute('fill', currentColors.eyes);
     leftEye.style.display = geometry.leftVisible ? '' : 'none';
     rightEye.style.display = geometry.rightVisible ? '' : 'none';
+    const mouthVisible = DATA.avatar.mouthEnabled === true && geometry.mouthVisible && geometry.mouthPath;
+    mouth.setAttribute('d', mouthVisible ? geometry.mouthPath : '');
+    mouth.setAttribute('stroke', currentColors.eyes);
+    mouth.setAttribute('stroke-width', String(expression.mouthStrokeWidth || 3.2));
+    mouth.style.display = mouthVisible ? '' : 'none';
+    effectLayer.innerHTML = effectMarkup(expression.effect, time);
   };
   const tick = time => {
     frameRequest = null;
@@ -163,6 +253,21 @@ function mountAvatar(target, options = {}) {
       });
       expression.eyeMotion = transitionState.toPose.expression.eyeMotion;
       expression.bodyMotion = transitionState.toPose.expression.bodyMotion;
+      expression.eyeStyle = eased >= 0.5
+        ? (transitionState.toPose.expression.eyeStyle || transitionState.fromPose.expression.eyeStyle)
+        : (transitionState.fromPose.expression.eyeStyle || transitionState.toPose.expression.eyeStyle);
+      expression.mouth = eased >= 0.5
+        ? (transitionState.toPose.expression.mouth || transitionState.fromPose.expression.mouth || 'none')
+        : (transitionState.fromPose.expression.mouth || transitionState.toPose.expression.mouth || 'none');
+      expression.effect = eased >= 0.16
+        ? (transitionState.toPose.expression.effect || 'none')
+        : (transitionState.fromPose.expression.effect || 'none');
+      const mouthDefaults = { mouthScale: 1, mouthOffsetX: 0, mouthOffsetY: 0, mouthWidth: 1, mouthCurve: 1, mouthStrokeWidth: 3.2 };
+      Object.keys(mouthDefaults).forEach(field => {
+        const fromValue = transitionState.fromPose.expression[field] ?? mouthDefaults[field];
+        const toValue = transitionState.toPose.expression[field] ?? mouthDefaults[field];
+        expression[field] = fromValue + (toValue - fromValue) * eased;
+      });
       currentPose = AvatarProceduralEngine.poseFromExpression(expression);
       currentColors = {
         body: interpolateColor(transitionState.fromColors.body, transitionState.toColors.body, clamp01(eased)),
@@ -189,7 +294,8 @@ function mountAvatar(target, options = {}) {
         blinkState = null;
       }
     }
-    const ambientActive = AvatarProceduralEngine.hasAmbientMotion(currentPose.expression);
+    const ambientActive = AvatarProceduralEngine.hasAmbientMotion(currentPose.expression) ||
+      (currentPose.expression.effect && currentPose.expression.effect !== 'none');
     if (transitionState || blinkState || !ambientActive || time - lastAmbientFrame >= 1000 / 30) {
       render(time);
       if (ambientActive) lastAmbientFrame = time;

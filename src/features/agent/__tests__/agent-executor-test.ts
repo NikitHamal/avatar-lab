@@ -81,6 +81,7 @@ describe('agent action execution and reversion', () => {
       eyes: { ...defaultAvatarEyes },
       eyeRenderer: 'classic',
       creaturePaletteIndex: 52,
+      mouthEnabled: false,
     }
     const avatars = [avatar]
     const avatarsRef = { current: avatars }

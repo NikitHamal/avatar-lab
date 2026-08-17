@@ -23,6 +23,9 @@ export type AvatarExportPayload = {
     surface: StudioAvatar['body']['primary']
     bodyNodes: StudioAvatar['body']['nodes']
     colors: StudioAvatar['colors']
+    eyeRenderer: StudioAvatar['eyeRenderer']
+    creaturePaletteIndex: number
+    mouthEnabled: boolean
   }
   expressions: Record<string, Expression>
   animations: Record<string, AvatarExportAnimation>
@@ -92,6 +95,9 @@ export const createAvatarExportPayload = (
       surface: avatar.body.primary,
       bodyNodes: avatar.body.nodes,
       colors: avatar.colors,
+      eyeRenderer: avatar.eyeRenderer,
+      creaturePaletteIndex: avatar.creaturePaletteIndex,
+      mouthEnabled: avatar.mouthEnabled,
     },
     expressions: exportedExpressions,
     animations,

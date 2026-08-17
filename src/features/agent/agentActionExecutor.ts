@@ -150,6 +150,7 @@ export function executeAgentAction(
             Number.isInteger(payload.creaturePaletteIndex)
               ? Math.min(99, Math.max(0, payload.creaturePaletteIndex))
               : defaultCreaturePaletteIndex,
+          mouthEnabled: payload.mouthEnabled === true,
         }
 
         const nextAvatars = [...controller.avatars, newAvatar]
@@ -179,6 +180,9 @@ export function executeAgentAction(
         }
         if (typeof updateAct.creaturePaletteIndex === 'number') {
           controller.updateAvatarCreaturePalette(updateAct.creaturePaletteIndex)
+        }
+        if (typeof updateAct.mouthEnabled === 'boolean') {
+          controller.updateAvatarMouthEnabled(updateAct.mouthEnabled)
         }
         if (updateAct.body) {
           const parsedBody = parseAvatarBody(

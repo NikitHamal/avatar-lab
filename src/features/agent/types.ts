@@ -46,6 +46,7 @@ export type CreateAvatarAction = {
   eyes?: AvatarEyeDefaults
   eyeRenderer?: StudioAvatar['eyeRenderer']
   creaturePaletteIndex?: number
+  mouthEnabled?: boolean
 }
 
 export type UpdateAvatarAction = {
@@ -56,6 +57,7 @@ export type UpdateAvatarAction = {
   eyes?: Partial<AvatarEyeDefaults>
   eyeRenderer?: StudioAvatar['eyeRenderer']
   creaturePaletteIndex?: number
+  mouthEnabled?: boolean
 }
 
 export type AddBodyNodeAction = {

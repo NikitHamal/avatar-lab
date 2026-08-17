@@ -18,8 +18,8 @@ describe('editable avatar sequences', () => {
       'idle-front',
       'idle-glance-right',
     ])
-    expect(idle?.steps.map(step => step.holdMs)).toEqual([3600, 1200, 2600, 1200])
-    expect(idle?.steps.every(step => step.transitionMs === 650)).toBe(true)
+    expect(idle?.steps.map(step => step.holdMs)).toEqual([2100, 420, 1250, 420])
+    expect(idle?.steps.map(step => step.transitionMs)).toEqual([260, 180, 240, 180])
     expect(idle?.blink.durationMs).toBe(280)
   })
 
@@ -51,10 +51,15 @@ describe('editable avatar sequences', () => {
 
   it('keeps a sequence playable when its only referenced expression is deleted', () => {
     const sequence = createInitialSequences().find(item => item.id === 'waking')!
+    const deletedId = 'anticipation'
     const fallbackId = initialExpressions[12].id
+    const sequenceUsingOnlyDeletedExpression = {
+      ...sequence,
+      steps: sequence.steps.map(step => ({ ...step, expressionId: deletedId })),
+    }
     const [remapped] = remapSequencesAfterExpressionDelete(
-      [sequence],
-      initialExpressions[13].id,
+      [sequenceUsingOnlyDeletedExpression],
+      deletedId,
       fallbackId
     )
 

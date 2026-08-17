@@ -5,7 +5,9 @@ import {
   type AvatarLibrary,
 } from '../avatar/avatars'
 import type { Expression } from '../avatar/geometry'
+import { initialExpressions } from '../avatar/presets'
 import {
+  createInitialSequences,
   normalizeSequencesForExpressions,
   parseSequences,
   type AvatarSequence,
@@ -165,22 +167,87 @@ const enhancedExpressionIds = [
   'idle-front',
   'idle-glance-left',
   'idle-glance-right',
+  'delight',
+  'eye-roll',
+  'concern',
+  'listening-focus',
+  'puzzled',
+  'determined',
+  'anticipation',
+  'cheer',
+  'intro-neby-closed',
+  'intro-neby-peek',
+  'intro-neby-focus',
+  'intro-neby-signature',
+  'intro-pop',
+  'intro-scan',
 ] as const
 
+
+const previousBundledPools: Record<string, number[]> = {
+  sleeping: [42, 13, 42],
+  waking: [42, 26, 50],
+  idle: [50, 51, 50, 52],
+  listening: [32, 10, 50],
+  thinking: [33, 34, 32, 50],
+  searching: [33, 34, 32, 50],
+  working: [32, 33, 34, 50],
+  speaking: [35, 36, 37, 50],
+  presenting: [32, 25, 26, 49],
+  scanning: [33, 34, 32],
+  excited: [25, 17, 21, 3, 11],
+  surprised: [38, 3, 21],
+  suspicious: [29, 30, 14, 5],
+  angry: [41, 7, 16],
+  drowsy: [42, 4, 13],
+  happy: [25, 26, 11, 17],
+  curious: [38, 21, 0, 33],
+  confused: [30, 14, 5, 8],
+  bored: [42, 4, 22, 0],
+  proud: [32, 15, 8, 25],
+  shy: [26, 24, 13],
+  sad: [40, 4, 13, 22],
+  laughing: [25, 11, 17],
+  scared: [39, 3, 21],
+  playful: [25, 27, 29, 8],
+  celebrate: [49, 25, 47, 26],
+  greeting: [26, 27, 25],
+  agree: [26, 25, 47],
+  disagree: [30, 31, 41],
+  wink: [27, 26, 29],
+  love: [28, 26, 43],
+  success: [47, 49, 25],
+  error: [48, 41, 39],
+  notification: [46, 38, 25],
+  dizzy: [45, 38, 42],
+  dance: [49, 25, 27, 28],
+}
 const expressionIdForBundledIndex = (index: number) =>
   index < 25 ? `expression-${String(index).padStart(2, '0')}` : enhancedExpressionIds[index - 25]
 
+const poolMatchesSequence = (sequence: AvatarSequence, pool: number[] | undefined) =>
+  Boolean(
+    pool &&
+      sequence.steps.length === pool.length &&
+      sequence.steps.every(
+        (step, index) => step.expressionId === expressionIdForBundledIndex(pool[index])
+      )
+  )
+
 const isLegacyBundledSequence = (sequence: AvatarSequence | undefined) => {
   if (!sequence?.builtIn) return false
-  const legacyPool = legacyBuiltInPools[sequence.id]
-  if (!legacyPool || sequence.steps.length !== legacyPool.length) return false
-  return sequence.steps.every(
-    (step, index) => step.expressionId === expressionIdForBundledIndex(legacyPool[index])
+  return (
+    poolMatchesSequence(sequence, legacyBuiltInPools[sequence.id]) ||
+    poolMatchesSequence(sequence, previousBundledPools[sequence.id])
   )
 }
 
 const createBundledStudioDocument = () => {
   const snapshot = JSON.parse(JSON.stringify(defaultStudioDocument)) as StudioDocument
+  // Keep artwork/library data in the retained document, but generate the behavior library from
+  // source so new expressive rigs and tuned timing never lag behind a stale JSON snapshot.
+  snapshot.expressions = structuredClone(initialExpressions)
+  snapshot.sequences = createInitialSequences()
   return parseStudioDocument(snapshot, snapshot)
 }
 
@@ -213,19 +280,25 @@ export const loadStudioDocument = (
           }
         }
       })
-      fallback.expressions.forEach(fallbackExpr => {
-        const existingIndex = parsed.expressions.findIndex(e => e.id === fallbackExpr.id)
-        if (existingIndex < 0) {
-          parsed.expressions.push(fallbackExpr)
-        }
-      })
-      fallback.sequences.forEach(fallbackSeq => {
-        const existingIndex = parsed.sequences.findIndex(s => s.id === fallbackSeq.id)
-        if (existingIndex < 0) {
-          parsed.sequences.push(fallbackSeq)
-        }
-      })
     }
+
+    // Behavior-library upgrades are independent from one particular legacy avatar. This keeps
+    // saved projects on the current stock eye/effect vocabulary even if a bundled character was
+    // deleted, while avatar-owned behavior libraries below remain isolated as designed.
+    fallback.expressions.forEach(fallbackExpr => {
+      const existingIndex = parsed.expressions.findIndex(e => e.id === fallbackExpr.id)
+      if (existingIndex < 0) parsed.expressions.push(structuredClone(fallbackExpr))
+    })
+    const stockExpressionIds = new Set<string>(enhancedExpressionIds)
+    fallback.expressions.forEach(fallbackExpr => {
+      if (!stockExpressionIds.has(fallbackExpr.id)) return
+      const existingIndex = parsed.expressions.findIndex(e => e.id === fallbackExpr.id)
+      if (existingIndex >= 0) parsed.expressions[existingIndex] = structuredClone(fallbackExpr)
+    })
+    fallback.sequences.forEach(fallbackSeq => {
+      const existingIndex = parsed.sequences.findIndex(s => s.id === fallbackSeq.id)
+      if (existingIndex < 0) parsed.sequences.push(structuredClone(fallbackSeq))
+    })
 
     // Refresh only untouched built-in sequences from the previous bundle. Custom and edited
     // sequences retain their authored steps, while stock reactions gain the expressive eye poses.
@@ -253,6 +326,16 @@ export const loadStudioDocument = (
           }
         })
       }
+      const stockExpressionIds = new Set<string>(enhancedExpressionIds)
+      fallback.expressions.forEach(fallbackExpression => {
+        if (!stockExpressionIds.has(fallbackExpression.id)) return
+        const existingIndex = avatar.behavior!.expressions.findIndex(
+          expression => expression.id === fallbackExpression.id
+        )
+        if (existingIndex >= 0) {
+          avatar.behavior!.expressions[existingIndex] = structuredClone(fallbackExpression)
+        }
+      })
       avatar.behavior.sequences = normalizeSequencesForExpressions(
         refreshed,
         avatar.behavior.expressions

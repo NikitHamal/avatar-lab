@@ -34,8 +34,9 @@ describe('Studio document', () => {
     expect(document.library.avatars[0].name).toBe('Strobi')
     expect(document.library.avatars[0].eyeRenderer).toBe('classic')
     expect(document.library.avatars[0].creaturePaletteIndex).toBe(52)
-    expect(document.expressions).toHaveLength(55)
-    expect(document.sequences).toHaveLength(36)
+    expect(document.library.avatars.every(avatar => avatar.mouthEnabled === false)).toBe(true)
+    expect(document.expressions).toHaveLength(initialExpressions.length)
+    expect(document.sequences).toHaveLength(createInitialSequences().length)
     expect(document.playback).toEqual({ stateId: 'idle', playing: true })
   })
 
@@ -62,6 +63,19 @@ describe('Studio document', () => {
     expect(migrated.playback).toEqual({ stateId: 'idle', playing: true })
   })
 
+  it('upgrades the base behavior library even when the legacy Strobi avatar was deleted', () => {
+    const legacy = structuredClone(loadStudioDocument(storage()))
+    legacy.library.avatars = legacy.library.avatars.filter(avatar => avatar.id !== 'strobi')
+    legacy.library.activeAvatarId = legacy.library.avatars[0].id
+    legacy.expressions = legacy.expressions.filter(expression => expression.id !== 'intro-neby-closed')
+    legacy.sequences = legacy.sequences.filter(sequence => sequence.id !== 'intro-neby')
+
+    const migrated = loadStudioDocument(storage(JSON.stringify(legacy)))
+
+    expect(migrated.expressions.some(expression => expression.id === 'intro-neby-closed')).toBe(true)
+    expect(migrated.sequences.some(sequence => sequence.id === 'intro-neby')).toBe(true)
+  })
+
   it('upgrades untouched stock reactions for both shared and avatar-owned behavior', () => {
     const legacy = structuredClone(loadStudioDocument(storage()))
     const sleeping = legacy.sequences.find(sequence => sequence.id === 'sleeping')!
@@ -85,12 +99,12 @@ describe('Studio document', () => {
 
     expect(migratedSleeping.steps.map(step => step.expressionId)).toEqual([
       'sleepy',
-      'expression-13',
+      'sleepy',
       'sleepy',
     ])
     expect(migratedAvatarSleeping?.steps.map(step => step.expressionId)).toEqual([
       'sleepy',
-      'expression-13',
+      'sleepy',
       'sleepy',
     ])
     expect(migrated.library.avatars[0].behavior?.expressions.some(item => item.id === 'sleepy')).toBe(

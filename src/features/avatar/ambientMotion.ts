@@ -7,6 +7,11 @@ export const eyeMotionModes = [
   'lookAround',
   'focusPulse',
   'shake',
+  'dart',
+  'orbit',
+  'squintPulse',
+  'sparkle',
+  'anticipate',
 ] as const
 export const bodyMotionModes = [
   'none',
@@ -133,6 +138,37 @@ export const ambientEyeOffset = (expression: Expression, elapsedMs: number, stre
       y: (Math.sin(time * 59) + Math.sin(time * 83) * 0.4) * 0.8 * strength,
     }
   }
+  if (expression.eyeMotion === 'dart') {
+    const time = elapsedMs / 1000
+    const snap = Math.tanh(Math.sin(time * 3.8) * 4.2)
+    return {
+      x: snap * 5.6 * strength,
+      y: Math.sin(time * 1.9 + 0.8) * 1.15 * strength,
+    }
+  }
+  if (expression.eyeMotion === 'orbit') {
+    const time = elapsedMs / 1000
+    return {
+      x: Math.sin(time * 2.15) * 5.1 * strength,
+      y: -Math.cos(time * 2.15) * 3.2 * strength,
+    }
+  }
+  if (expression.eyeMotion === 'squintPulse') {
+    const time = elapsedMs / 1000
+    return { x: Math.sin(time * 2.1) * 0.45 * strength, y: Math.cos(time * 1.7) * 0.3 * strength }
+  }
+  if (expression.eyeMotion === 'sparkle') {
+    const time = elapsedMs / 1000
+    return {
+      x: (Math.sin(time * 4.7) + Math.sin(time * 11.3) * 0.3) * 0.75 * strength,
+      y: (Math.cos(time * 5.1) + Math.sin(time * 9.4) * 0.25) * 0.5 * strength,
+    }
+  }
+  if (expression.eyeMotion === 'anticipate') {
+    const time = elapsedMs / 1000
+    const pulse = (1 - Math.cos(time * 3.2)) * 0.5
+    return { x: Math.sin(time * 1.6) * 0.55 * strength, y: -pulse * 1.1 * strength }
+  }
   return { x: 0, y: 0 }
 }
 
@@ -170,6 +206,33 @@ export const applyAmbientBodyMotion = (
     next.headX += (Math.sin(time * 31) + Math.sin(time * 53) * 0.45) * 1.15 * strength
     next.headY += (Math.sin(time * 37) + Math.sin(time * 61) * 0.4) * 1.35 * strength
     next.headZ += Math.sin(time * 43) * 0.7 * strength
+  }
+
+  const eyeTime = elapsedMs / 1000
+  const scaleEyes = (widthFactor: number, heightFactor: number) => {
+    next.widthLeft = Math.max(5, next.widthLeft * (1 + (widthFactor - 1) * strength))
+    next.widthRight = Math.max(5, next.widthRight * (1 + (widthFactor - 1) * strength))
+    next.heightLeft = Math.max(5, next.heightLeft * (1 + (heightFactor - 1) * strength))
+    next.heightRight = Math.max(5, next.heightRight * (1 + (heightFactor - 1) * strength))
+  }
+
+  if (expression.eyeMotion === 'focusPulse') {
+    const pulse = Math.sin(eyeTime * 4.8)
+    scaleEyes(1 + pulse * 0.025, 1 - pulse * 0.055)
+  } else if (expression.eyeMotion === 'squintPulse') {
+    const pulse = (Math.sin(eyeTime * 2.6) + 1) * 0.5
+    scaleEyes(1 + pulse * 0.04, 0.82 + pulse * 0.18)
+  } else if (expression.eyeMotion === 'sparkle') {
+    const pulse = (Math.sin(eyeTime * 5.4) + 1) * 0.5
+    scaleEyes(0.98 + pulse * 0.08, 0.96 + pulse * 0.12)
+    next.leftAngle += Math.sin(eyeTime * 3.1) * 1.6 * strength
+    next.rightAngle -= Math.sin(eyeTime * 3.1) * 1.6 * strength
+  } else if (expression.eyeMotion === 'anticipate') {
+    const pulse = (1 - Math.cos(eyeTime * 3.2)) * 0.5
+    scaleEyes(1 + pulse * 0.1, 1 + pulse * 0.16)
+  } else if (expression.eyeMotion === 'orbit') {
+    next.leftAngle += Math.sin(eyeTime * 2.15) * 3 * strength
+    next.rightAngle -= Math.sin(eyeTime * 2.15) * 3 * strength
   }
 
   return next

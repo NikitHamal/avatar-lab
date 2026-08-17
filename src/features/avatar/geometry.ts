@@ -17,11 +17,34 @@ import {
 
 export type Quaternion = readonly [number, number, number, number]
 export type Point3 = readonly [number, number, number]
-export type EyeMotion = 'none' | 'microSaccades' | 'wander' | 'lookAround' | 'focusPulse' | 'shake'
+export type EyeMotion =
+  | 'none'
+  | 'microSaccades'
+  | 'wander'
+  | 'lookAround'
+  | 'focusPulse'
+  | 'shake'
+  | 'dart'
+  | 'orbit'
+  | 'squintPulse'
+  | 'sparkle'
+  | 'anticipate'
 export type BodyMotion =
   'none' | 'slowDrift' | 'breathe' | 'bob' | 'bounce' | 'sway' | 'float' | 'shake'
 
 export type EyeStyle = 'dot' | 'circle' | 'cat' | 'acorn'
+
+export type AvatarVisualEffect =
+  | 'none'
+  | 'confetti'
+  | 'sparkles'
+  | 'hearts'
+  | 'alert'
+  | 'successBurst'
+  | 'errorPulse'
+  | 'zzz'
+  | 'question'
+  | 'introGlow'
 
 export type Expression = {
   id: string
@@ -48,11 +71,30 @@ export type Expression = {
   mouth?:
     'smile' | 'openSmile' | 'oMouth' | 'flat' | 'cat' | 'frown' | 'smirk' | 'grin' | 'kiss' | 'none'
   mouthScale?: number
+  mouthOffsetX?: number
+  mouthOffsetY?: number
+  mouthWidth?: number
+  mouthCurve?: number
+  mouthStrokeWidth?: number
+  effect?: AvatarVisualEffect
 }
 
 export type ExpressionNumericField = Exclude<
   keyof Expression,
-  'id' | 'bodyColor' | 'eyeColor' | 'eyeMotion' | 'bodyMotion' | 'eyeStyle' | 'mouth' | 'mouthScale'
+  | 'id'
+  | 'bodyColor'
+  | 'eyeColor'
+  | 'eyeMotion'
+  | 'bodyMotion'
+  | 'eyeStyle'
+  | 'mouth'
+  | 'mouthScale'
+  | 'mouthOffsetX'
+  | 'mouthOffsetY'
+  | 'mouthWidth'
+  | 'mouthCurve'
+  | 'mouthStrokeWidth'
+  | 'effect'
 >
 
 export type AvatarPose = {
@@ -1512,12 +1554,23 @@ const accessoryLayers = (pose: AvatarPose, nodes: BodyNode[]) => {
 const mouthPoints = (
   pose: AvatarPose,
   surface: SurfaceConfig,
-  type: Expression['mouth'] = 'none',
-  scale = 1
+  type: Expression['mouth'] = 'none'
 ): { path: string; visible: boolean } => {
   if (!type || type === 'none') return { path: '', visible: false }
-  const mouthY = 22
-  const mouthHalfWidth = 20 * (scale || 1)
+  const expression = pose.expression
+  const scale = expression.mouthScale ?? 1
+  const mouthX = expression.mouthOffsetX ?? 0
+  // Keep the mouth below the actual eye box instead of pinning it to one absolute Y value.
+  // This is especially important for tall Creature-style eyes and custom eye placements.
+  const eyeBottom = Math.max(
+    expression.positionYLeft + expression.heightLeft / 2,
+    expression.positionYRight + expression.heightRight / 2
+  )
+  const automaticMouthY = Math.max(22, Math.min(48, eyeBottom + 8))
+  const mouthY = automaticMouthY + (expression.mouthOffsetY ?? 0)
+  const widthMultiplier = expression.mouthWidth ?? 1
+  const curveMultiplier = expression.mouthCurve ?? 1
+  const mouthHalfWidth = 20 * scale * widthMultiplier
 
   if (type === 'oMouth' || type === 'kiss') {
     const points: Point3[] = []
@@ -1526,7 +1579,7 @@ const mouthPoints = (
     const verticalRadius = (type === 'kiss' ? 6.5 : 12) * (scale || 1)
     for (let index = 0; index <= 20; index += 1) {
       const angle = (index / 20) * Math.PI * 2
-      const x = Math.cos(angle) * horizontalRadius
+      const x = mouthX + Math.cos(angle) * horizontalRadius * widthMultiplier
       const y = mouthY + Math.sin(angle) * verticalRadius
       const projected = projectFacePoint(pose, surface, x, y)
       points.push(projected.point)
@@ -1537,23 +1590,47 @@ const mouthPoints = (
     return { path: d, visible: totalNormalZ > -0.1 }
   }
 
+  if (type === 'openSmile') {
+    const points: Point3[] = []
+    let totalNormalZ = 0
+    const samples = 13
+    for (let index = 0; index < samples; index += 1) {
+      const t = (index / (samples - 1)) * 2 - 1
+      const x = mouthX + t * mouthHalfWidth * 1.05
+      const y = mouthY - (1 - t * t) * 2.2 * curveMultiplier
+      const projected = projectFacePoint(pose, surface, x, y)
+      points.push(projected.point)
+      totalNormalZ += projected.normal[2]
+    }
+    for (let index = samples - 1; index >= 0; index -= 1) {
+      const t = (index / (samples - 1)) * 2 - 1
+      const x = mouthX + t * mouthHalfWidth * 1.05
+      const y = mouthY + 2 + (1 - t * t) * 8.5 * curveMultiplier
+      const projected = projectFacePoint(pose, surface, x, y)
+      points.push(projected.point)
+      totalNormalZ += projected.normal[2]
+    }
+    if (points.length < 3) return { path: '', visible: false }
+    return { path: `${path(points)}Z`, visible: totalNormalZ > -0.1 }
+  }
+
   const sampleCount = 15
   const points: Point3[] = []
   let totalNormalZ = 0
   for (let index = 0; index < sampleCount; index += 1) {
     const t = (index / (sampleCount - 1)) * 2 - 1
-    const x = t * mouthHalfWidth * (type === 'grin' ? 1.2 : 1)
+    const x = mouthX + t * mouthHalfWidth * (type === 'grin' ? 1.2 : 1)
     const baseCurve =
       type === 'smile'
         ? -7
-        : type === 'openSmile' || type === 'grin'
+        : type === 'grin'
           ? -12
           : type === 'frown'
             ? 7
             : 0
     const catCurve = type === 'cat' ? -5 * Math.abs(Math.sin(t * Math.PI)) + 2.5 : 0
     const smirkCurve = type === 'smirk' ? (-6 * (t + 1)) / 2 : 0
-    const curveOffset = (1 - t * t) * baseCurve + catCurve + smirkCurve
+    const curveOffset = ((1 - t * t) * baseCurve + catCurve + smirkCurve) * curveMultiplier
     const y = mouthY + curveOffset
     const projected = projectFacePoint(pose, surface, x, y)
     points.push(projected.point)
@@ -1801,7 +1878,7 @@ export const renderAvatar = (
   const mouth =
     surface.pattern === 'book' || (pose.expression.mouth || 'none') === 'none'
       ? { path: '', visible: false }
-      : mouthPoints(pose, surface, pose.expression.mouth || 'none', pose.expression.mouthScale || 1)
+      : mouthPoints(pose, surface, pose.expression.mouth || 'none')
   const decals = projectedBookDecals(pose, surface)
 
   const nodeStyles: Record<string, AvatarNodeStyle> = {}

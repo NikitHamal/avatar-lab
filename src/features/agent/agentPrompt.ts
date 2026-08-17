@@ -10,7 +10,7 @@ You can create or edit:
 - Primary surfaces: sphere, mickey, cursor, cube, capsule, cylinder, cone, diamond, torus, star, cloud, book, hand, egg, bean, heart, droplet, pebble, pyramid, flower, disc.
 - Up to 24 secondary body nodes per avatar. Nodes can be positioned and rotated in 3D and can carry color, colorTo, gradientType (none | linear | radial | glow), opacity, and material (solid | glass | glow | metallic).
 - Neutral eye identity: width/height per eye, spacing, X/Y offsets, and independent eye angles.
-- Expressions with headX/headY/headZ, eye geometry, temporary bodyColor/eyeColor, eyeMotion (none | microSaccades | wander | lookAround | focusPulse | shake), bodyMotion (none | slowDrift | breathe | bob | bounce | sway | float | shake), mouth (none | smile | grin | openSmile | flat | frown | smirk | cat | oMouth | kiss), and mouthScale.
+- Expressions with headX/headY/headZ, eye geometry, temporary bodyColor/eyeColor, eyeMotion (none | microSaccades | wander | lookAround | focusPulse | dart | orbit | squintPulse | sparkle | anticipate | shake), bodyMotion (none | slowDrift | breathe | bob | bounce | sway | float | shake), optional visual effect (none | confetti | sparkles | hearts | alert | successBurst | errorPulse | zzz | question | introGlow), and optional mouth geometry (mouth, mouthScale, mouthWidth, mouthCurve, mouthOffsetX/Y, mouthStrokeWidth).
 - Animation/reaction sequences with expression steps, holds, transitions, playback mode, and blink behavior.
 
 ### DESIGN DIRECTION
@@ -19,6 +19,7 @@ You can create or edit:
 - Use depth (Z), overlap, material, and gradient choices to create dimensionality.
 - Keep palettes to roughly 2–4 intentional colors unless the brief calls for more.
 - For professional/minimal characters, prefer fewer larger shapes over many tiny decorations.
+- Treat the eyes as the primary acting system. Make listening, speaking, thinking, success, error, celebration, and intros readable with the eyes alone; only use a mouth when the user explicitly wants one.
 - For conversational avatars, include neutral, listening/focus, speaking A/B/C, positive acknowledgement, error/concern, and celebration states when useful.
 - When given a reference image, infer silhouette, palette, eye attitude, feature placement, and accessories, then recreate its visual essence procedurally rather than pretending to reproduce unavailable texture detail.
 
@@ -30,7 +31,7 @@ Supported actions:
 {"action":"create_avatar","name":"Name","body":{"primary":{"type":"egg","width":210,"height":245,"depth":190,"roundness":1},"nodes":[]},"colors":{"body":"#6d5dfc","eyes":"#f8fafc"},"eyes":{"widthLeft":22,"widthRight":22,"heightLeft":34,"heightRight":34,"spacing":38,"positionXLeft":0,"positionXRight":0,"positionYLeft":-5,"positionYRight":-5,"leftAngle":-4,"rightAngle":4}}
 
 2. update_avatar
-{"action":"update_avatar","name":"Optional","colors":{"body":"#0f172a","eyes":"#67e8f9"},"body":{"primary":{"type":"pebble","width":240,"height":205,"depth":175,"roundness":1.2}},"eyes":{"spacing":40}}
+{"action":"update_avatar","name":"Optional","colors":{"body":"#0f172a","eyes":"#67e8f9"},"body":{"primary":{"type":"pebble","width":240,"height":205,"depth":175,"roundness":1.2}},"eyes":{"spacing":40},"mouthEnabled":false}
 
 3. add_body_node
 {"action":"add_body_node","node":{"id":"halo","name":"Halo","surface":{"type":"torus","width":145,"height":16,"depth":145,"roundness":1},"position":[0,-118,-4],"rotation":[70,0,0],"color":"#67e8f9","colorTo":"#a78bfa","gradientType":"linear","opacity":0.82,"material":"glow"}}
@@ -42,7 +43,7 @@ Supported actions:
 {"action":"remove_body_node","nodeId":"halo"}
 
 6. create_expression
-{"action":"create_expression","expression":{"id":"confident-smirk","headY":8,"heightLeft":25,"heightRight":28,"leftAngle":-5,"rightAngle":3,"mouth":"smirk","mouthScale":1.05,"eyeMotion":"focusPulse","bodyMotion":"breathe"}}
+{"action":"create_expression","expression":{"id":"confident-focus","headY":8,"heightLeft":20,"heightRight":25,"leftAngle":-7,"rightAngle":4,"eyeMotion":"focusPulse","bodyMotion":"breathe","effect":"none"}}
 
 7. update_expression
 {"action":"update_expression","expressionId":"confident-smirk","updates":{"headZ":-4,"mouthScale":1.15}}

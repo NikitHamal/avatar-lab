@@ -4,6 +4,7 @@ import {
   stateGroups,
   stateNotes,
   statePools,
+  stateDisplayNames,
 } from '../avatar/presets'
 import type { Expression } from '../avatar/geometry'
 
@@ -55,6 +56,45 @@ const finite = (value: unknown, fallback: number, min: number, max: number) =>
 const createId = (prefix: string) =>
   `${prefix}-${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`}`
 
+
+const introSequenceIds = new Set(['intro-neby', 'intro-cinematic', 'intro-pop', 'intro-scan'])
+const fastReactionIds = new Set([
+  'excited', 'surprised', 'laughing', 'scared', 'playful', 'celebrate', 'greeting',
+  'agree', 'disagree', 'wink', 'love', 'success', 'error', 'notification', 'dizzy', 'dance',
+])
+const attentiveSequenceIds = new Set(['listening', 'thinking', 'searching', 'working', 'scanning', 'presenting'])
+const calmSequenceIds = new Set(['sleeping', 'drowsy', 'bored', 'sad'])
+
+const builtInStepTiming = (id: string, index: number) => {
+  if (id === 'idle') {
+    const holds = [2100, 420, 1250, 420]
+    const transitions = [260, 180, 240, 180]
+    return { holdMs: holds[index] ?? 900, transitionMs: transitions[index] ?? 220 }
+  }
+  if (id === 'intro-neby') {
+    const holds = [480, 430, 620, 780, 520]
+    const transitions = [260, 240, 300, 340, 280]
+    return { holdMs: holds[index] ?? 520, transitionMs: transitions[index] ?? 260 }
+  }
+  if (introSequenceIds.has(id)) {
+    const holds = [360, 420, 520, 620, 420]
+    return { holdMs: holds[index] ?? 460, transitionMs: index === 0 ? 220 : 250 }
+  }
+  if (fastReactionIds.has(id)) {
+    return { holdMs: index === 0 ? 260 : 380, transitionMs: index === 0 ? 140 : 170 }
+  }
+  if (attentiveSequenceIds.has(id)) {
+    return { holdMs: 560, transitionMs: 220 }
+  }
+  if (id === 'sleeping') {
+    return { holdMs: 1350, transitionMs: 420 }
+  }
+  if (calmSequenceIds.has(id)) {
+    return { holdMs: 620, transitionMs: 250 }
+  }
+  return { holdMs: 440, transitionMs: 180 }
+}
+
 const cloneSequence = (sequence: AvatarSequence): AvatarSequence => ({
   ...sequence,
   steps: sequence.steps.map(step => ({ ...step })),
@@ -65,22 +105,30 @@ export const createInitialSequences = (): AvatarSequence[] =>
   Object.entries(stateGroups).flatMap(([group, stateIds]) =>
     stateIds.map(id => {
       const playback = getStatePlaybackConfig(id)
+      const playbackMode: SequencePlaybackMode = introSequenceIds.has(id) ? 'once' : 'loop'
       return {
         id,
-        name: id,
+        name: stateDisplayNames[id] ?? id,
         group,
         description:
           stateNotes[id] ?? 'Cette animation enchaîne un pool de presets et des clignements.',
         builtIn: true,
-        playbackMode: 'loop',
-        steps: (statePools[id] ?? [0]).map((expressionIndex, index) => ({
-          id: `${id}-step-${index}`,
-          expressionId: initialExpressions[expressionIndex]?.id ?? initialExpressions[0].id,
-          holdMs: id === 'idle' ? [3600, 1200, 2600, 1200][index] : playback.expressionIntervalMs,
-          transitionMs: id === 'idle' ? 650 : 500,
-          transition: 'smooth',
-        })),
-        blink: { enabled: true, ...playback.blink },
+        playbackMode,
+        steps: (statePools[id] ?? [0]).map((expressionIndex, index) => {
+          const timing = builtInStepTiming(id, index)
+          return {
+            id: `${id}-step-${index}`,
+            expressionId: initialExpressions[expressionIndex]?.id ?? initialExpressions[0].id,
+            holdMs: timing.holdMs || playback.expressionIntervalMs,
+            transitionMs: timing.transitionMs,
+            transition: (id.startsWith('intro-')
+              ? 'spring'
+              : fastReactionIds.has(id)
+                ? 'snappy'
+                : 'smooth') as SequenceTransition,
+          }
+        }),
+        blink: { enabled: id !== 'sleeping', ...playback.blink },
       }
     })
   )

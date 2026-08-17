@@ -1,4 +1,6 @@
 import type { AvatarColors, AvatarEyeRenderer } from '../avatar/avatars'
+import type { AvatarVisualEffect } from '../avatar/geometry'
+import { avatarEffectSvgMarkup } from '../rendering/avatarEffects'
 import type { RenderedScene } from '../rendering/renderedScene'
 import {
   resolveNodeFill,
@@ -14,6 +16,12 @@ export type SnapshotOptions = {
   colorFrom: string
   colorTo: string
   size: number
+}
+
+export type SnapshotRenderOptions = {
+  effect?: AvatarVisualEffect
+  elapsedMs?: number
+  mouthStrokeWidth?: number
 }
 
 const escapeXml = (value: string) =>
@@ -58,7 +66,8 @@ export const serializeAvatarSnapshot = (
   scene: RenderedScene,
   colors: AvatarColors,
   options: SnapshotOptions,
-  eyeRenderer: AvatarEyeRenderer = 'classic'
+  eyeRenderer: AvatarEyeRenderer = 'classic',
+  renderOptions: SnapshotRenderOptions = {}
 ) => {
   const headPath = scene.headPath.get()
   const backPaths = scene.backPaths
@@ -91,7 +100,7 @@ export const serializeAvatarSnapshot = (
   const mouthOpacity = scene.mouthOpacity.get()
   const mouthMarkup =
     mouthPath && mouthOpacity > 0
-      ? `<path d="${escapeXml(mouthPath)}" stroke="${escapeXml(colors.eyes)}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="${mouthOpacity}"/>`
+      ? `<path d="${escapeXml(mouthPath)}" stroke="${escapeXml(colors.eyes)}" stroke-width="${(renderOptions.mouthStrokeWidth ?? 3.2).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="${mouthOpacity}"/>`
       : ''
 
   const decalsMarkup = (scene.decals.current ?? [])
@@ -126,6 +135,8 @@ export const serializeAvatarSnapshot = (
   const classicEyeMarkup = `${path(scene.leftPath.get(), colors.eyes, scene.leftOpacity.get())}${leftPupilMarkup}${path(scene.rightPath.get(), colors.eyes, scene.rightOpacity.get())}${rightPupilMarkup}`
   const eyeMarkup = creatureEyeMarkup || classicEyeMarkup
 
+  const effectMarkup = avatarEffectSvgMarkup(renderOptions.effect, renderOptions.elapsedMs ?? 0)
+
   const body = [
     backPaths,
     path(headPath, colors.body),
@@ -137,7 +148,7 @@ export const serializeAvatarSnapshot = (
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}" role="img" aria-label="${escapeXml(name)}">
   <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath><clipPath id="snapshot-left-eye-clip"><path d="${escapeXml(scene.leftPath.get())}"/></clipPath><clipPath id="snapshot-right-eye-clip"><path d="${escapeXml(scene.rightPath.get())}"/></clipPath>${creatureClipDefinition}</defs>
   ${backgroundMarkup(options)}
-  <g transform="translate(${offsetX} ${offsetY})">${body}</g>
+  <g transform="translate(${offsetX} ${offsetY})">${body}</g>${effectMarkup}
 </svg>`
 }
 

@@ -85,76 +85,67 @@ function quantizeRgba(
   colorBits: number
 } {
   const pixelCount = width * height
-  const colorMap = new Map<number, number>()
-  const palette: number[] = []
   const indexedPixels = new Uint8Array(pixelCount)
-  let transparentIndex = -1
+  const palette: number[] = []
 
   if (transparent) {
-    // Reserve index 0 for transparent color
-    transparentIndex = 0
-    palette.push(0, 0, 0) // Black dummy for transparent slot
-  }
-
-  for (let i = 0; i < pixelCount; i++) {
-    const offset = i * 4
-    const r = rgba[offset]
-    const g = rgba[offset + 1]
-    const b = rgba[offset + 2]
-    const a = rgba[offset + 3]
-
-    if (transparent && a < 128) {
-      indexedPixels[i] = transparentIndex
-      continue
-    }
-
-    // Quantize 8-bit to 5-bit per channel if palette gets too full, or keep exact
-    const key = (r << 16) | (g << 8) | b
-    let idx = colorMap.get(key)
-
-    if (idx === undefined) {
-      if (palette.length / 3 < 256) {
-        idx = palette.length / 3
-        colorMap.set(key, idx)
-        palette.push(r, g, b)
-      } else {
-        // Nearest match fallback when colors exceed 256
-        let minDist = Infinity
-        let bestIdx = 0
-        const start = transparent ? 1 : 0
-        for (let p = start; p < palette.length / 3; p++) {
-          const pr = palette[p * 3]
-          const pg = palette[p * 3 + 1]
-          const pb = palette[p * 3 + 2]
-          const dist = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2
-          if (dist < minDist) {
-            minDist = dist
-            bestIdx = p
-          }
+    // Reserve index 0 for alpha. A 7 x 7 x 5 RGB cube gives 245 stable opaque
+    // colors, avoids frame-by-frame nearest-neighbour searches, and leaves enough
+    // room for the transparent entry inside a standard 256-color GIF palette.
+    const redLevels = 7
+    const greenLevels = 7
+    const blueLevels = 5
+    palette.push(0, 0, 0)
+    for (let r = 0; r < redLevels; r += 1) {
+      for (let g = 0; g < greenLevels; g += 1) {
+        for (let b = 0; b < blueLevels; b += 1) {
+          palette.push(
+            Math.round((r * 255) / (redLevels - 1)),
+            Math.round((g * 255) / (greenLevels - 1)),
+            Math.round((b * 255) / (blueLevels - 1))
+          )
         }
-        idx = bestIdx
       }
     }
 
-    indexedPixels[i] = idx
+    for (let i = 0; i < pixelCount; i += 1) {
+      const offset = i * 4
+      if (rgba[offset + 3] < 128) {
+        indexedPixels[i] = 0
+        continue
+      }
+      const r = Math.min(redLevels - 1, Math.round((rgba[offset] * (redLevels - 1)) / 255))
+      const g = Math.min(greenLevels - 1, Math.round((rgba[offset + 1] * (greenLevels - 1)) / 255))
+      const b = Math.min(blueLevels - 1, Math.round((rgba[offset + 2] * (blueLevels - 1)) / 255))
+      indexedPixels[i] = 1 + (r * greenLevels + g) * blueLevels + b
+    }
+  } else {
+    // Classic 3-3-2 fixed RGB cube: exactly 256 entries and O(1) work per pixel.
+    // GIF is already limited to 8-bit indexed color, so this is both faster and
+    // more predictable than keeping the first 256 arbitrary anti-aliased colors.
+    for (let r = 0; r < 8; r += 1) {
+      for (let g = 0; g < 8; g += 1) {
+        for (let b = 0; b < 4; b += 1) {
+          palette.push(Math.round((r * 255) / 7), Math.round((g * 255) / 7), Math.round((b * 255) / 3))
+        }
+      }
+    }
+    for (let i = 0; i < pixelCount; i += 1) {
+      const offset = i * 4
+      const r = rgba[offset] >> 5
+      const g = rgba[offset + 1] >> 5
+      const b = rgba[offset + 2] >> 6
+      indexedPixels[i] = (r << 5) | (g << 2) | b
+    }
   }
 
-  // Ensure palette size is a power of 2 (at least 4 colors = 2 bits)
-  let colorCount = Math.max(4, palette.length / 3)
-  let colorBits = 2
-  while (1 << colorBits < colorCount && colorBits < 8) {
-    colorBits++
-  }
-  const paddedCount = 1 << colorBits
-  while (palette.length / 3 < paddedCount) {
-    palette.push(0, 0, 0)
-  }
+  while (palette.length < 256 * 3) palette.push(0, 0, 0)
 
   return {
     palette,
     indexedPixels,
-    transparentIndex,
-    colorBits,
+    transparentIndex: transparent ? 0 : -1,
+    colorBits: 8,
   }
 }
 

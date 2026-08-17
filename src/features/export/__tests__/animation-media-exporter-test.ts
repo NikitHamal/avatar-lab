@@ -83,4 +83,54 @@ describe('animationMediaExporter', () => {
       expect(frame.delayMs).toBeGreaterThanOrEqual(16)
     }
   })
+
+  it('keeps one-shot exports on their final pose instead of transitioning back to frame one', () => {
+    const avatar = createAvatar('Intro Avatar')
+    const first = initialExpressions.find(expression => expression.id === 'idle-front')!
+    const final = initialExpressions.find(expression => expression.id === 'confetti')!
+    const sequence = {
+      ...createInitialSequences().find(item => item.id === 'intro-neby')!,
+      playbackMode: 'once' as const,
+      blink: { enabled: false, initialDelayMs: 0, minIntervalMs: 3000, maxIntervalMs: 5000, durationMs: 200 },
+      steps: [
+        { id: 'first', expressionId: first.id, holdMs: 100, transitionMs: 0, transition: 'smooth' as const },
+        { id: 'final', expressionId: final.id, holdMs: 240, transitionMs: 120, transition: 'spring' as const },
+      ],
+    }
+    const frames = sampleAnimationFrames(avatar, sequence, [first, final], {
+      ...defaultAnimationMediaOptions,
+      fps: 24,
+      size: 256,
+    })
+
+    expect(frames.at(-1)?.svg).toContain('<rect')
+    expect(frames.at(-1)?.elapsedMs ?? 0).toBeLessThan(500)
+  })
+
+  it('bakes real effects and respects avatar-level mouth disablement', () => {
+    const avatar = createAvatar('Effect Avatar')
+    const confetti = initialExpressions.find(expression => expression.id === 'confetti')!
+    const expression = { ...confetti, mouth: 'smile' as const }
+    const sequence = {
+      ...createInitialSequences().find(item => item.id === 'success')!,
+      steps: [
+        {
+          id: 'effect-step',
+          expressionId: expression.id,
+          holdMs: 360,
+          transitionMs: 0,
+          transition: 'snappy' as const,
+        },
+      ],
+    }
+    const frames = sampleAnimationFrames(avatar, sequence, [expression], {
+      ...defaultAnimationMediaOptions,
+      fps: 12,
+      size: 256,
+    })
+
+    expect(frames.some(frame => frame.svg.includes('<rect'))).toBe(true)
+    expect(frames.every(frame => !frame.svg.includes('stroke-linecap="round"'))).toBe(true)
+  })
+
 })

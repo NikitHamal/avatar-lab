@@ -28,6 +28,9 @@ describe('avatar export', () => {
     )
     expect(payload).not.toHaveProperty('frames')
     expect(payload.avatar.name).toBe('Strobi')
+    expect(payload.avatar.mouthEnabled).toBe(false)
+    expect(payload.avatar.eyeRenderer).toBe('classic')
+    expect(payload.avatar.creaturePaletteIndex).toBe(52)
   })
 
   it('generates a standalone JavaScript module without a Web Component', () => {
@@ -41,6 +44,9 @@ describe('avatar export', () => {
     expect(source).toContain('pausedBlink')
     expect(source).toContain('step.transition')
     expect(source).toContain('stepIndex = 0')
+    expect(source).toContain('effectMarkup')
+    expect(source).toContain('DATA.avatar.mouthEnabled === true')
+    expect(source).toContain('mouthStrokeWidth')
     expect(source).not.toContain('customElements.define')
     expect(source).not.toContain("from '")
     expect(() => parse(source, { sourceType: 'module' })).not.toThrow()

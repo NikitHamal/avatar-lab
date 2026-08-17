@@ -24,6 +24,7 @@ import {
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
 import { type CreatureEyeFrame, type Expression, type EyeStyle } from '@/features/avatar/geometry'
+import { AvatarEffectLayer } from '@/features/rendering/avatarEffects'
 import {
   CREATURE_NATIVE_EYE_CENTER_X,
   CREATURE_NATIVE_EYE_CENTER_Y,
@@ -293,7 +294,7 @@ export function ExpressionPreview({
           <path
             d={geometry.mouthPath}
             stroke={resolvedColors.eyes}
-            strokeWidth="3.2"
+            strokeWidth={expression.mouthStrokeWidth ?? 3.2}
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
@@ -315,6 +316,7 @@ export function ExpressionPreview({
           />
         )
       })}
+      <AvatarEffectLayer effect={expression.effect} />
     </svg>
   )
 }
@@ -420,6 +422,8 @@ export function ExpressionCard({
 export function ExpressionWorkspace({
   editing,
   avatarColors,
+  mouthEnabled,
+  onMouthEnabledChange,
   backButtonRef,
   onChange,
   onCancel,
@@ -429,6 +433,8 @@ export function ExpressionWorkspace({
 }: {
   editing: { index: number | null; draft: Expression }
   avatarColors: AvatarColors
+  mouthEnabled: boolean
+  onMouthEnabledChange: (enabled: boolean) => void
   backButtonRef: RefObject<HTMLButtonElement | null>
   onChange: (draft: Expression) => void
   onCancel: () => void
@@ -595,12 +601,17 @@ export function ExpressionWorkspace({
                   { value: 'wander', label: 'Regard errant' },
                   { value: 'lookAround', label: 'Balayage du regard' },
                   { value: 'focusPulse', label: 'Focus vivant' },
+                  { value: 'dart', label: 'Saccades rapides' },
+                  { value: 'orbit', label: 'Orbites / eye-roll' },
+                  { value: 'squintPulse', label: 'Plissement vivant' },
+                  { value: 'sparkle', label: 'Pétillant / euphorique' },
+                  { value: 'anticipate', label: 'Anticipation' },
                   { value: 'shake', label: 'Tremblement' },
                 ]}
                 onChange={eyeMotion => update({ eyeMotion })}
               />
               <p className="field-help">
-                {t('Anime le regard par petites saccades naturelles ou par tremblement.')}
+                {t('Anime le regard avec des micro-jeux, darts, squints, orbites et anticipations pensés pour jouer l’émotion sans bouche.')}
               </p>
             </Card>
             {(['width', 'height', 'size'] as const).map(dimension => (
@@ -716,41 +727,103 @@ export function ExpressionWorkspace({
           >
             <Card className="dialog-group">
               <div className="switch">
-                <span>{t('Activer la bouche')}</span>
+                <div>
+                  <strong>{t('Bouche de cet avatar')}</strong>
+                  <small>{t('Désactivée par défaut : le jeu émotionnel reste porté par les yeux.')}</small>
+                </div>
                 <Switch
-                  checked={Boolean(editing.draft.mouth && editing.draft.mouth !== 'none')}
-                  onCheckedChange={enabled => update({ mouth: enabled ? 'smile' : 'none' })}
-                  aria-label={t('Activer la bouche')}
+                  checked={mouthEnabled}
+                  onCheckedChange={onMouthEnabledChange}
+                  aria-label={t('Activer la bouche pour cet avatar')}
                 />
               </div>
-              {editing.draft.mouth && editing.draft.mouth !== 'none' && (
+              {mouthEnabled && (
                 <>
-                  <AmbientMotionField<NonNullable<Expression['mouth']>>
-                    label="Style de bouche"
-                    value={editing.draft.mouth}
-                    options={[
-                      { value: 'none', label: 'Aucune' },
-                      { value: 'smile', label: 'Sourire' },
-                      { value: 'grin', label: 'Grand sourire' },
-                      { value: 'openSmile', label: 'Sourire ouvert' },
-                      { value: 'flat', label: 'Neutre' },
-                      { value: 'frown', label: 'Triste' },
-                      { value: 'smirk', label: 'Malicieux' },
-                      { value: 'cat', label: 'Chat' },
-                      { value: 'oMouth', label: 'Surprise' },
-                      { value: 'kiss', label: 'Bisou' },
-                    ]}
-                    onChange={mouth => update({ mouth })}
-                  />
-                  <NumericField
-                    label="Taille de bouche"
-                    value={editing.draft.mouthScale ?? 1}
-                    min={0.45}
-                    max={1.8}
-                    step={0.05}
-                    unit="×"
-                    onChange={mouthScale => update({ mouthScale })}
-                  />
+                  <div className="switch">
+                    <span>{t('Bouche dans cette expression')}</span>
+                    <Switch
+                      checked={Boolean(editing.draft.mouth && editing.draft.mouth !== 'none')}
+                      onCheckedChange={enabled => update({ mouth: enabled ? 'smile' : 'none' })}
+                      aria-label={t('Bouche dans cette expression')}
+                    />
+                  </div>
+                  {editing.draft.mouth && editing.draft.mouth !== 'none' && (
+                    <>
+                      <AmbientMotionField<NonNullable<Expression['mouth']>>
+                        label="Style de bouche"
+                        value={editing.draft.mouth}
+                        options={[
+                          { value: 'none', label: 'Aucune' },
+                          { value: 'smile', label: 'Sourire' },
+                          { value: 'grin', label: 'Grand sourire' },
+                          { value: 'openSmile', label: 'Sourire ouvert' },
+                          { value: 'flat', label: 'Neutre' },
+                          { value: 'frown', label: 'Triste' },
+                          { value: 'smirk', label: 'Malicieux' },
+                          { value: 'cat', label: 'Chat' },
+                          { value: 'oMouth', label: 'Surprise' },
+                          { value: 'kiss', label: 'Bisou' },
+                        ]}
+                        onChange={mouth => update({ mouth })}
+                      />
+                      <NumericField
+                        label="Taille"
+                        value={editing.draft.mouthScale ?? 1}
+                        min={0.45}
+                        max={1.8}
+                        step={0.05}
+                        unit="×"
+                        onChange={mouthScale => update({ mouthScale })}
+                      />
+                      <NumericField
+                        label="Largeur"
+                        value={editing.draft.mouthWidth ?? 1}
+                        min={0.45}
+                        max={2.2}
+                        step={0.05}
+                        unit="×"
+                        onChange={mouthWidth => update({ mouthWidth })}
+                      />
+                      <div className="eye-columns">
+                        <NumericField
+                          label="Position X"
+                          value={editing.draft.mouthOffsetX ?? 0}
+                          min={-48}
+                          max={48}
+                          step={1}
+                          unit="u"
+                          onChange={mouthOffsetX => update({ mouthOffsetX })}
+                        />
+                        <NumericField
+                          label="Position Y"
+                          value={editing.draft.mouthOffsetY ?? 0}
+                          min={-48}
+                          max={48}
+                          step={1}
+                          unit="u"
+                          onChange={mouthOffsetY => update({ mouthOffsetY })}
+                        />
+                      </div>
+                      <NumericField
+                        label="Courbure"
+                        value={editing.draft.mouthCurve ?? 1}
+                        min={0.2}
+                        max={2.4}
+                        step={0.05}
+                        unit="×"
+                        onChange={mouthCurve => update({ mouthCurve })}
+                      />
+                      <NumericField
+                        label="Épaisseur"
+                        value={editing.draft.mouthStrokeWidth ?? 3.2}
+                        min={1}
+                        max={8}
+                        step={0.2}
+                        unit="px"
+                        onChange={mouthStrokeWidth => update({ mouthStrokeWidth })}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </Card>
