@@ -447,6 +447,13 @@ input {
   gap: 10px;
 }
 
+.export-format-section {
+  display: grid;
+  min-width: 0;
+  gap: 0;
+  padding: 4px 2px 2px;
+}
+
 .export-format-grid > button {
   justify-content: flex-start;
   min-width: 0;
@@ -521,14 +528,6 @@ input {
   min-height: 44px;
   box-shadow: 0 12px 30px rgb(23 25 29 / 18%);
 }
-.runtime-export-actions {
-  display: grid;
-  gap: 8px;
-}
-.runtime-export-actions > button {
-  width: 100%;
-  min-height: 44px;
-}
 .runtime-copy-status {
   margin: 0;
   color: var(--muted-foreground);
@@ -538,9 +537,10 @@ input {
 .runtime-copy-status[role='alert'] {
   color: var(--destructive);
 }
-.runtime-example-card {
+.runtime-quick-start-card,
+.runtime-export-card {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 .runtime-export-description {
   margin: 0;
@@ -548,32 +548,95 @@ input {
   font-size: 11px;
   line-height: 1.5;
 }
-.runtime-example-heading {
+.runtime-quick-start-heading {
   display: flex;
-  align-items: stretch;
-  flex-direction: column;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
-.runtime-example-heading > div:first-child {
+.runtime-quick-start-heading > div,
+.runtime-export-heading > div {
   display: grid;
   min-width: 0;
   gap: 2px;
 }
-.runtime-example-heading small {
+.runtime-quick-start-heading h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -0.015em;
+}
+.runtime-quick-start-heading > button {
+  flex: none;
+  color: #4168d5;
+  font-size: 11px;
+}
+.runtime-quick-start-heading > button > svg {
+  width: 14px;
+  height: 14px;
+}
+.runtime-quick-start-step {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+.runtime-quick-start-step > span,
+.runtime-export-heading small {
   color: var(--muted-foreground);
   font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.runtime-example-heading strong {
+.runtime-quick-start-step > code {
+  display: block;
+  overflow-x: auto;
+  padding: 10px 12px;
+  border: 1px solid #dfe3eb;
+  border-radius: 9px;
+  background: #f7f8fb;
+  color: #3159cb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.runtime-quick-start-step > pre {
+  max-width: 100%;
+  max-height: 245px;
+  margin: 0;
+  overflow: auto;
+  padding: 13px 14px;
+  border: 1px solid #2d323b;
+  border-radius: 10px;
+  background: #17191d;
+  color: #d8dee9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 1.65;
+  white-space: pre;
+}
+.runtime-export-heading {
+  display: grid;
+  gap: 8px;
+}
+.runtime-export-heading strong {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   overflow-wrap: anywhere;
 }
-.runtime-example-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 6px;
+.runtime-export-actions {
+  display: grid;
+  gap: 8px;
+}
+.runtime-export-actions button {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+}
+.runtime-export-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 .runtime-token-comment {
   color: #a6adbb;
@@ -3175,12 +3238,12 @@ p {
   .runtime-preview-option-grid {
     max-height: none;
   }
-  .runtime-example-heading {
+  .runtime-quick-start-heading {
     align-items: flex-start;
     flex-direction: column;
   }
-  .runtime-example-actions {
-    justify-content: flex-start;
+  .runtime-quick-start-heading > button {
+    padding-inline: 0;
   }
   html,
   body,

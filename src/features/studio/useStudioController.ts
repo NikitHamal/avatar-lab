@@ -83,7 +83,11 @@ import {
 } from '@/features/avatar/geometry'
 import { defaultExpression } from '@/features/avatar/presets'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
-import { avatarExportFileName, generateJavaScriptEsmPackage } from '@/features/export/exporter'
+import {
+  avatarDemoFileName,
+  generateJavaScriptEsmPackage,
+  generateReactVitePackage,
+} from '@/features/export/exporter'
 import {
   serializeAvatarSnapshot,
   serializePixelSnapshot,
@@ -1569,10 +1573,12 @@ export function useStudioController() {
     )
   }
   const downloadAvatarExport = () => {
-    if (!runtimeDefinitionResult.ok || exportFormat !== 'javascript') return
+    if (!runtimeDefinitionResult.ok) return
     downloadBlob(
-      generateJavaScriptEsmPackage(runtimeDefinitionResult.value, activeAvatar.name),
-      avatarExportFileName(activeAvatar.name, 'zip')
+      exportFormat === 'javascript'
+        ? generateJavaScriptEsmPackage(runtimeDefinitionResult.value, activeAvatar.name)
+        : generateReactVitePackage(runtimeDefinitionResult.value, activeAvatar.name),
+      avatarDemoFileName(activeAvatar.name, exportFormat)
     )
   }
   const downloadAvatarRuntimeDefinition = () => {

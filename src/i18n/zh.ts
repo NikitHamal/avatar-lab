@@ -110,6 +110,7 @@ export const chinese: Record<string, string> = {
     '请在“表情”或“动画”编辑器中修正标记的键。',
   'Télécharger la définition .avatar.json': '下载 .avatar.json 定义',
   'Copier le JSON formaté': '复制格式化的 JSON',
+  'Copier le JSON': '复制 JSON',
   'JSON runtime copié dans le presse-papiers.': '运行时 JSON 已复制到剪贴板。',
   'Impossible de copier le JSON runtime.': '无法复制运行时 JSON。',
   Installation: '安装',
@@ -118,6 +119,7 @@ export const chinese: Record<string, string> = {
   'Aperçu avec le package React': '使用 React 包预览',
   Preview: '预览',
   'Définition prête à tester': '定义已可测试',
+  'Démarrage rapide': '快速开始',
   'Preview de la définition exportée': '导出定义预览',
   'Teste les animations et expressions réellement présentes dans le fichier .avatar.json.':
     '测试 .avatar.json 文件中实际包含的动画和表情。',
@@ -136,6 +138,7 @@ export const chinese: Record<string, string> = {
   'Expression de départ': '起始表情',
   'Aucune animation sélectionnée': '未选择动画',
   'Guide d’utilisation': '使用指南',
+  'Voir le guide complet': '查看完整使用指南',
   'Guide d’utilisation de l’avatar React': 'React 头像使用指南',
   'Guide d’utilisation de l’avatar JavaScript': 'JavaScript 头像使用指南',
   'Installe le package, crée ton composant et choisis le niveau de contrôle adapté.':
@@ -266,7 +269,15 @@ export const chinese: Record<string, string> = {
   'Intégration ESM avec le package avatar-web': '使用 avatar-web 包的 ESM 集成',
   'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.':
     'ZIP 包含导出的 JSON、index.html 演示和 README。演示会从 CDN 加载 avatar-web。',
+  'Le ZIP contient le JSON exporté et un projet Vite React TypeScript prêt à lancer avec npm install puis npm run dev.':
+    'ZIP 包含导出的 JSON 和一个可直接运行的 Vite React TypeScript 项目。先运行 npm install，再运行 npm run dev。',
   'Télécharger l’intégration ESM (.zip)': '下载 ESM 集成（.zip）',
+  'Télécharger la démo React (.zip)': '下载 React 演示（.zip）',
+  'Télécharger la démo ESM (.zip)': '下载 ESM 演示（.zip）',
+  'Télécharger le JSON': '下载 JSON',
+  'Utilisation minimale': '最简用法',
+  'Utiliser cet avatar': '使用此头像',
+  'Prêt à exporter': '可以导出',
   Snapshot: '快照',
   'Mode photo': '照片模式',
   'Capture une image statique de l’avatar.': '捕获头像的静态图像。',

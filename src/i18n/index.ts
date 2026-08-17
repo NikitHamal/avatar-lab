@@ -141,6 +141,7 @@ const english: Record<string, string> = {
     'Fix the highlighted keys in the Expressions or Animations editors.',
   'Télécharger la définition .avatar.json': 'Download .avatar.json definition',
   'Copier le JSON formaté': 'Copy formatted JSON',
+  'Copier le JSON': 'Copy JSON',
   'JSON runtime copié dans le presse-papiers.': 'Runtime JSON copied to the clipboard.',
   'Impossible de copier le JSON runtime.': 'Could not copy the runtime JSON.',
   Installation: 'Installation',
@@ -149,6 +150,7 @@ const english: Record<string, string> = {
   'Aperçu avec le package React': 'Preview using the React package',
   Preview: 'Preview',
   'Définition prête à tester': 'Definition ready to test',
+  'Démarrage rapide': 'Quick start',
   'Preview de la définition exportée': 'Exported definition preview',
   'Teste les animations et expressions réellement présentes dans le fichier .avatar.json.':
     'Test the animations and expressions actually included in the .avatar.json file.',
@@ -167,6 +169,7 @@ const english: Record<string, string> = {
   'Expression de départ': 'Starting expression',
   'Aucune animation sélectionnée': 'No animation selected',
   'Guide d’utilisation': 'Usage guide',
+  'Voir le guide complet': 'View full usage guide',
   'Guide d’utilisation de l’avatar React': 'React avatar usage guide',
   'Guide d’utilisation de l’avatar JavaScript': 'JavaScript avatar usage guide',
   'Installe le package, crée ton composant et choisis le niveau de contrôle adapté.':
@@ -305,7 +308,15 @@ const english: Record<string, string> = {
   'Intégration ESM avec le package avatar-web': 'ESM integration with the avatar-web package',
   'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.':
     'The ZIP contains the exported JSON, an index.html demo and its README. The demo loads avatar-web from a CDN.',
+  'Le ZIP contient le JSON exporté et un projet Vite React TypeScript prêt à lancer avec npm install puis npm run dev.':
+    'The ZIP contains the exported JSON and a ready-to-run Vite React TypeScript project. Start it with npm install, then npm run dev.',
   'Télécharger l’intégration ESM (.zip)': 'Download ESM integration (.zip)',
+  'Télécharger la démo React (.zip)': 'Download React demo (.zip)',
+  'Télécharger la démo ESM (.zip)': 'Download ESM demo (.zip)',
+  'Télécharger le JSON': 'Download JSON',
+  'Utilisation minimale': 'Minimal usage',
+  'Utiliser cet avatar': 'Use this avatar',
+  'Prêt à exporter': 'Ready to export',
   Snapshot: 'Snapshot',
   'Mode photo': 'Photo Mode',
   'Capture une image statique de l’avatar.': 'Capture a static image of the avatar.',

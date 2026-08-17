@@ -1,6 +1,7 @@
 import { createAvatar } from '@/features/avatar/avatars'
 import { parse } from '@babel/parser'
 import {
+  avatarDemoFileName,
   createAvatarExportPayload,
   generateJavaScriptAvatarHtml,
   generateJavaScriptAvatarModule,
@@ -10,6 +11,8 @@ import {
   generateReactAvatarComponent,
   generateReactAvatarPackage,
   generateReactAvatarRuntime,
+  generateReactViteMain,
+  generateReactVitePackage,
 } from '@/features/export/exporter'
 import { createAvatarDefinition } from '@/features/avatar/avatarDefinition'
 import { resolveAvatarBehavior } from '@/features/avatar/avatars'
@@ -41,6 +44,11 @@ describe('avatar export', () => {
     ['idle', 'listening'].includes(item.id)
   )
   const payload = createAvatarExportPayload(avatar, initialExpressions, animations)
+
+  it('uses distinct filenames for React and ESM demo archives', () => {
+    expect(avatarDemoFileName('Strobi', 'react')).toBe('strobi-avatar-react.zip')
+    expect(avatarDemoFileName('Strobi', 'javascript')).toBe('strobi-avatar-esm.zip')
+  })
 
   it('includes only the selected animations and their referenced expressions', () => {
     expect(Object.keys(payload.animations)).toEqual(['idle', 'listening'])
@@ -169,6 +177,50 @@ describe('avatar export', () => {
     const contents = new TextDecoder().decode(archive)
     expect(storedZipFileNames(archive)).toEqual(['strobi.avatar.json', 'index.html', 'README.md'])
     expect(contents).toContain('esm.sh/@bible-strong/avatar-web@0.1.0')
+    expect(contents).not.toContain('AvatarProceduralEngine')
+  })
+
+  it('generates a ready-to-run React TypeScript demo backed by avatar-react', async () => {
+    const document = loadStudioDocument({ getItem: () => null })
+    const studioAvatar = document.library.avatars[0]
+    const definition = createAvatarDefinition({
+      avatar: studioAvatar,
+      behavior: resolveAvatarBehavior(studioAvatar, {
+        expressions: document.expressions,
+        sequences: document.sequences,
+      }),
+    })
+    expect(definition.ok).toBe(true)
+    if (!definition.ok) return
+
+    const source = generateReactViteMain('../strobi.avatar.json', 'Strobi')
+    expect(source).toContain("from '@bible-strong/avatar-react'")
+    expect(source).toContain("from '../strobi.avatar.json'")
+    expect(source).toContain('createAvatar(definition)')
+    expect(source).toContain("kind: 'animation'")
+    expect(source).toContain("kind: 'expression'")
+    expect(() =>
+      parse(source, { sourceType: 'module', plugins: ['typescript', 'jsx'] })
+    ).not.toThrow()
+
+    const archive = new Uint8Array(
+      await generateReactVitePackage(definition.value, 'Strobi').arrayBuffer()
+    )
+    const contents = new TextDecoder().decode(archive)
+    expect(storedZipFileNames(archive)).toEqual([
+      'strobi.avatar.json',
+      'package.json',
+      'index.html',
+      'tsconfig.json',
+      'vite.config.ts',
+      'src/main.tsx',
+      'src/vite-env.d.ts',
+      'src/styles.css',
+      'README.md',
+    ])
+    expect(contents).toContain('"@bible-strong/avatar-react": "0.1.0"')
+    expect(contents).toContain('npm install')
+    expect(contents).toContain('npm run dev')
     expect(contents).not.toContain('AvatarProceduralEngine')
   })
 

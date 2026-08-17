@@ -1,6 +1,6 @@
 import {
   ArrowLeft,
-  BookOpen,
+  ArrowRight,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -70,6 +70,29 @@ import { RuntimeGuideDialog } from '@/features/studio/components/RuntimeGuideDia
 import { RuntimePreviewDialog } from '@/features/studio/components/RuntimePreviewDialog'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
+
+const reactQuickStartInstall = 'npm install @bible-strong/avatar-react react react-dom'
+const webQuickStartInstall = 'npm install @bible-strong/avatar-web'
+
+const reactQuickStartExample = (animationKey: string | undefined) =>
+  `import { createAvatar } from '@bible-strong/avatar-react'
+import '@bible-strong/avatar-react/styles.css'
+import definition from './avatar.avatar.json'
+
+const Avatar = createAvatar(definition)
+
+export function App() {
+  return <Avatar ${animationKey ? `defaultAnimation="${animationKey}"` : 'defaultExpression="neutral"'} />
+}`
+
+const webQuickStartExample = (animationKey: string | undefined) =>
+  `import { createAvatar } from '@bible-strong/avatar-web'
+import definition from './avatar.avatar.json'
+
+const avatar = createAvatar('#avatar', {
+  definition,
+  ${animationKey ? `defaultAnimation: '${animationKey}',` : `defaultExpression: 'neutral',`}
+})`
 
 export function StudioInspector({ controller }: { controller: StudioController }) {
   const [runtimePreviewOpen, setRuntimePreviewOpen] = useState(false)
@@ -1637,7 +1660,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </div>
                   </InspectorCard>
 
-                  <InspectorCard>
+                  <section className="export-format-section" aria-label={t('Format')}>
                     <PanelTitle
                       title="Format"
                       subtitle="Choisis l’intégration correspondant à ton projet."
@@ -1668,7 +1691,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         </span>
                       </Button>
                     </div>
-                  </InspectorCard>
+                  </section>
 
                   <InspectorCard>
                     <div className="preset-header export-animation-header">
@@ -1780,10 +1803,41 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </InspectorCard>
                   )}
 
-                  <InspectorCard className="runtime-example-card">
-                    <div className="runtime-example-heading">
+                  <InspectorCard className="runtime-quick-start-card">
+                    <div className="runtime-quick-start-heading">
                       <div>
-                        <small>{t('Définition prête à tester')}</small>
+                        <p className="eyebrow">{t('Démarrage rapide')}</p>
+                        <h2>{t('Utiliser cet avatar')}</h2>
+                      </div>
+                      <Button type="button" variant="ghost" onClick={() => setGuideOpen(true)}>
+                        {t('Voir le guide complet')}
+                        <ArrowRight />
+                      </Button>
+                    </div>
+
+                    <div className="runtime-quick-start-step">
+                      <span>{t('Installation')}</span>
+                      <code>
+                        {exportFormat === 'react' ? reactQuickStartInstall : webQuickStartInstall}
+                      </code>
+                    </div>
+
+                    <div className="runtime-quick-start-step">
+                      <span>{t('Utilisation minimale')}</span>
+                      <pre tabIndex={0}>
+                        <code>
+                          {exportFormat === 'react'
+                            ? reactQuickStartExample(runtimePreviewAnimation)
+                            : webQuickStartExample(runtimePreviewAnimation)}
+                        </code>
+                      </pre>
+                    </div>
+                  </InspectorCard>
+
+                  <InspectorCard className="runtime-export-card">
+                    <div className="runtime-export-heading">
+                      <div>
+                        <small>{t('Prêt à exporter')}</small>
                         <strong>
                           {selectedExportAnimations.length} {t('animations')} ·{' '}
                           {runtimeDefinitionResult.ok
@@ -1792,7 +1846,39 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           {t('expressions')}
                         </strong>
                       </div>
-                      <div className="runtime-example-actions">
+                      <p className="runtime-export-description">
+                        {t(
+                          exportFormat === 'javascript'
+                            ? 'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.'
+                            : 'Le ZIP contient le JSON exporté et un projet Vite React TypeScript prêt à lancer avec npm install puis npm run dev.'
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="runtime-export-actions">
+                      <Button
+                        className="export-download"
+                        type="button"
+                        disabled={!runtimeDefinitionResult.ok}
+                        onClick={downloadAvatarRuntimeDefinition}
+                      >
+                        <Download />
+                        {t('Télécharger la définition .avatar.json')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!runtimeDefinitionResult.ok}
+                        onClick={downloadAvatarExport}
+                      >
+                        <Download />
+                        {t(
+                          exportFormat === 'javascript'
+                            ? 'Télécharger la démo ESM (.zip)'
+                            : 'Télécharger la démo React (.zip)'
+                        )}
+                      </Button>
+                      <div className="runtime-export-secondary-actions">
                         <Button
                           type="button"
                           variant="outline"
@@ -1802,52 +1888,18 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           <Play />
                           {t('Preview')}
                         </Button>
-                        <Button type="button" variant="ghost" onClick={() => setGuideOpen(true)}>
-                          <BookOpen />
-                          {t('Guide d’utilisation')}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!runtimeDefinitionResult.ok}
+                          onClick={() => void copyAvatarRuntimeDefinition()}
+                        >
+                          <Copy />
+                          {t('Copier le JSON')}
                         </Button>
                       </div>
                     </div>
-                    {exportFormat === 'javascript' && (
-                      <p className="runtime-export-description">
-                        {t(
-                          'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.'
-                        )}
-                      </p>
-                    )}
                   </InspectorCard>
-
-                  <div className="runtime-export-actions">
-                    <Button
-                      className="export-download"
-                      type="button"
-                      disabled={!runtimeDefinitionResult.ok}
-                      onClick={downloadAvatarRuntimeDefinition}
-                    >
-                      <Download />
-                      {t('Télécharger la définition .avatar.json')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!runtimeDefinitionResult.ok}
-                      onClick={() => void copyAvatarRuntimeDefinition()}
-                    >
-                      <Copy />
-                      {t('Copier le JSON formaté')}
-                    </Button>
-                    {exportFormat === 'javascript' && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={!runtimeDefinitionResult.ok}
-                        onClick={downloadAvatarExport}
-                      >
-                        <Download />
-                        {t('Télécharger l’intégration ESM (.zip)')}
-                      </Button>
-                    )}
-                  </div>
                   {runtimeCopyStatus !== 'idle' && (
                     <p
                       className="runtime-copy-status"
