@@ -686,6 +686,7 @@
   "expressions": [
     {
       "id": "expression-00",
+      "semanticKey": "upward-side-glance",
       "headX": 7.3,
       "headY": 27.8,
       "headZ": -16.1,
@@ -706,6 +707,7 @@
     },
     {
       "id": "expression-01",
+      "semanticKey": "downward-gaze",
       "headX": -15.057812500000004,
       "headY": 0.14296874999999964,
       "headZ": -14.549218750000001,
@@ -726,6 +728,7 @@
     },
     {
       "id": "expression-05",
+      "semanticKey": "skeptical-right",
       "headX": -16.528515625,
       "headY": -3.7679687499999996,
       "headZ": -13.7296875,
@@ -746,6 +749,7 @@
     },
     {
       "id": "expression-06",
+      "semanticKey": "small-attentive",
       "headX": -4.232421875000001,
       "headY": 14.362109375000003,
       "headZ": 11.204296875,
@@ -766,6 +770,7 @@
     },
     {
       "id": "expression-12",
+      "semanticKey": "wide-downward-gaze",
       "headX": -19.20859375,
       "headY": 15.2,
       "headZ": 11.8,
@@ -786,6 +791,7 @@
     },
     {
       "id": "expression-03",
+      "semanticKey": "surprised-left",
       "headX": 2.9468749999999986,
       "headY": -16.051171875,
       "headZ": -20.916015625,
@@ -806,6 +812,7 @@
     },
     {
       "id": "expression-04",
+      "semanticKey": "sleepy-squint",
       "headX": 3.4,
       "headY": 13.22578125,
       "headZ": 8.976953125,
@@ -826,6 +833,7 @@
     },
     {
       "id": "expression-07",
+      "semanticKey": "angry-right",
       "headX": 8.063671874999999,
       "headY": 17.626562500000002,
       "headZ": -11.116796874999999,
@@ -846,6 +854,7 @@
     },
     {
       "id": "expression-08",
+      "semanticKey": "curious-left",
       "headX": -12.303515625,
       "headY": -17.601171875,
       "headZ": 5.9109375,
@@ -866,6 +875,7 @@
     },
     {
       "id": "expression-09",
+      "semanticKey": "asymmetric-down-right",
       "headX": -20.058203125,
       "headY": 12.607421875,
       "headZ": -12.7,
@@ -886,6 +896,7 @@
     },
     {
       "id": "expression-10",
+      "semanticKey": "attentive-left",
       "headX": 1.43359375,
       "headY": 6.194140624999999,
       "headZ": 10.56015625,
@@ -906,6 +917,7 @@
     },
     {
       "id": "expression-11",
+      "semanticKey": "joyful-wide",
       "headX": -2.092968750000001,
       "headY": -15.899609374999999,
       "headZ": -14.469921875,
@@ -926,6 +938,7 @@
     },
     {
       "id": "expression-13",
+      "semanticKey": "eyes-closed",
       "headX": -8.752343750000001,
       "headY": -8.743359375,
       "headZ": -10.773828125000001,
@@ -946,6 +959,7 @@
     },
     {
       "id": "expression-02",
+      "semanticKey": "joyful-down-right",
       "headX": -15.287109375000002,
       "headY": 15.006640625,
       "headZ": 12.787890625,
@@ -966,6 +980,7 @@
     },
     {
       "id": "expression-14",
+      "semanticKey": "skeptical-left",
       "headX": 3.5292968750000004,
       "headY": -7.0765625,
       "headZ": 9.830078125,
@@ -986,6 +1001,7 @@
     },
     {
       "id": "expression-15",
+      "semanticKey": "far-right-glance",
       "headX": 0.31914062500000184,
       "headY": 35.307421874999996,
       "headZ": -10.904296875,
@@ -1006,6 +1022,7 @@
     },
     {
       "id": "expression-16",
+      "semanticKey": "angry-left",
       "headX": -14.750781250000001,
       "headY": -19.350000000000005,
       "headZ": 5.631640624999998,
@@ -1026,6 +1043,7 @@
     },
     {
       "id": "expression-17",
+      "semanticKey": "playful-right",
       "headX": -4.3953125,
       "headY": 14.07265625,
       "headZ": -16.126171874999997,
@@ -1046,6 +1064,7 @@
     },
     {
       "id": "expression-18",
+      "semanticKey": "asymmetric-up-left",
       "headX": 6.585546875,
       "headY": 4.737109375000001,
       "headZ": 12.840234374999998,
@@ -1066,6 +1085,7 @@
     },
     {
       "id": "expression-19",
+      "semanticKey": "gentle-downward-gaze",
       "headX": -6.077734375000001,
       "headY": -11.03515625,
       "headZ": -13.965625000000001,
@@ -1086,6 +1106,7 @@
     },
     {
       "id": "expression-20",
+      "semanticKey": "wide-down-left",
       "headX": -17.127734375000003,
       "headY": 18.070703124999998,
       "headZ": 13.891796875,
@@ -1106,6 +1127,7 @@
     },
     {
       "id": "expression-21",
+      "semanticKey": "surprised-wide-left",
       "headX": -5.428125,
       "headY": -11.71328125,
       "headZ": -13.472265625000002,
@@ -1126,6 +1148,7 @@
     },
     {
       "id": "expression-22",
+      "semanticKey": "drowsy-closed",
       "headX": 10.292578125,
       "headY": 3.39921875,
       "headZ": 7.583203125,
@@ -1146,6 +1169,7 @@
     },
     {
       "id": "expression-23",
+      "semanticKey": "suspicious-right",
       "headX": -17.8,
       "headY": 10,
       "headZ": -10.894921875,
@@ -1166,6 +1190,7 @@
     },
     {
       "id": "expression-24",
+      "semanticKey": "shy-downward",
       "headX": 7.131640624999998,
       "headY": 7.7828124999999995,
       "headZ": 3.935546874999999,
@@ -1186,6 +1211,7 @@
     },
     {
       "id": "expression-3d2bed26-f97c-477d-922f-77600cb10e92",
+      "semanticKey": "angry-brows",
       "headX": 10.473974503042374,
       "headY": 5.087293619785961,
       "headZ": 4.698252132317348,
@@ -1208,6 +1234,7 @@
     },
     {
       "id": "expression-5220eaee-32fe-4bd8-ad31-432189534cc8",
+      "semanticKey": "uneasy-left",
       "headX": -12.303515625,
       "headY": -17.601171875,
       "headZ": 5.9109375,
@@ -1231,6 +1258,7 @@
   "sequences": [
     {
       "id": "sleeping",
+      "semanticKey": "sleeping",
       "name": "sleeping",
       "group": "Cycle de vie",
       "description": "Yeux presque fermés, respiration lente et expression de sommeil.",
@@ -1269,6 +1297,7 @@
     },
     {
       "id": "waking",
+      "semanticKey": "waking",
       "name": "waking",
       "group": "Cycle de vie",
       "description": "Séquence courte de réveil avant retour vers une expression neutre.",
@@ -1293,6 +1322,7 @@
     },
     {
       "id": "idle",
+      "semanticKey": "idle",
       "name": "idle",
       "group": "Cycle de vie",
       "description": "Micro-mouvements lents, expressions 00 et 08, clignement rare.",
@@ -1324,6 +1354,7 @@
     },
     {
       "id": "listening",
+      "semanticKey": "listening",
       "name": "listening",
       "group": "Cycle de vie",
       "description": "Expressions 10, 01 et 19, regard stable et clignement attentif.",
@@ -1362,6 +1393,7 @@
     },
     {
       "id": "thinking",
+      "semanticKey": "thinking",
       "name": "thinking",
       "group": "Cycle de vie",
       "description": "Regard haut et latéral, expressions asymétriques et changements fréquents.",
@@ -1414,6 +1446,7 @@
     },
     {
       "id": "searching",
+      "semanticKey": "searching",
       "name": "searching",
       "group": "Cycle de vie",
       "description": "Balayage rapide et changements très fréquents.",
@@ -1473,6 +1506,7 @@
     },
     {
       "id": "working",
+      "semanticKey": "working",
       "name": "working",
       "group": "Cycle de vie",
       "description": "Rythme régulier et expressions concentrées.",
@@ -1518,6 +1552,7 @@
     },
     {
       "id": "excited",
+      "semanticKey": "excited",
       "name": "excited",
       "group": "Réactions",
       "description": "Grandes expressions et transitions rapides.",
@@ -1570,6 +1605,7 @@
     },
     {
       "id": "bored",
+      "semanticKey": "bored",
       "name": "bored",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1608,6 +1644,7 @@
     },
     {
       "id": "suspicious",
+      "semanticKey": "suspicious",
       "name": "suspicious",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1646,6 +1683,7 @@
     },
     {
       "id": "angry",
+      "semanticKey": "angry",
       "name": "angry",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1677,6 +1715,7 @@
     },
     {
       "id": "drowsy",
+      "semanticKey": "drowsy",
       "name": "drowsy",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1715,6 +1754,7 @@
     },
     {
       "id": "happy",
+      "semanticKey": "happy",
       "name": "happy",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1760,6 +1800,7 @@
     },
     {
       "id": "curious",
+      "semanticKey": "curious",
       "name": "curious",
       "group": "Réactions",
       "description": "Inclinaisons et forte asymétrie.",
@@ -1805,6 +1846,7 @@
     },
     {
       "id": "confused",
+      "semanticKey": "confused",
       "name": "confused",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1843,6 +1885,7 @@
     },
     {
       "id": "surprised",
+      "semanticKey": "surprised",
       "name": "surprised",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1874,6 +1917,7 @@
     },
     {
       "id": "proud",
+      "semanticKey": "proud",
       "name": "proud",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1912,6 +1956,7 @@
     },
     {
       "id": "shy",
+      "semanticKey": "shy",
       "name": "shy",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1950,6 +1995,7 @@
     },
     {
       "id": "sad",
+      "semanticKey": "sad",
       "name": "sad",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -1988,6 +2034,7 @@
     },
     {
       "id": "laughing",
+      "semanticKey": "laughing",
       "name": "laughing",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -2026,6 +2073,7 @@
     },
     {
       "id": "scared",
+      "semanticKey": "scared",
       "name": "scared",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -2057,6 +2105,7 @@
     },
     {
       "id": "playful",
+      "semanticKey": "playful",
       "name": "playful",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",
@@ -2102,6 +2151,7 @@
     },
     {
       "id": "celebrate",
+      "semanticKey": "celebrate",
       "name": "celebrate",
       "group": "Réactions",
       "description": "Cet état enchaîne un pool de presets et des clignements.",

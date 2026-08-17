@@ -124,11 +124,13 @@ export function ExportSection({
   value,
   title,
   subtitle,
+  badge,
   children,
 }: {
   value: string
   title: string
   subtitle: string
+  badge?: string
   children: React.ReactNode
 }) {
   const { t } = useStudioLanguage()
@@ -136,7 +138,10 @@ export function ExportSection({
     <AccordionItem value={value} className={`export-accordion-item export-accordion-${value}`}>
       <AccordionTrigger className="export-accordion-trigger">
         <span>
-          <strong>{t(title)}</strong>
+          <span className="export-accordion-title">
+            <strong>{t(title)}</strong>
+            {badge && <b className="export-menu-badge">{t(badge)}</b>}
+          </span>
           <small>{t(subtitle)}</small>
         </span>
       </AccordionTrigger>

@@ -34,11 +34,28 @@ export const chinese: Record<string, string> = {
   'Retour au studio': '返回工作室',
   'Preset en mémoire': '已保存预设',
   'Nouvelle expression': '新建表情',
+  'Identité runtime': '运行时标识',
+  'Nom public stable utilisé par les applications qui chargent cet avatar.':
+    '供加载此头像的应用使用的稳定公开名称。',
+  'Clé sémantique': '语义键',
+  'Clé sémantique manquante': '缺少语义键',
+  'Clé publique stable utilisée par l’API runtime, par exemple happy-smile.':
+    '运行时 API 使用的稳定公开键，例如 happy-smile。',
+  'Clé publique stable utilisée par l’API runtime, par exemple thinking.':
+    '运行时 API 使用的稳定公开键，例如 thinking。',
+  'Ajoute une clé pour inclure cet élément dans l’export runtime.':
+    '添加键以在运行时导出中包含此项目。',
+  'Utilise des lettres minuscules, des chiffres et des tirets, par exemple happy-smile.':
+    '请使用小写字母、数字和连字符，例如 happy-smile。',
+  'neutral est réservé à l’apparence neutre de l’avatar.': 'neutral 保留用于头像的中性外观。',
+  'Cette clé est déjà utilisée dans cette bibliothèque.': '此键已在当前库中使用。',
   'L’avatar à gauche affiche cette expression en direct.': '左侧头像会实时预览此表情。',
   Corps: '身体',
   Rendu: '渲染',
   'Choisis la finition visuelle propre à cet avatar.': '选择此头像专属的视觉效果。',
   'Type de rendu': '渲染类型',
+  'Le rendu Pixel est temporairement désactivé.': '像素渲染暂时已禁用。',
+  'Le mode Vectoriel est utilisé pour l’instant.': '当前使用矢量渲染。',
   'Pixel utilise une palette franche, sans lissage ni couleur intermédiaire.':
     '像素渲染使用纯色调色板，不进行平滑处理，也不产生中间色。',
   Vectoriel: '矢量',
@@ -80,23 +97,187 @@ export const chinese: Record<string, string> = {
   Exporter: '导出',
   Export: '导出',
   'Exporter l’avatar': '导出头像',
+  'Exporter le JSON runtime': '导出运行时 JSON',
+  Nouveau: '新增',
+  'Exporte le fichier .avatar.json utilisé par les nouveaux packages npm.':
+    '导出新 npm 包使用的 .avatar.json 文件。',
+  'JSON runtime + createAvatar': '运行时 JSON + createAvatar',
+  'Télécharge la définition portable complète de l’avatar actif.': '下载当前头像的完整可移植定义。',
+  'Définition runtime': '运行时定义',
+  'Fichier .avatar.json portable': '可移植 .avatar.json 文件',
+  'Export runtime incomplet': '运行时导出不完整',
+  'Corrige les clés signalées dans les éditeurs Expressions ou Animations.':
+    '请在“表情”或“动画”编辑器中修正标记的键。',
+  'Télécharger la définition .avatar.json': '下载 .avatar.json 定义',
+  'Copier le JSON formaté': '复制格式化的 JSON',
+  'Copier le JSON': '复制 JSON',
+  'JSON runtime copié dans le presse-papiers.': '运行时 JSON 已复制到剪贴板。',
+  'Impossible de copier le JSON runtime.': '无法复制运行时 JSON。',
+  Installation: '安装',
+  'Lancer l’exemple': '运行示例',
+  'Masquer l’aperçu': '隐藏预览',
+  'Aperçu avec le package React': '使用 React 包预览',
+  Preview: '预览',
+  'Définition prête à tester': '定义已可测试',
+  'Démarrage rapide': '快速开始',
+  'Preview de la définition exportée': '导出定义预览',
+  'Teste les animations et expressions réellement présentes dans le fichier .avatar.json.':
+    '测试 .avatar.json 文件中实际包含的动画和表情。',
+  'Fermer la preview': '关闭预览',
+  'Définition exportée': '导出的定义',
+  'Animation active': '当前动画',
+  'Expression active': '当前表情',
+  'Contrôles de lecture': '播放控制',
+  'Animations exportées': '导出的动画',
+  'Expressions exportées': '导出的表情',
+  'Clique pour lancer': '点击播放',
+  'Clique pour afficher': '点击显示',
+  'Aucune animation exportée': '没有导出的动画',
+  'Aperçu runtime de l’avatar actif': '当前头像的运行时预览',
+  'Animation de départ': '起始动画',
+  'Expression de départ': '起始表情',
+  'Aucune animation sélectionnée': '未选择动画',
+  'Guide d’utilisation': '使用指南',
+  'Voir le guide complet': '查看完整使用指南',
+  'Guide d’utilisation de l’avatar React': 'React 头像使用指南',
+  'Guide d’utilisation de l’avatar JavaScript': 'JavaScript 头像使用指南',
+  'Installe le package, crée ton composant et choisis le niveau de contrôle adapté.':
+    '安装包，创建组件，并选择合适的控制方式。',
+  'Fermer le guide': '关闭指南',
+  'Ajoute le package React et ses dépendances.': '添加 React 包及其依赖项。',
+  'Installe le module ESM, charge la définition JSON et monte l’avatar dans un élément du DOM.':
+    '安装 ESM 模块，加载 JSON 定义，并将头像挂载到 DOM 元素中。',
+  'Ajoute le renderer DOM, qui utilise automatiquement avatar-core.':
+    '添加 DOM 渲染器，它会自动使用 avatar-core。',
+  'Utilisation avec un bundler ESM': '使用 ESM 打包工具',
+  'Vite et les bundlers modernes résolvent le package et importent le même fichier .avatar.json que React.':
+    'Vite 和现代打包工具会解析该包，并导入与 React 相同的 .avatar.json 文件。',
+  'Options de createAvatar': 'createAvatar 选项',
+  'Référence des valeurs acceptées lors du montage dans le DOM.': '挂载到 DOM 时可用值的参考。',
+  'Obligatoire. Définition JSON validée avant la création des éléments SVG.':
+    '必填。创建 SVG 元素之前会验证 JSON 定义。',
+  'Optionnelle. Animation lancée au montage lorsque autoplay vaut true. Mutuellement exclusive avec defaultExpression.':
+    '可选。当 autoplay 为 true 时在挂载时启动动画。不能与 defaultExpression 同时使用。',
+  'Optionnelle. Expression initiale affichée sans lancer de timeline. Mutuellement exclusive avec defaultAnimation.':
+    '可选。显示初始表情但不启动时间线。不能与 defaultAnimation 同时使用。',
+  'Optionnelle, défaut true. Contrôle uniquement le lancement automatique de defaultAnimation.':
+    '可选，默认 true。仅控制 defaultAnimation 是否自动启动。',
+  'Optionnelle, défaut 240. Largeur et hauteur CSS du conteneur rendu.':
+    '可选，默认 240。渲染容器的 CSS 宽度和高度。',
+  'Optionnelle. Classe CSS ajoutée au conteneur rendu.': '可选。添加到渲染容器的 CSS 类。',
+  'Optionnelle, défaut « Procedural avatar ». Nom accessible du rendu.':
+    '可选，默认 “Procedural avatar”。渲染头像的可访问名称。',
+  'Optionnelle. Reçoit les erreurs de clé inconnue utilisées lors de l’initialisation.':
+    '可选。接收初始化期间遇到的未知键错误。',
+  'Optionnelle. Appelée lorsqu’une animation once se termine.': '可选。在 once 动画结束时调用。',
+  'Optionnelle. Appelée lorsque l’expression active change.': '可选。在活动表情变化时调用。',
+  'API du contrôleur DOM': 'DOM 控制器 API',
+  'createAvatar retourne immédiatement ces commandes impératives.':
+    'createAvatar 会立即返回这些命令式控制方法。',
+  'Lance ou reprend une animation par sa clé.': '通过键启动或恢复动画。',
+  'Affiche une expression avec une transition courte.': '使用短暂过渡显示表情。',
+  'Arrête la lecture et revient à neutral.': '停止播放并返回 neutral。',
+  'Annule la frame planifiée et retire uniquement le conteneur créé par avatar-web.':
+    '取消已计划的帧，并仅移除 avatar-web 创建的容器。',
+  'Navigateur sans bundler': '不使用打包工具的浏览器',
+  'Utilise une URL ESM via un CDN ou une import map, puis charge la définition avec fetch.':
+    '通过 CDN 或 import map 使用 ESM URL，然后通过 fetch 加载定义。',
+  'Les packages sont encore privés. Cette commande fonctionnera après leur publication ; utilise le workspace ou les tarballs pour les tests locaux.':
+    '这些包目前仍为私有。发布后此命令才可使用；本地测试请使用 workspace 或 tarball。',
+  'API recommandée : créer un avatar concret': '推荐 API：创建具体头像',
+  'createAvatar valide le JSON et retourne un composant dédié dont les clés d’animations sont typées.':
+    'createAvatar 会验证 JSON，并返回一个动画键经过类型约束的专用组件。',
+  'Props de l’avatar': '头像 Props',
+  'Référence complète : type, valeur par défaut, comportement et contraintes de chaque prop.':
+    '完整参考：每个 prop 的类型、默认值、行为和限制。',
+  'Cible et lecture': '目标与播放',
+  'Obligatoire. Objet AvatarDefinition validé contenant les expressions et les animations à afficher.':
+    '必填。经过验证的 AvatarDefinition 对象，包含要显示的表情和动画。',
+  'Optionnelle. Contrôle une timeline par sa clé. Chaque étape choisit l’expression affichée. Mutuellement exclusive avec expression ; une cible contrôlée prend priorité sur les valeurs default.':
+    '可选。通过键控制时间线，每个步骤会选择要显示的表情。不能与 expression 同时使用；受控目标优先于默认值。',
+  'Optionnelle. Contrôle directement une expression par sa clé. Mutuellement exclusive avec animation ; une cible contrôlée prend priorité sur les valeurs default.':
+    '可选。通过键直接控制一个表情。不能与 animation 同时使用；受控目标优先于默认值。',
+  'Optionnelle. Définit la timeline initiale en mode non contrôlé. Lue au montage ; autoplay est activé par défaut. Mutuellement exclusive avec defaultExpression.':
+    '可选。定义非受控模式下的初始时间线；挂载时读取，默认启用 autoplay。不能与 defaultExpression 同时使用。',
+  'Optionnelle. Définit l’expression initiale en mode non contrôlé. Lue au montage, sans lancer de timeline. Mutuellement exclusive avec defaultAnimation.':
+    '可选。定义非受控模式下的初始表情；挂载时读取，不会启动时间线。不能与 defaultAnimation 同时使用。',
+  'Optionnelle, défaut true. Lance automatiquement defaultAnimation ; sans defaultAnimation, elle n’a aucun effet.':
+    '可选，默认 true。自动启动 defaultAnimation；没有 defaultAnimation 时无效。',
+  'Optionnelle. Donne accès à l’API impérative AvatarController.':
+    '可选。提供对命令式 AvatarController API 的访问。',
+  Présentation: '外观',
+  'Optionnelle, défaut 240. Nombre ou valeur CSS utilisée pour la largeur et la hauteur du conteneur.':
+    '可选，默认 240。用于容器宽高的数字或 CSS 值。',
+  'Optionnelle. Classe CSS ajoutée au conteneur externe.': '可选。添加到外部容器的 CSS 类。',
+  'Optionnelle. Styles inline du conteneur externe ; width et height viennent de size.':
+    '可选。外部容器的内联样式；width 和 height 来自 size。',
+  'Optionnelle, défaut « Procedural avatar ». Nom accessible annoncé aux lecteurs d’écran.':
+    '可选，默认 “Procedural avatar”。屏幕阅读器播报的可访问名称。',
+  'Callbacks de lecture': '播放回调',
+  'Optionnelle. Reçoit la clé de l’animation once terminée naturellement.':
+    '可选。在 once 动画自然完成时接收其键。',
+  'Optionnelle. Reçoit la clé de l’expression chaque fois que l’expression sémantique affichée change.':
+    '可选。每当显示的语义表情变化时接收表情键。',
+  'Optionnelle. Reçoit une erreur typée lorsqu’une prop animation, expression ou default référence une clé inconnue.':
+    '可选。当 animation、expression 或 default prop 引用了未知键时，接收一个类型化错误。',
+  'Avatar générique': '通用 Avatar',
+  'Utilise Avatar directement lorsque la définition est chargée à l’exécution ou change entre plusieurs avatars.':
+    '当定义在运行时加载或需要在多个头像之间切换时，直接使用 Avatar。',
+  'API impérative': '命令式 API',
+  'La ref expose les commandes de lecture et l’état courant de l’avatar.':
+    'ref 提供播放命令和头像当前状态。',
+  'Les commandes de cible sont disponibles en mode non contrôlé ; sinon utilise les props.':
+    '目标命令仅在非受控模式下可用；否则请使用 props。',
+  'Lance ou reprend une animation et retourne un résultat typé.':
+    '启动或恢复动画，并返回类型化结果。',
+  'Met en pause la timeline à sa position exacte.': '在精确位置暂停时间线。',
+  'En mode non contrôlé, arrête la lecture et revient à neutral. En mode contrôlé, les props restent la source de vérité.':
+    '在非受控模式下停止播放并回到 neutral；在受控模式下，props 仍是真实来源。',
+  'Affiche directement une expression.': '直接显示一个表情。',
+  'Retourne l’animation, l’expression et le statut actifs.': '返回当前动画、表情和状态。',
+  Expression: '表情',
+  Animation: '动画',
+  'Une étape référence une expression qui ne peut pas être exportée.':
+    '某个步骤引用了无法导出的表情。',
+  'Valeur incompatible avec le format runtime': '值与运行时格式不兼容',
   'Télécharge un composant autonome avec les animations de ton choix.':
     '下载包含所选动画的独立组件。',
+  'Génère l’export ZIP autonome React ou JavaScript qui existait déjà.':
+    '生成原有的 React 或 JavaScript 独立 ZIP 导出。',
+  'Choisis les animations puis exporte le JSON runtime ou un package autonome.':
+    '选择动画，然后导出运行时 JSON 或独立包。',
+  'Choisis les animations puis utilise la même définition JSON avec React ou JavaScript.':
+    '选择动画，然后在 React 或 JavaScript 中使用同一份 JSON 定义。',
   'Avatar sélectionné': '已选头像',
   Format: '格式',
   'Choisis l’intégration correspondant à ton projet.': '选择适合项目的集成方式。',
   'Composant TSX autonome': '独立 TSX 组件',
   'Package React local (.zip)': '本地 React 包（.zip）',
-  'Module JavaScript': 'JavaScript 模块',
+  'JavaScript / ESM': 'JavaScript / ESM',
+  'JSON runtime + avatar-web': '运行时 JSON + avatar-web',
   'Module ES autonome': '独立 ES 模块',
   'Projet HTML + module JS (.zip)': 'HTML 项目 + JS 模块（.zip）',
   sélectionnées: '已选择',
   'Animations à exporter': '要导出的动画',
   'Tout sélectionner': '全选',
   'Tout désélectionner': '取消全选',
+  Personnaliser: '自定义',
+  'Masquer la sélection': '隐藏选择',
   'Télécharger le composant TSX': '下载 TSX 组件',
   'Télécharger le package React': '下载 React 包',
   'Télécharger le module': '下载模块',
+  'Intégration ESM avec le package avatar-web': '使用 avatar-web 包的 ESM 集成',
+  'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.':
+    'ZIP 包含导出的 JSON、index.html 演示和 README。演示会从 CDN 加载 avatar-web。',
+  'Le ZIP contient le JSON exporté et un projet Vite React TypeScript prêt à lancer avec npm install puis npm run dev.':
+    'ZIP 包含导出的 JSON 和一个可直接运行的 Vite React TypeScript 项目。先运行 npm install，再运行 npm run dev。',
+  'Télécharger l’intégration ESM (.zip)': '下载 ESM 集成（.zip）',
+  'Télécharger la démo React (.zip)': '下载 React 演示（.zip）',
+  'Télécharger la démo ESM (.zip)': '下载 ESM 演示（.zip）',
+  'Télécharger le JSON': '下载 JSON',
+  'Utilisation minimale': '最简用法',
+  'Utiliser cet avatar': '使用此头像',
+  'Prêt à exporter': '可以导出',
   Snapshot: '快照',
   'Mode photo': '照片模式',
   'Capture une image statique de l’avatar.': '捕获头像的静态图像。',

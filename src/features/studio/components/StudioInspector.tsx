@@ -1,5 +1,8 @@
 import {
   ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Download,
   FileCode2,
@@ -10,6 +13,7 @@ import {
   RotateCcw,
   Smile,
   Trash2,
+  TriangleAlert,
   Upload,
 } from 'lucide-react'
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
@@ -50,11 +54,7 @@ import { ColorField, LinkButton, NumericField } from '@/app/components/controls'
 import { formatSeconds, scaleSurface, type Side, type SnapshotFormat } from '@/app/studio-utils'
 import { SequenceWorkspace } from '@/features/animation/components/SequenceWorkspace'
 import { findExpressionIndex, groupSequences } from '@/features/animation/sequences'
-import {
-  defaultAvatarEyes,
-  defaultPixelRenderStyle,
-  type AvatarRenderStyle,
-} from '@/features/avatar/avatars'
+import { defaultAvatarEyes } from '@/features/avatar/avatars'
 import { bodyPrimitiveTypes, MAX_BODY_NODES } from '@/features/avatar/body'
 import {
   ExpressionCard,
@@ -66,10 +66,38 @@ import { defaultExpression } from '@/features/avatar/presets'
 import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
 import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
+import { RuntimeGuideDialog } from '@/features/studio/components/RuntimeGuideDialog'
+import { RuntimePreviewDialog } from '@/features/studio/components/RuntimePreviewDialog'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
 
+const reactQuickStartInstall = 'npm install @bible-strong/avatar-react react react-dom'
+const webQuickStartInstall = 'npm install @bible-strong/avatar-web'
+
+const reactQuickStartExample = (animationKey: string | undefined) =>
+  `import { createAvatar } from '@bible-strong/avatar-react'
+import '@bible-strong/avatar-react/styles.css'
+import definition from './avatar.avatar.json'
+
+const Avatar = createAvatar(definition)
+
+export function App() {
+  return <Avatar ${animationKey ? `defaultAnimation="${animationKey}"` : 'defaultExpression="neutral"'} />
+}`
+
+const webQuickStartExample = (animationKey: string | undefined) =>
+  `import { createAvatar } from '@bible-strong/avatar-web'
+import definition from './avatar.avatar.json'
+
+const avatar = createAvatar('#avatar', {
+  definition,
+  ${animationKey ? `defaultAnimation: '${animationKey}',` : `defaultExpression: 'neutral',`}
+})`
+
 export function StudioInspector({ controller }: { controller: StudioController }) {
+  const [runtimePreviewOpen, setRuntimePreviewOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [exportAnimationsOpen, setExportAnimationsOpen] = useState(false)
   const {
     activateAvatar,
     activeAvatar,
@@ -96,9 +124,11 @@ export function StudioInspector({ controller }: { controller: StudioController }
     commitAvatarMove,
     commitExpressionMove,
     commitStateMove,
+    copyAvatarRuntimeDefinition,
     createNewAvatar,
     deleteSelectedBodyNode,
     downloadAvatarExport,
+    downloadAvatarRuntimeDefinition,
     downloadStudioProject,
     draggedAvatarId,
     draggedExpressionId,
@@ -117,6 +147,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     exportFormat,
     expression,
     expressionById,
+    expressionSemanticKeyError,
     expressionDragOrigin,
     expressionDragPreview,
     expressions,
@@ -141,6 +172,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
     renameActiveAvatar,
     renderedColors,
     renderedScene,
+    runtimeDefinitionResult,
+    runtimeCopyStatus,
+    runtimeExportErrors,
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
@@ -151,6 +185,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     selectedSequenceStepId,
     selectedState,
     sequenceEditing,
+    animationSemanticKeyError,
     sequences,
     setDeleteAvatarOpen,
     setDeleteExpressionOpen,
@@ -192,7 +227,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     toggleStatePlayback,
     transitionToExpression,
     updateAvatarColors,
-    updateAvatarRenderStyle,
     updateAvatarEyeDimension,
     updateAvatarEyePosition,
     updateAvatarEyeSize,
@@ -208,8 +242,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
     updateWireVisibility,
     workspaceBackButtonRef,
   } = controller
-  const pixelRenderStyle =
-    activeAvatar.renderStyle.type === 'pixel' ? activeAvatar.renderStyle : null
+  const runtimePreviewAnimation = runtimeDefinitionResult.ok
+    ? runtimeDefinitionResult.value.animationOrder[0]
+    : undefined
   const playbackFooterY = useMotionValue(0)
   const playbackHandleY = useMotionValue(0)
   const playbackHandleCounterY = useTransform(playbackHandleY, value => -value)
@@ -269,7 +304,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
       duration: reduceMotion ? 0 : undefined,
     })
   }
-
   return (
     <Drawer>
       <main
@@ -319,6 +353,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               onSave={saveSequenceEditing}
               onDuplicate={duplicateSequenceEditing}
               onDelete={() => setDeleteSequenceOpen(true)}
+              semanticKeyError={animationSemanticKeyError(sequenceEditing.draft)}
             />
           </motion.div>
         )}
@@ -339,6 +374,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               onSave={saveEditing}
               onDuplicate={() => duplicateExpression(editing.index, editing.draft, true)}
               onDelete={() => setDeleteExpressionOpen(true)}
+              semanticKeyError={expressionSemanticKeyError(editing.draft)}
             />
           </motion.div>
         )}
@@ -802,58 +838,17 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </ControlSection>
                     <ControlSection
                       title="Rendu"
-                      subtitle="Choisis la finition visuelle propre à cet avatar."
+                      subtitle="Le rendu Pixel est temporairement désactivé."
                     >
-                      <InspectorCard className="render-style-panel">
+                      <InspectorCard className="render-style-panel render-style-disabled">
                         <PanelTitle
                           level={3}
                           title="Type de rendu"
-                          subtitle="Pixel utilise une palette franche, sans lissage ni couleur intermédiaire."
+                          subtitle="Le mode Vectoriel est utilisé pour l’instant."
                         />
-                        <Field className="render-style-field" orientation="horizontal">
-                          <FieldTitle>{t('Style')}</FieldTitle>
-                          <Select
-                            value={activeAvatar.renderStyle.type}
-                            items={[
-                              { value: 'vector', label: t('Vectoriel') },
-                              { value: 'pixel', label: t('Pixel') },
-                            ]}
-                            onValueChange={next => {
-                              if (!next) return
-                              const renderStyle: AvatarRenderStyle =
-                                next === 'pixel'
-                                  ? { ...defaultPixelRenderStyle }
-                                  : { type: 'vector' }
-                              updateAvatarRenderStyle(renderStyle)
-                            }}
-                          >
-                            <SelectTrigger aria-label={t('Type de rendu')}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="vector">{t('Vectoriel')}</SelectItem>
-                              <SelectItem value="pixel">{t('Pixel')}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                        {pixelRenderStyle && (
-                          <div className="pixel-render-options">
-                            <NumericField
-                              label="Définition de la grille"
-                              value={pixelRenderStyle.resolution}
-                              min={8}
-                              max={192}
-                              step={8}
-                              unit="px"
-                              onChange={resolution =>
-                                updateAvatarRenderStyle({
-                                  ...pixelRenderStyle,
-                                  resolution: Math.round(resolution),
-                                })
-                              }
-                            />
-                          </div>
-                        )}
+                        <div className="render-style-status">
+                          <Badge variant="secondary">{t('Vectoriel')}</Badge>
+                        </div>
                       </InspectorCard>
                     </ControlSection>
                     <ControlSection
@@ -1422,6 +1417,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             openExpressionEditor(index, preset)
                             setDeleteExpressionOpen(true)
                           }}
+                          runtimeError={expressionSemanticKeyError(preset)}
                           draggable
                           onDragStart={event => {
                             expressionDragOrigin.current = expressions
@@ -1563,6 +1559,16 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   renderStyle={activeAvatar.renderStyle}
                                   id={`state-card-${sequence.id}`}
                                 />
+                                {animationSemanticKeyError(sequence) && (
+                                  <i
+                                    className="runtime-key-missing"
+                                    role="img"
+                                    aria-label={animationSemanticKeyError(sequence) ?? undefined}
+                                    title={animationSemanticKeyError(sequence) ?? undefined}
+                                  >
+                                    !
+                                  </i>
+                                )}
                                 <span>{sequence.builtIn ? t(sequence.name) : sequence.name}</span>
                               </Button>
                             )
@@ -1630,11 +1636,11 @@ export function StudioInspector({ controller }: { controller: StudioController }
             )}
 
             {!sequenceEditing && !editing && !bodyEditing && mode === 'export' && (
-              <Accordion className="export-panel" defaultValue={['snapshot']}>
+              <Accordion className="export-panel" defaultValue={['avatar']}>
                 <ExportSection
                   value="avatar"
                   title="Exporter l’avatar"
-                  subtitle="Télécharge un composant autonome avec les animations de ton choix."
+                  subtitle="Choisis les animations puis utilise la même définition JSON avec React ou JavaScript."
                 >
                   <InspectorCard>
                     <div className="export-avatar-summary">
@@ -1654,7 +1660,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </div>
                   </InspectorCard>
 
-                  <InspectorCard>
+                  <section className="export-format-section" aria-label={t('Format')}>
                     <PanelTitle
                       title="Format"
                       subtitle="Choisis l’intégration correspondant à ton projet."
@@ -1669,7 +1675,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         <FileCode2 />
                         <span>
                           <strong>React / TypeScript</strong>
-                          <small>{t('Package React local (.zip)')}</small>
+                          <small>{t('JSON runtime + createAvatar')}</small>
                         </span>
                       </Button>
                       <Button
@@ -1680,12 +1686,12 @@ export function StudioInspector({ controller }: { controller: StudioController }
                       >
                         <FileCode2 />
                         <span>
-                          <strong>{t('Module JavaScript')}</strong>
-                          <small>{t('Projet HTML + module JS (.zip)')}</small>
+                          <strong>{t('JavaScript / ESM')}</strong>
+                          <small>{t('JSON runtime + avatar-web')}</small>
                         </span>
                       </Button>
                     </div>
-                  </InspectorCard>
+                  </section>
 
                   <InspectorCard>
                     <div className="preset-header export-animation-header">
@@ -1699,65 +1705,226 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         variant="ghost"
                         size="sm"
                         type="button"
-                        onClick={() =>
-                          setExportAnimationIds(
-                            selectedExportAnimations.length === sequences.length
-                              ? []
-                              : sequences.map(animation => animation.id)
-                          )
-                        }
+                        aria-expanded={exportAnimationsOpen}
+                        onClick={() => setExportAnimationsOpen(open => !open)}
                       >
-                        {t(
-                          selectedExportAnimations.length === sequences.length
-                            ? 'Tout désélectionner'
-                            : 'Tout sélectionner'
-                        )}
+                        {exportAnimationsOpen ? <ChevronUp /> : <ChevronDown />}
+                        {t(exportAnimationsOpen ? 'Masquer la sélection' : 'Personnaliser')}
                       </Button>
                     </div>
-                    <div className="state-buttons export-animation-grid">
-                      {sequences.map(animation => {
-                        const firstStep = animation.steps[0]
-                        const firstExpression = firstStep
-                          ? expressionById.get(firstStep.expressionId)
-                          : undefined
-                        return (
+                    {exportAnimationsOpen && (
+                      <div className="export-animation-picker">
+                        <Button
+                          className="export-animation-select-all"
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() =>
+                            setExportAnimationIds(
+                              selectedExportAnimations.length === sequences.length
+                                ? []
+                                : sequences.map(animation => animation.id)
+                            )
+                          }
+                        >
+                          {t(
+                            selectedExportAnimations.length === sequences.length
+                              ? 'Tout désélectionner'
+                              : 'Tout sélectionner'
+                          )}
+                        </Button>
+                        <div className="state-buttons export-animation-grid">
+                          {sequences.map(animation => {
+                            const firstStep = animation.steps[0]
+                            const firstExpression = firstStep
+                              ? expressionById.get(firstStep.expressionId)
+                              : undefined
+                            return (
+                              <Button
+                                className="expression-card state-card"
+                                variant="outline"
+                                type="button"
+                                key={animation.id}
+                                aria-pressed={exportAnimationIdSet.has(animation.id)}
+                                onClick={() => toggleExportAnimation(animation.id)}
+                              >
+                                <ExpressionPreview
+                                  expression={
+                                    firstExpression ?? expressions[0] ?? defaultExpression
+                                  }
+                                  surface={surface}
+                                  bodyNodes={bodyNodes}
+                                  colors={activeAvatar.colors}
+                                  avatarEyes={activeAvatarEyes}
+                                  renderStyle={activeAvatar.renderStyle}
+                                  id={`export-animation-${animation.id}`}
+                                />
+                                <span>
+                                  {animation.builtIn ? t(animation.name) : animation.name}
+                                </span>
+                              </Button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </InspectorCard>
+
+                  {runtimeExportErrors.length > 0 && (
+                    <InspectorCard>
+                      <div className="runtime-export-error" role="alert">
+                        <div className="runtime-export-error-heading">
+                          <TriangleAlert />
+                          <strong>{t('Export runtime incomplet')}</strong>
+                        </div>
+                        <ul className="runtime-error-list">
+                          {runtimeExportErrors.map((error, index) => (
+                            <li key={`${index}-${error}`}>{error}</li>
+                          ))}
+                        </ul>
+                        <p className="runtime-export-error-help">
+                          {t(
+                            'Corrige les clés signalées dans les éditeurs Expressions ou Animations.'
+                          )}
+                        </p>
+                        <div className="runtime-export-error-actions">
                           <Button
-                            className="expression-card state-card"
-                            variant="outline"
                             type="button"
-                            key={animation.id}
-                            aria-pressed={exportAnimationIdSet.has(animation.id)}
-                            onClick={() => toggleExportAnimation(animation.id)}
+                            variant="outline"
+                            onClick={() => setMode('expressions')}
                           >
-                            <ExpressionPreview
-                              expression={firstExpression ?? expressions[0] ?? defaultExpression}
-                              surface={surface}
-                              bodyNodes={bodyNodes}
-                              colors={activeAvatar.colors}
-                              avatarEyes={activeAvatarEyes}
-                              renderStyle={activeAvatar.renderStyle}
-                              id={`export-animation-${animation.id}`}
-                            />
-                            <span>{animation.builtIn ? t(animation.name) : animation.name}</span>
+                            {t('Expressions')}
                           </Button>
-                        )
-                      })}
+                          <Button type="button" variant="outline" onClick={() => setMode('states')}>
+                            {t('Animations')}
+                          </Button>
+                        </div>
+                      </div>
+                    </InspectorCard>
+                  )}
+
+                  <InspectorCard className="runtime-quick-start-card">
+                    <div className="runtime-quick-start-heading">
+                      <div>
+                        <p className="eyebrow">{t('Démarrage rapide')}</p>
+                        <h2>{t('Utiliser cet avatar')}</h2>
+                      </div>
+                      <Button type="button" variant="ghost" onClick={() => setGuideOpen(true)}>
+                        {t('Voir le guide complet')}
+                        <ArrowRight />
+                      </Button>
+                    </div>
+
+                    <div className="runtime-quick-start-step">
+                      <span>{t('Installation')}</span>
+                      <code>
+                        {exportFormat === 'react' ? reactQuickStartInstall : webQuickStartInstall}
+                      </code>
+                    </div>
+
+                    <div className="runtime-quick-start-step">
+                      <span>{t('Utilisation minimale')}</span>
+                      <pre tabIndex={0}>
+                        <code>
+                          {exportFormat === 'react'
+                            ? reactQuickStartExample(runtimePreviewAnimation)
+                            : webQuickStartExample(runtimePreviewAnimation)}
+                        </code>
+                      </pre>
                     </div>
                   </InspectorCard>
 
-                  <Button
-                    className="export-download"
-                    type="button"
-                    disabled={!selectedExportAnimations.length}
-                    onClick={downloadAvatarExport}
-                  >
-                    <Download />
-                    {t(
-                      exportFormat === 'react'
-                        ? 'Télécharger le package React'
-                        : 'Télécharger le module'
-                    )}
-                  </Button>
+                  <InspectorCard className="runtime-export-card">
+                    <div className="runtime-export-heading">
+                      <div>
+                        <small>{t('Prêt à exporter')}</small>
+                        <strong>
+                          {selectedExportAnimations.length} {t('animations')} ·{' '}
+                          {runtimeDefinitionResult.ok
+                            ? runtimeDefinitionResult.value.expressionOrder.length
+                            : 0}{' '}
+                          {t('expressions')}
+                        </strong>
+                      </div>
+                      <p className="runtime-export-description">
+                        {t(
+                          exportFormat === 'javascript'
+                            ? 'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.'
+                            : 'Le ZIP contient le JSON exporté et un projet Vite React TypeScript prêt à lancer avec npm install puis npm run dev.'
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="runtime-export-actions">
+                      <Button
+                        className="export-download"
+                        type="button"
+                        disabled={!runtimeDefinitionResult.ok}
+                        onClick={downloadAvatarRuntimeDefinition}
+                      >
+                        <Download />
+                        {t('Télécharger la définition .avatar.json')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!runtimeDefinitionResult.ok}
+                        onClick={downloadAvatarExport}
+                      >
+                        <Download />
+                        {t(
+                          exportFormat === 'javascript'
+                            ? 'Télécharger la démo ESM (.zip)'
+                            : 'Télécharger la démo React (.zip)'
+                        )}
+                      </Button>
+                      <div className="runtime-export-secondary-actions">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!runtimeDefinitionResult.ok}
+                          onClick={() => setRuntimePreviewOpen(true)}
+                        >
+                          <Play />
+                          {t('Preview')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!runtimeDefinitionResult.ok}
+                          onClick={() => void copyAvatarRuntimeDefinition()}
+                        >
+                          <Copy />
+                          {t('Copier le JSON')}
+                        </Button>
+                      </div>
+                    </div>
+                  </InspectorCard>
+                  {runtimeCopyStatus !== 'idle' && (
+                    <p
+                      className="runtime-copy-status"
+                      role={runtimeCopyStatus === 'error' ? 'alert' : 'status'}
+                      aria-live={runtimeCopyStatus === 'error' ? 'assertive' : 'polite'}
+                    >
+                      {t(
+                        runtimeCopyStatus === 'success'
+                          ? 'JSON runtime copié dans le presse-papiers.'
+                          : 'Impossible de copier le JSON runtime.'
+                      )}
+                    </p>
+                  )}
+                  <RuntimePreviewDialog
+                    definition={runtimeDefinitionResult.ok ? runtimeDefinitionResult.value : null}
+                    initialAnimation={runtimePreviewAnimation}
+                    open={runtimePreviewOpen}
+                    onOpenChange={setRuntimePreviewOpen}
+                  />
+                  <RuntimeGuideDialog
+                    animationKey={runtimePreviewAnimation}
+                    integration={exportFormat}
+                    open={guideOpen}
+                    onOpenChange={setGuideOpen}
+                  />
                 </ExportSection>
 
                 <ExportSection

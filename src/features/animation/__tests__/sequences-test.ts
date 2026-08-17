@@ -1,6 +1,7 @@
 import {
   advanceSequenceCursor,
   createInitialSequences,
+  duplicateSequence,
   getSequenceSpring,
   normalizeSequencesForExpressions,
   parseSequences,
@@ -93,5 +94,14 @@ describe('editable avatar sequences', () => {
 
     expect(snappy.stiffness).toBeGreaterThan(smooth.stiffness)
     expect(smooth.damping).toBeGreaterThan(0)
+  })
+
+  it('clears the public semantic key when an animation is duplicated', () => {
+    const sequence = { ...createInitialSequences()[0], semanticKey: 'sleeping' }
+
+    const duplicate = duplicateSequence(sequence)
+
+    expect(duplicate.semanticKey).toBeUndefined()
+    expect(duplicate.id).not.toBe(sequence.id)
   })
 })

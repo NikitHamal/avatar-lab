@@ -4,6 +4,7 @@ import {
   applyAvatarEyeDefaults,
   cloneAvatarBehavior,
   createAvatar,
+  createUnkeyedExpressionCopy,
   defaultAvatarEyes,
   parseAvatarEyeDefaults,
   parseAvatarRenderStyle,
@@ -12,6 +13,16 @@ import {
 import { initialExpressions } from '@/features/avatar/presets'
 
 describe('avatar eye defaults', () => {
+  it('clears the public semantic key when creating custom content from a preset', () => {
+    const source = { ...defaultExpression, semanticKey: 'attentive-left' }
+
+    const copy = createUnkeyedExpressionCopy(source, 'expression-copy')
+
+    expect(copy.id).toBe('expression-copy')
+    expect(copy.semanticKey).toBeUndefined()
+    expect(source.semanticKey).toBe('attentive-left')
+  })
+
   it('keeps the historical rendering when using default values', () => {
     expect(applyAvatarEyeDefaults(defaultExpression, defaultAvatarEyes)).toEqual(defaultExpression)
   })
@@ -41,20 +52,14 @@ describe('avatar render style', () => {
     expect(parseAvatarRenderStyle(undefined)).toEqual({ type: 'vector' })
   })
 
-  it('sanitizes pixel settings', () => {
+  it('falls back to vector rendering while pixel mode is disabled', () => {
     expect(
       parseAvatarRenderStyle({
         type: 'pixel',
         resolution: 500,
       })
-    ).toEqual({
-      type: 'pixel',
-      resolution: 192,
-    })
-    expect(parseAvatarRenderStyle({ type: 'pixel', resolution: 1 })).toEqual({
-      type: 'pixel',
-      resolution: 8,
-    })
+    ).toEqual({ type: 'vector' })
+    expect(parseAvatarRenderStyle({ type: 'pixel', resolution: 1 })).toEqual({ type: 'vector' })
   })
 })
 
