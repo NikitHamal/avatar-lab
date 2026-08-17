@@ -20,7 +20,7 @@ The application runs entirely in the browser. Projects are stored locally and ca
 - Choose loop, play-once, or ping-pong playback and configure automatic blinking.
 - Preview, play, pause, and stop animations inside the Studio.
 - Take SVG or PNG snapshots with transparent, solid, linear-gradient, or radial-gradient backgrounds.
-- Export a standalone React package or a framework-free JavaScript/HTML package.
+- Export one portable `.avatar.json` definition for React or framework-free JavaScript/ESM.
 - Export and import the complete Studio project as JSON.
 - Use the interface in English, French, or Simplified Chinese.
 
@@ -45,13 +45,21 @@ This copy-on-write model lets multiple avatars share the defaults without accide
 
 ## Export formats
 
-### React package
+### Avatar definition
 
-The React export is a local ZIP package containing a reusable TypeScript/React avatar component and the selected animations. It is intended for integration into React applications without shipping the Avatar Lab interface.
+The selected avatar and animations are stored in one portable `.avatar.json` definition. React and
+JavaScript use this exact same file, so visual behavior does not diverge between renderers.
 
-### JavaScript package
+### React / TypeScript
 
-The JavaScript export is a self-contained ZIP project with an ES module, the selected avatar data and animations, and an HTML demo. It can be used without React.
+Install `@bible-strong/avatar-react`, import the JSON and pass it to `createAvatar`. The React
+package depends on `@bible-strong/avatar-core` for validation, playback and geometry.
+
+### JavaScript / ESM
+
+Install `@bible-strong/avatar-web` for a DOM renderer without React. The integration ZIP contains
+the same `.avatar.json`, a lightweight ESM wrapper and usage instructions; it does not copy the
+rendering engine into every avatar export. `avatar-web` also depends on `avatar-core`.
 
 ### Photo Mode
 

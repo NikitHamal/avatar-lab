@@ -12,6 +12,7 @@ import {
   renderAvatarFrame,
   resumeAvatarPlayback,
   resolveAnimation,
+  sampleAvatarFrame,
   type AvatarDefinition,
 } from '../index'
 
@@ -41,13 +42,32 @@ const definition: AvatarDefinition = {
     'curious-left': { ...expression, head: { x: 0, y: -12, z: 3 } },
   },
   expressionOrder: ['neutral', 'upward-side-glance', 'curious-left'],
-  animations: {},
-  animationOrder: [],
-  standardAnimationSet: 1,
+  animations: {
+    idle: {
+      playbackMode: 'loop',
+      steps: [
+        {
+          expression: 'upward-side-glance',
+          holdMs: 5_200,
+          transitionMs: 500,
+          transition: 'smooth',
+        },
+        { expression: 'curious-left', holdMs: 5_200, transitionMs: 500, transition: 'smooth' },
+      ],
+      blink: {
+        enabled: true,
+        initialDelayMs: 2_600,
+        minIntervalMs: 3_400,
+        maxIntervalMs: 6_200,
+        durationMs: 280,
+      },
+    },
+  },
+  animationOrder: ['idle'],
 }
 
 describe('@bible-strong/avatar-core', () => {
-  it('loads a JSON definition and resolves a standard semantic animation', () => {
+  it('loads a JSON definition and resolves an explicit semantic animation', () => {
     const parsed = parseAvatarDefinition(JSON.stringify(definition))
     expect(parsed.ok).toBe(true)
     if (!parsed.ok) return
@@ -59,6 +79,23 @@ describe('@bible-strong/avatar-core', () => {
       'upward-side-glance',
       'curious-left',
     ])
+  })
+
+  it('accepts the legacy standard-animation marker without restoring hidden animations', () => {
+    const legacy = {
+      ...definition,
+      animations: {},
+      animationOrder: [],
+      standardAnimationSet: 1 as const,
+    }
+    const parsed = parseAvatarDefinition(JSON.stringify(legacy))
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+
+    expect(resolveAnimation(parsed.value, 'idle')).toMatchObject({
+      ok: false,
+      error: { code: 'unknown_animation', key: 'idle' },
+    })
   })
 
   it('advances playback deterministically from transition to hold and the next step', () => {
@@ -85,12 +122,15 @@ describe('@bible-strong/avatar-core', () => {
   })
 
   it('interpolates and completes a direct expression transition', () => {
+    const from = sampleAvatarFrame(definition, createAvatarPlaybackState(), 1_000, {
+      random: () => 0.5,
+    })
     const state = {
       ...createAvatarPlaybackState(),
       activeExpression: 'curious-left',
       status: 'playing' as const,
       directTransition: {
-        from: 'neutral',
+        from,
         startedAt: 1_000,
         durationMs: 400,
         transition: 'smooth' as const,
@@ -105,6 +145,84 @@ describe('@bible-strong/avatar-core', () => {
     expect(advanceAvatarPlayback(definition, state, 1_400, { random: () => 0.5 })).toMatchObject({
       activeExpression: 'curious-left',
       status: 'stopped',
+    })
+  })
+
+  it('starts a new animation from the currently displayed frame instead of neutral', () => {
+    const current = {
+      ...createAvatarPlaybackState(),
+      activeExpression: 'curious-left',
+    }
+    const now = 1_000
+    const from = sampleAvatarFrame(definition, current, now, { random: () => 0.5 })
+    const started = playAvatarAnimation(definition, 'idle', now, from)
+    if (!started.ok) throw new Error(started.error.message)
+
+    expect(renderAvatarFrame(definition, started.value, now, { random: () => 0.5 })).toEqual(
+      renderAvatarFrame(definition, current, now, { random: () => 0.5 })
+    )
+  })
+
+  it('retargets a direct transition from its exact in-flight frame', () => {
+    const neutral = createAvatarPlaybackState()
+    const firstStartedAt = 1_000
+    const first = {
+      ...neutral,
+      activeExpression: 'curious-left',
+      status: 'playing' as const,
+      directTransition: {
+        from: sampleAvatarFrame(definition, neutral, firstStartedAt, { random: () => 0.5 }),
+        startedAt: firstStartedAt,
+        durationMs: 400,
+        transition: 'smooth' as const,
+      },
+    }
+    const retargetedAt = 1_200
+    const inFlight = sampleAvatarFrame(definition, first, retargetedAt, { random: () => 0.5 })
+    const second = {
+      ...createAvatarPlaybackState(),
+      activeExpression: 'upward-side-glance',
+      status: 'playing' as const,
+      directTransition: {
+        from: inFlight,
+        startedAt: retargetedAt,
+        durationMs: 400,
+        transition: 'smooth' as const,
+      },
+    }
+
+    expect(renderAvatarFrame(definition, second, retargetedAt, { random: () => 0.5 })).toEqual(
+      renderAvatarFrame(definition, first, retargetedAt, { random: () => 0.5 })
+    )
+  })
+
+  it('interpolates expression color overrides during a transition', () => {
+    const colored: AvatarDefinition = {
+      ...definition,
+      expressions: {
+        ...definition.expressions,
+        'curious-left': {
+          ...definition.expressions['curious-left'],
+          colors: { body: '#ff0000', eyes: '#ffffff' },
+        },
+      },
+    }
+    const neutral = createAvatarPlaybackState()
+    const state = {
+      ...neutral,
+      activeExpression: 'curious-left',
+      status: 'playing' as const,
+      directTransition: {
+        from: sampleAvatarFrame(colored, neutral, 1_000, { random: () => 0.5 }),
+        startedAt: 1_000,
+        durationMs: 400,
+        transition: 'smooth' as const,
+      },
+    }
+
+    expect(renderAvatarFrame(colored, state, 1_200, { random: () => 0.5 }).colors).toEqual({
+      body: '#ad4073',
+      eyes: '#88898b',
     })
   })
 
@@ -192,18 +310,18 @@ describe('@bible-strong/avatar-core', () => {
     expect(closed.geometry.leftPath).not.toBe(open.geometry.leftPath)
   })
 
-  it('returns typed errors for unknown and unavailable semantic animations', () => {
+  it('returns a typed error for an animation that is not present in the definition', () => {
     expect(resolveAnimation(definition, 'missing')).toMatchObject({
       ok: false,
       error: { code: 'unknown_animation', key: 'missing' },
     })
     expect(resolveAnimation(definition, 'happy')).toMatchObject({
       ok: false,
-      error: { code: 'unavailable_standard_animation', key: 'happy' },
+      error: { code: 'unknown_animation', key: 'happy' },
     })
   })
 
-  it('lets an explicit animation override the standard animation with the same key', () => {
+  it('resolves an explicit animation by its semantic key', () => {
     const overridden: AvatarDefinition = {
       ...definition,
       animations: {

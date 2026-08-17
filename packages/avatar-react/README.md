@@ -9,6 +9,9 @@ dependencies; `@bible-strong/avatar-core` is installed as a normal dependency.
 pnpm add @bible-strong/avatar-react react react-dom
 ```
 
+The packages are currently private. This registry command will work after publication; use the
+workspace packages or locally packed tarballs for development verification in the meantime.
+
 Import the package stylesheet once in the application entry point:
 
 ```tsx
@@ -29,69 +32,96 @@ export function Assistant({ definition }: { definition: AvatarDefinition }) {
 }
 ```
 
+For a reusable component tied to one JSON definition, use `createAvatar`. It validates the
+definition once and, when the JSON is statically typed, narrows `animation`, `defaultAnimation`,
+`expression` and `defaultExpression` to the semantic keys present in that definition:
+
+```tsx
+import { createAvatar } from '@bible-strong/avatar-react'
+import avatarJson from './strobi.avatar.json'
+
+const StrobiAvatar = createAvatar(avatarJson)
+
+export function Strobi() {
+  return <StrobiAvatar defaultAnimation="idle" />
+}
+```
+
+Definitions fetched at runtime are validated by the same factory, but their keys are necessarily
+checked at runtime rather than inferred by TypeScript.
+
 `play` and `setExpression` return `{ ok: true }` or a typed error with one of
-`unknown_animation`, `unavailable_standard_animation`, `unknown_expression` or
-`controlled_by_props`. `pause` freezes the exact timeline position, calling `play` with the paused
-key resumes it, and `stop` returns an uncontrolled avatar to `neutral`.
+`unknown_animation`, `unknown_expression` or `controlled_by_props`. `pause` freezes the exact
+timeline position, calling `play` with the paused key resumes it, and `stop` returns an
+uncontrolled avatar to `neutral`.
 
-## Playback props
+## Props reference
 
-- `animation` and `expression` are mutually exclusive controlled targets. They take priority over
-  defaults and imperative target changes.
-- `defaultAnimation` and `defaultExpression` initialize uncontrolled use. Animation autoplay is on
-  by default when `defaultAnimation` is present; set `autoplay={false}` to show its first expression
-  statically.
-- `onAnimationEnd` fires once when a `once` animation completes naturally.
-- `onExpressionChange` reports semantic expression changes.
-- `size`, `className`, `style` and `ariaLabel` customize layout without changing the definition.
+`Avatar` exposes typed props for the definition, playback state and presentation. `AnimationKey`
+and `ExpressionKey` are semantic string keys from the supplied definition.
+
+### Definition and playback
+
+| Prop                | Type                                 | Default  | Behavior                                                                                                                   |
+| ------------------- | ------------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `definition`        | `AvatarDefinition`                   | required | Validated JSON definition containing the expressions and animations to render.                                             |
+| `animation`         | `AnimationKey \| undefined`          | —        | Controlled timeline. Each step chooses the displayed expression. Mutually exclusive with `expression`.                     |
+| `expression`        | `ExpressionKey \| undefined`         | —        | Controlled direct expression. Mutually exclusive with `animation`.                                                         |
+| `defaultAnimation`  | `AnimationKey \| undefined`          | —        | Initial uncontrolled timeline, read on mount. Autoplay is enabled by default. Mutually exclusive with `defaultExpression`. |
+| `defaultExpression` | `ExpressionKey \| undefined`         | —        | Initial uncontrolled expression, read on mount without starting a timeline. Mutually exclusive with `defaultAnimation`.    |
+| `autoplay`          | `boolean \| undefined`               | `true`   | Starts `defaultAnimation` automatically. It has no effect without `defaultAnimation`.                                      |
+| `ref`               | `Ref<AvatarController> \| undefined` | —        | Exposes the imperative API described below.                                                                                |
+
+`animation` and `expression` are two alternative sources of truth. Passing both throws an error;
+the component never silently overrides one with the other. A controlled target takes priority over
+an uncontrolled default when they are intentionally mixed.
+
+### Presentation
+
+| Prop        | Type                            | Default             | Behavior                                                                    |
+| ----------- | ------------------------------- | ------------------- | --------------------------------------------------------------------------- |
+| `size`      | `number \| string \| undefined` | `240`               | Number or CSS value applied to the wrapper width and height.                |
+| `className` | `string \| undefined`           | —                   | CSS class added to the outer wrapper.                                       |
+| `style`     | `CSSProperties \| undefined`    | —                   | Inline styles for the outer wrapper. `width` and `height` come from `size`. |
+| `ariaLabel` | `string \| undefined`           | `Procedural avatar` | Accessible name announced to screen readers.                                |
+
+### Playback callbacks
+
+| Prop                 | Type                                  | Receives                                                               |
+| -------------------- | ------------------------------------- | ---------------------------------------------------------------------- |
+| `onAnimationEnd`     | `(animation: AnimationKey) => void`   | The key of a `once` animation when it completes naturally.             |
+| `onExpressionChange` | `(expression: ExpressionKey) => void` | The semantic expression key whenever the displayed expression changes. |
+| `onError`            | `(error: AvatarRuntimeError) => void` | An unknown animation or expression key supplied through props.         |
+
+Unknown keys passed through `animation`, `expression`, `defaultAnimation` or `defaultExpression`
+are reported to `onError`. Without an error handler, the component writes the typed runtime error
+to the developer console instead of failing silently.
+
+## Imperative API
+
+Pass a `ref` to receive an `AvatarController`. Use it when buttons, events or another imperative
+source need to drive an uncontrolled avatar:
+
+| Method                      | Type                                                 | Behavior                                                       |
+| --------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| `play(animation)`           | `(animation: AnimationKey) => AvatarCommandResult`   | Starts an animation or resumes it from its paused position.    |
+| `pause()`                   | `() => void`                                         | Freezes the exact timeline position.                           |
+| `stop()`                    | `() => void`                                         | Stops playback and resets an uncontrolled avatar to `neutral`. |
+| `setExpression(expression)` | `(expression: ExpressionKey) => AvatarCommandResult` | Shows one expression directly.                                 |
+| `getState()`                | `() => AvatarPlaybackState`                          | Returns `activeAnimation?`, `activeExpression` and `status`.   |
+
+`play` and `setExpression` return `{ ok: true }` or `{ ok: false, error }`. Errors include
+`unknown_animation`, `unknown_expression` and `controlled_by_props`. When `animation` or
+`expression` is controlled by props, use those props to change the target; imperative target
+commands cannot replace the parent value.
 
 The definition is validated once per immutable object reference and revalidated/reinitialized when
 that reference changes.
 
-## Embedded and floating layout
-
-Embedded mode is the default and stays in the caller's layout:
-
-```tsx
-<div className="assistant-zone">
-  <Avatar definition={definition} animation="idle" />
-</div>
-```
-
-Floating mode uses fixed positioning and portals to `document.body` after hydration. Supply
-`portalContainer` for a dedicated overlay root. Server rendering emits a neutral fixed-size
-placeholder before the portal handoff.
-
-```tsx
-<Avatar
-  definition={definition}
-  mode="floating"
-  draggable
-  initialPosition={{ right: 24, bottom: 24 }}
-  constrainTo="viewport"
-  zIndex={1000}
-/>
-```
-
-`initialPosition` accepts `{ x, y }` or top/right/bottom/left anchors. A controlled `position` wins
-over it. `constrainTo` accepts `none`, `viewport` or `parent`; floating defaults to `viewport`, while
-embedded defaults to `none`. A constrained embedded parent needs a definite rendered size.
-
-Dragging uses Pointer Events and direct transforms. `onPositionPreview` is limited to one callback
-per animation frame and `onPositionCommit` reports the final clamped point. `onDragStart` and
-`onDragEnd` bracket pointer movement. In controlled position mode callbacks report suggestions but
-the supplied position remains authoritative. When resized bounds invalidate a controlled position,
-`onPositionChange` reports the clamped suggestion. Resize re-clamping never emits a movement commit.
-
-When `draggable` is enabled, arrow keys move by 10 px, Shift+Arrow by 1 px, and Escape cancels an
-active pointer drag. Accessible directional and reset buttons provide the same movement without a
-pointer.
-
 ## Styling hooks
 
-The stylesheet exposes `.bs-avatar`, `.bs-avatar--embedded`, `.bs-avatar--floating`,
-`.bs-avatar--draggable`, `.bs-avatar--dragging`, `.bs-avatar__svg` and
-`.bs-avatar__move-controls`. Consumer `className` and `style` are applied to the outer wrapper.
+The stylesheet exposes `.bs-avatar` and `.bs-avatar__svg`. Consumer `className` and `style` are
+applied to the outer wrapper.
 
 The public component never exposes Studio IDs or document types. This package is private while
 copyright ownership, Apache-2.0 relicensing and repository metadata are confirmed. Local tarballs

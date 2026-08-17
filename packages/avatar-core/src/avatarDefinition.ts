@@ -107,139 +107,8 @@ export type AvatarDefinition = {
   expressionOrder: ExpressionKey[]
   animations: Record<AnimationKey, AvatarAnimationDefinition>
   animationOrder: AnimationKey[]
-  standardAnimationSet: 1
-}
-
-export const STANDARD_ANIMATION_ORDER_V1 = [
-  'idle',
-  'happy',
-  'sad',
-  'thinking',
-  'excited',
-  'celebrate',
-] as const
-
-export type StandardAnimationKeyV1 = (typeof STANDARD_ANIMATION_ORDER_V1)[number]
-export type StandardAnimationManifestEntry = AvatarAnimationDefinition & {
-  requiredExpressions: ExpressionKey[]
-}
-
-const standardStep = (
-  expression: ExpressionKey,
-  holdMs: number
-): AvatarAnimationStepDefinition => ({
-  expression,
-  holdMs,
-  transitionMs: 500,
-  transition: 'smooth',
-})
-
-const standardBlink = (
-  initialDelayMs: number,
-  minIntervalMs: number,
-  maxIntervalMs: number,
-  durationMs: number
-) => ({ enabled: true, initialDelayMs, minIntervalMs, maxIntervalMs, durationMs })
-
-export const STANDARD_ANIMATIONS_V1 = {
-  idle: {
-    requiredExpressions: ['upward-side-glance', 'curious-left'],
-    playbackMode: 'loop',
-    steps: [standardStep('upward-side-glance', 5200), standardStep('curious-left', 5200)],
-    blink: standardBlink(2600, 3400, 6200, 280),
-  },
-  happy: {
-    requiredExpressions: [
-      'joyful-down-right',
-      'joyful-wide',
-      'playful-right',
-      'gentle-downward-gaze',
-    ],
-    playbackMode: 'loop',
-    steps: [
-      standardStep('joyful-down-right', 2300),
-      standardStep('joyful-wide', 2300),
-      standardStep('playful-right', 2300),
-      standardStep('gentle-downward-gaze', 2300),
-    ],
-    blink: standardBlink(2100, 2800, 5000, 260),
-  },
-  sad: {
-    requiredExpressions: ['sleepy-squint', 'eyes-closed', 'drowsy-closed'],
-    playbackMode: 'loop',
-    steps: [
-      standardStep('sleepy-squint', 3600),
-      standardStep('eyes-closed', 3600),
-      standardStep('drowsy-closed', 3600),
-    ],
-    blink: standardBlink(4800, 6500, 9500, 420),
-  },
-  thinking: {
-    requiredExpressions: [
-      'curious-left',
-      'angry-left',
-      'skeptical-left',
-      'playful-right',
-      'skeptical-right',
-    ],
-    playbackMode: 'loop',
-    steps: [
-      standardStep('curious-left', 2300),
-      standardStep('angry-left', 2300),
-      standardStep('skeptical-left', 2300),
-      standardStep('playful-right', 2300),
-      standardStep('skeptical-right', 2300),
-    ],
-    blink: standardBlink(2100, 2800, 5000, 260),
-  },
-  excited: {
-    requiredExpressions: [
-      'joyful-down-right',
-      'playful-right',
-      'surprised-wide-left',
-      'surprised-left',
-      'joyful-wide',
-    ],
-    playbackMode: 'loop',
-    steps: [
-      standardStep('joyful-down-right', 2300),
-      standardStep('playful-right', 2300),
-      standardStep('surprised-wide-left', 2300),
-      standardStep('surprised-left', 2300),
-      standardStep('joyful-wide', 2300),
-    ],
-    blink: standardBlink(1200, 1800, 3600, 220),
-  },
-  celebrate: {
-    requiredExpressions: ['joyful-down-right', 'curious-left', 'playful-right'],
-    playbackMode: 'loop',
-    steps: [
-      standardStep('joyful-down-right', 2300),
-      standardStep('curious-left', 2300),
-      standardStep('playful-right', 2300),
-    ],
-    blink: standardBlink(1200, 1800, 3600, 220),
-  },
-} satisfies Record<StandardAnimationKeyV1, StandardAnimationManifestEntry>
-
-export type StandardAnimationAvailabilityV1 = {
-  available: StandardAnimationKeyV1[]
-  unavailable: { key: StandardAnimationKeyV1; missingExpressions: ExpressionKey[] }[]
-}
-
-export const getStandardAnimationAvailabilityV1 = (
-  expressions: Readonly<Record<ExpressionKey, AvatarExpressionDefinition>>
-): StandardAnimationAvailabilityV1 => {
-  const available: StandardAnimationKeyV1[] = []
-  const unavailable: StandardAnimationAvailabilityV1['unavailable'] = []
-  STANDARD_ANIMATION_ORDER_V1.forEach(key => {
-    const missingExpressions = STANDARD_ANIMATIONS_V1[key].requiredExpressions.filter(
-      expression => !(expression in expressions)
-    )
-    if (missingExpressions.length) unavailable.push({ key, missingExpressions })
-    else available.push(key)
-  })
-  return { available, unavailable }
+  /** @deprecated Accepted for pre-release JSON compatibility; it no longer adds animations. */
+  standardAnimationSet?: 1
 }
 
 export type AvatarDefinitionError = {
@@ -342,6 +211,7 @@ const semanticErrors = (definition: AvatarDefinition): AvatarDefinitionError[] =
     path: '/expressionOrder' | '/animationOrder'
   ) => {
     const ordered = new Set(order)
+    const knownKeys = new Set(keys)
     keys.forEach(key => {
       if (!ordered.has(key)) {
         errors.push({
@@ -352,7 +222,7 @@ const semanticErrors = (definition: AvatarDefinition): AvatarDefinitionError[] =
       }
     })
     order.forEach((key, index) => {
-      if (!keys.includes(key)) {
+      if (!knownKeys.has(key)) {
         errors.push({
           path: childPointer(path, index),
           code: 'unknown_order_key',

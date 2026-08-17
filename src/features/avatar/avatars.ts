@@ -25,6 +25,7 @@ export type StudioAvatar = {
 }
 
 export type AvatarColors = { body: string; eyes: string }
+export const PIXEL_RENDERING_ENABLED = false
 export type PixelRenderStyle = {
   type: 'pixel'
   resolution: number
@@ -85,7 +86,9 @@ const finiteBounded = (value: unknown, fallback: number, min: number, max: numbe
 
 export const parseAvatarRenderStyle = (value: unknown): AvatarRenderStyle => {
   const candidate = value as Partial<PixelRenderStyle> | null
-  if (candidate?.type !== 'pixel') return { ...defaultAvatarRenderStyle }
+  if (!PIXEL_RENDERING_ENABLED || candidate?.type !== 'pixel') {
+    return { ...defaultAvatarRenderStyle }
+  }
   return {
     type: 'pixel',
     resolution: Math.round(

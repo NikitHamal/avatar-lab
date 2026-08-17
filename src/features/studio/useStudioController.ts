@@ -49,7 +49,6 @@ import {
   avatarDefinitionFileName,
   createAvatarDefinition,
   getSemanticKeyIssue,
-  getStandardAnimationAvailabilityV1,
   type SemanticKeyIssueCode,
 } from '@/features/avatar/avatarDefinition'
 import {
@@ -61,7 +60,6 @@ import {
   type AvatarBehaviorLibrary,
   type AvatarColors,
   type AvatarEyeDefaults,
-  type AvatarRenderStyle,
   type StudioAvatar,
 } from '@/features/avatar/avatars'
 import {
@@ -85,12 +83,7 @@ import {
 } from '@/features/avatar/geometry'
 import { defaultExpression } from '@/features/avatar/presets'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
-import {
-  avatarExportFileName,
-  createAvatarExportPayload,
-  generateJavaScriptAvatarPackage,
-  generateReactAvatarPackage,
-} from '@/features/export/exporter'
+import { avatarExportFileName, generateJavaScriptEsmPackage } from '@/features/export/exporter'
 import {
   serializeAvatarSnapshot,
   serializePixelSnapshot,
@@ -114,7 +107,6 @@ import {
 } from '@/features/rendering/renderedScene'
 import { paintPixelAvatar } from '@/features/rendering/pixelRenderer'
 import {
-  clearPersistedStudioDocument,
   createStudioDocumentStore,
   loadStudioDocument,
   parseImportedStudioDocument,
@@ -156,7 +148,10 @@ export function useStudioController() {
   const [snapshotSize, setSnapshotSize] = useState('1024')
   const [snapshotFormat, setSnapshotFormat] = useState<SnapshotFormat>('png')
   const [photoFlash, setPhotoFlash] = useState(0)
-  const [runtimeCopyStatus, setRuntimeCopyStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [runtimeCopyFeedback, setRuntimeCopyFeedback] = useState<{
+    status: 'idle' | 'success' | 'error'
+    source?: readonly unknown[]
+  }>({ status: 'idle' })
   const initialStatePlayback = initialDocument.playback
   const updateStudioLibrary = (library: typeof initialDocument.library) =>
     documentStore.update({ library })
@@ -756,10 +751,6 @@ export function useStudioController() {
     const colors = { ...avatar.colors, ...changes }
     updateActiveAvatar(current => ({ ...current, colors }))
     setDisplayColors(resolveColors(expression, colors))
-  }
-
-  const updateAvatarRenderStyle = (renderStyle: AvatarRenderStyle) => {
-    updateActiveAvatar(avatar => ({ ...avatar, renderStyle }))
   }
 
   const updateAvatarEyes = (changes: Partial<AvatarEyeDefaults>) => {
@@ -1481,6 +1472,12 @@ export function useStudioController() {
     })
   }
   const activeAvatar = avatars.find(avatar => avatar.id === activeAvatarId) ?? avatars[0]
+  const runtimeCopySource = [activeAvatar, exportAnimationIds, expressions, sequences] as const
+  const runtimeCopyStatus =
+    runtimeCopyFeedback.source?.length === runtimeCopySource.length &&
+    runtimeCopyFeedback.source.every((value, index) => value === runtimeCopySource[index])
+      ? runtimeCopyFeedback.status
+      : 'idle'
   const activeAvatarEyes = activeAvatar.eyes ?? defaultAvatarEyes
   const activeSequence = sequences.find(sequence => sequence.id === activeState) ?? null
   const activeSequenceLabel = activeSequence
@@ -1523,49 +1520,47 @@ export function useStudioController() {
     }
     return null
   }
-  const runtimeDefinitionResult = createAvatarDefinition({
-    avatar: activeAvatar,
-    behavior: { expressions, sequences },
-  })
-  const runtimeExportErrors = runtimeDefinitionResult.ok
-    ? []
-    : [
-        ...new Set(
-          runtimeDefinitionResult.errors
-            .filter(
-              error =>
-                error.code !== 'unresolved_expression_reference' ||
-                !runtimeDefinitionResult.errors.some(candidate =>
-                  candidate.path.startsWith('/studio/expressions/')
-                )
-            )
-            .map(error => {
-              const expressionMatch = error.path.match(/^\/studio\/expressions\/(\d+)/)
-              if (expressionMatch) {
-                const index = Number(expressionMatch[1])
-                const item = expressions[index]
-                return `${t('Expression')} ${item?.semanticKey || String(index).padStart(2, '0')}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
-              }
-              const animationMatch = error.path.match(/^\/studio\/animations\/(\d+)/)
-              if (animationMatch) {
-                const index = Number(animationMatch[1])
-                const item = sequences[index]
-                if (error.code === 'unresolved_expression_reference') {
-                  return `${t('Animation')} ${item?.name ?? index}: ${t('Une étape référence une expression qui ne peut pas être exportée.')}`
-                }
-                return `${t('Animation')} ${item?.semanticKey || item?.name || index}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
-              }
-              return `${t('Valeur incompatible avec le format runtime')} (${error.path || '/'})`
-            })
-        ),
-      ]
-  const runtimeStandardAvailability = runtimeDefinitionResult.ok
-    ? getStandardAnimationAvailabilityV1(runtimeDefinitionResult.value.expressions)
-    : null
   const exportAnimationIdSet = new Set(exportAnimationIds)
   const selectedExportAnimations = sequences.filter(animation =>
     exportAnimationIdSet.has(animation.id)
   )
+  const runtimeDefinitionResult = createAvatarDefinition({
+    avatar: activeAvatar,
+    behavior: { expressions, sequences: selectedExportAnimations },
+  })
+  const runtimeExportErrors = runtimeDefinitionResult.ok
+    ? []
+    : (() => {
+        const messages = new Set<string>()
+        const hasExpressionErrors = runtimeDefinitionResult.errors.some(error =>
+          error.path.startsWith('/studio/expressions/')
+        )
+        runtimeDefinitionResult.errors.forEach(error => {
+          if (error.code === 'unresolved_expression_reference' && hasExpressionErrors) return
+          const expressionMatch = error.path.match(/^\/studio\/expressions\/(\d+)/)
+          if (expressionMatch) {
+            const index = Number(expressionMatch[1])
+            const item = expressions[index]
+            messages.add(
+              `${t('Expression')} ${item?.semanticKey || String(index).padStart(2, '0')}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
+            )
+            return
+          }
+          const animationMatch = error.path.match(/^\/studio\/animations\/(\d+)/)
+          if (animationMatch) {
+            const index = Number(animationMatch[1])
+            const item = selectedExportAnimations[index]
+            messages.add(
+              error.code === 'unresolved_expression_reference'
+                ? `${t('Animation')} ${item?.name ?? index}: ${t('Une étape référence une expression qui ne peut pas être exportée.')}`
+                : `${t('Animation')} ${item?.semanticKey || item?.name || index}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
+            )
+            return
+          }
+          messages.add(`${t('Valeur incompatible avec le format runtime')} (${error.path || '/'})`)
+        })
+        return [...messages]
+      })()
   const toggleExportAnimation = (animationId: string) => {
     setExportAnimationIds(current =>
       current.includes(animationId)
@@ -1574,14 +1569,11 @@ export function useStudioController() {
     )
   }
   const downloadAvatarExport = () => {
-    if (!selectedExportAnimations.length) return
-    const payload = createAvatarExportPayload(activeAvatar, expressions, selectedExportAnimations)
-    const isReact = exportFormat === 'react'
-    const extension = 'zip'
-    const blob = isReact
-      ? generateReactAvatarPackage(payload)
-      : generateJavaScriptAvatarPackage(payload, language)
-    downloadBlob(blob, avatarExportFileName(activeAvatar.name, extension))
+    if (!runtimeDefinitionResult.ok || exportFormat !== 'javascript') return
+    downloadBlob(
+      generateJavaScriptEsmPackage(runtimeDefinitionResult.value, activeAvatar.name),
+      avatarExportFileName(activeAvatar.name, 'zip')
+    )
   }
   const downloadAvatarRuntimeDefinition = () => {
     if (!runtimeDefinitionResult.ok) return
@@ -1594,16 +1586,16 @@ export function useStudioController() {
   }
   const copyAvatarRuntimeDefinition = async () => {
     if (!runtimeDefinitionResult.ok) return
-    try {
-      if (!navigator.clipboard) throw new Error('Clipboard API unavailable')
-      await navigator.clipboard.writeText(JSON.stringify(runtimeDefinitionResult.value, null, 2))
-      setRuntimeCopyStatus('success')
-    } catch {
-      setRuntimeCopyStatus('error')
+    if (!navigator.clipboard) {
+      setRuntimeCopyFeedback({ status: 'error', source: runtimeCopySource })
+      return
     }
-  }
-  const clearLocalStudioDocument = () => {
-    if (clearPersistedStudioDocument()) window.location.reload()
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(runtimeDefinitionResult.value, null, 2))
+      setRuntimeCopyFeedback({ status: 'success', source: runtimeCopySource })
+    } catch {
+      setRuntimeCopyFeedback({ status: 'error', source: runtimeCopySource })
+    }
   }
   const currentStudioDocument = (): StudioDocument => ({
     version: 2,
@@ -1878,7 +1870,6 @@ export function useStudioController() {
     commitBodyNode,
     commitExpressionMove,
     commitStateMove,
-    clearLocalStudioDocument,
     confirmStudioProjectImport,
     copyAvatarRuntimeDefinition,
     createNewAvatar,
@@ -1945,7 +1936,6 @@ export function useStudioController() {
     runtimeDefinitionResult,
     runtimeCopyStatus,
     runtimeExportErrors,
-    runtimeStandardAvailability,
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
@@ -2003,7 +1993,6 @@ export function useStudioController() {
     toggleStatePlayback,
     transitionToExpression,
     updateAvatarColors,
-    updateAvatarRenderStyle,
     updateAvatarEyeDimension,
     updateAvatarEyePosition,
     updateAvatarEyeSize,

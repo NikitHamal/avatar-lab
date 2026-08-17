@@ -2,10 +2,7 @@ import {
   AVATAR_DEFINITION_MAX_BYTES,
   avatarDefinitionFileName,
   createAvatarDefinition,
-  getStandardAnimationAvailabilityV1,
   parseAvatarDefinition,
-  STANDARD_ANIMATIONS_V1,
-  STANDARD_ANIMATION_ORDER_V1,
   validateAvatarDefinition,
   type AvatarDefinition,
 } from '@/features/avatar/avatarDefinition'
@@ -117,8 +114,8 @@ describe('avatar definition validation', () => {
     expect(result.value).not.toBe(input)
     expect(Object.isFrozen(result.value)).toBe(true)
     expect(Object.isFrozen(result.value.expressions.neutral.eyes.left)).toBe(true)
-    expect(JSON.parse(JSON.stringify(result.value))).toEqual(input)
-    expect(validateAvatarDefinition(JSON.parse(JSON.stringify(result.value))).ok).toBe(true)
+    expect(structuredClone(result.value)).toEqual(input)
+    expect(validateAvatarDefinition(structuredClone(result.value)).ok).toBe(true)
   })
 
   it('rejects unsupported versions, unknown fields, malformed keys, and missing neutral', () => {
@@ -491,10 +488,21 @@ describe('Studio to avatar definition conversion', () => {
       'upward-side-glance',
       'curious-left',
     ])
-    expect(getStandardAnimationAvailabilityV1(result.value.expressions).available).toEqual(
-      STANDARD_ANIMATION_ORDER_V1
-    )
     expect(JSON.stringify(result.value)).not.toContain('expression-00')
+  })
+
+  it('exports a valid expression-only definition when no animation is selected', () => {
+    const behavior = behaviorFixture()
+    const result = createAvatarDefinition({
+      avatar: avatarFixture(),
+      behavior: { ...behavior, sequences: [] },
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.value.expressionOrder).toEqual(['neutral', 'happy-smile'])
+    expect(result.value.animations).toEqual({})
+    expect(result.value.animationOrder).toEqual([])
   })
 
   it('rejects newly created custom content until semantic keys are supplied', () => {
@@ -614,101 +622,7 @@ describe('Studio to avatar definition conversion', () => {
   })
 })
 
-describe('standard animation catalogue v1', () => {
-  it('commits the approved keys, order, steps, timing, and blink settings', () => {
-    expect(STANDARD_ANIMATION_ORDER_V1).toEqual([
-      'idle',
-      'happy',
-      'sad',
-      'thinking',
-      'excited',
-      'celebrate',
-    ])
-    expect(STANDARD_ANIMATIONS_V1.idle).toEqual({
-      requiredExpressions: ['upward-side-glance', 'curious-left'],
-      playbackMode: 'loop',
-      steps: [
-        {
-          expression: 'upward-side-glance',
-          holdMs: 5200,
-          transitionMs: 500,
-          transition: 'smooth',
-        },
-        {
-          expression: 'curious-left',
-          holdMs: 5200,
-          transitionMs: 500,
-          transition: 'smooth',
-        },
-      ],
-      blink: {
-        enabled: true,
-        initialDelayMs: 2600,
-        minIntervalMs: 3400,
-        maxIntervalMs: 6200,
-        durationMs: 280,
-      },
-    })
-    expect(Object.values(STANDARD_ANIMATIONS_V1).every(animation => animation.steps.length)).toBe(
-      true
-    )
-    expect(
-      Object.values(STANDARD_ANIMATIONS_V1).every(animation =>
-        animation.steps.every(
-          step =>
-            step.transitionMs === 500 &&
-            step.transition === 'smooth' &&
-            animation.requiredExpressions.includes(step.expression)
-        )
-      )
-    ).toBe(true)
-    expect(
-      Object.fromEntries(
-        STANDARD_ANIMATION_ORDER_V1.map(key => [
-          key,
-          STANDARD_ANIMATIONS_V1[key].steps.map(step => step.expression),
-        ])
-      )
-    ).toEqual({
-      idle: ['upward-side-glance', 'curious-left'],
-      happy: ['joyful-down-right', 'joyful-wide', 'playful-right', 'gentle-downward-gaze'],
-      sad: ['sleepy-squint', 'eyes-closed', 'drowsy-closed'],
-      thinking: [
-        'curious-left',
-        'angry-left',
-        'skeptical-left',
-        'playful-right',
-        'skeptical-right',
-      ],
-      excited: [
-        'joyful-down-right',
-        'playful-right',
-        'surprised-wide-left',
-        'surprised-left',
-        'joyful-wide',
-      ],
-      celebrate: ['joyful-down-right', 'curious-left', 'playful-right'],
-    })
-  })
-
-  it('reports available standards and exact missing semantic expressions', () => {
-    const definition = definitionFixture()
-    const availability = getStandardAnimationAvailabilityV1(definition.expressions)
-
-    expect(availability.available).toEqual([])
-    expect(availability.unavailable.find(item => item.key === 'idle')).toEqual({
-      key: 'idle',
-      missingExpressions: ['upward-side-glance', 'curious-left'],
-    })
-
-    const idleExpressions = {
-      ...definition.expressions,
-      'upward-side-glance': definition.expressions.neutral,
-      'curious-left': definition.expressions.neutral,
-    }
-    expect(getStandardAnimationAvailabilityV1(idleExpressions).available).toEqual(['idle'])
-  })
-
+describe('runtime definition filenames', () => {
   it('creates a sanitized runtime-definition filename', () => {
     expect(avatarDefinitionFileName('  Éric Avatar!  ')).toBe('eric-avatar.avatar.json')
     expect(avatarDefinitionFileName('***')).toBe('avatar.avatar.json')

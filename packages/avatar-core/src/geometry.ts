@@ -478,12 +478,21 @@ export const poseFromExpression = (expression: Expression): AvatarPose => ({
 export const interpolatePose = (from: AvatarPose, to: AvatarPose, progress: number): AvatarPose => {
   const expression: Expression = { ...from.expression }
   expressionFields.forEach(field => {
-    expression[field] =
-      from.expression[field] + (to.expression[field] - from.expression[field]) * progress
+    let target = to.expression[field]
+    if (
+      field === 'headX' ||
+      field === 'headY' ||
+      field === 'headZ' ||
+      field === 'leftAngle' ||
+      field === 'rightAngle'
+    ) {
+      target = nearestEquivalentAngle(target, from.expression[field])
+    }
+    expression[field] = from.expression[field] + (target - from.expression[field]) * progress
   })
   return {
     expression,
-    orientation: slerpQuaternion(from.orientation, to.orientation, progress),
+    orientation: poseFromExpression(expression).orientation,
   }
 }
 

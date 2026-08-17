@@ -186,7 +186,6 @@ export const createAvatarDefinition = ({
     ],
     animations,
     animationOrder: behavior.sequences.map(sequence => sequence.semanticKey!),
-    standardAnimationSet: 1,
   }
   return validateAvatarDefinition(definition)
 }

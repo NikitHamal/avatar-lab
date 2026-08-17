@@ -134,6 +134,19 @@ importers:
         specifier: ^19.2.3
         version: 19.2.4(@types/react@19.2.18)
 
+  examples/web-vite-consumer:
+    dependencies:
+      '@bible-strong/avatar-web':
+        specifier: workspace:*
+        version: link:../../packages/avatar-web
+    devDependencies:
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.13
+        version: 8.2.1(@types/node@24.13.3)(jiti@2.7.0)
+
   packages/avatar-core:
     dependencies:
       ajv:
@@ -165,6 +178,19 @@ importers:
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.13
+        version: 8.2.1(@types/node@24.13.3)(jiti@2.7.0)
+
+  packages/avatar-web:
+    dependencies:
+      '@bible-strong/avatar-core':
+        specifier: workspace:^
+        version: link:../avatar-core
+    devDependencies:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3

@@ -37,12 +37,72 @@ describe('avatar studio translations', () => {
     expect(translateStudioText('Clé sémantique', 'zh-CN')).toBe('语义键')
     expect(translateStudioText('Exporter le JSON runtime', 'en')).toBe('Export runtime JSON')
     expect(translateStudioText('Exporter le JSON runtime', 'zh-CN')).toBe('导出运行时 JSON')
+    expect(translateStudioText('JSON runtime + createAvatar', 'en')).toBe(
+      'Runtime JSON + createAvatar'
+    )
+    expect(translateStudioText('JSON runtime + createAvatar', 'zh-CN')).toBe(
+      '运行时 JSON + createAvatar'
+    )
+    expect(translateStudioText('JavaScript / ESM', 'en')).toBe('JavaScript / ESM')
+    expect(translateStudioText('JSON runtime + avatar-web', 'zh-CN')).toBe(
+      '运行时 JSON + avatar-web'
+    )
+    expect(translateStudioText('Guide d’utilisation de l’avatar JavaScript', 'en')).toBe(
+      'JavaScript avatar usage guide'
+    )
+    expect(translateStudioText('Preview de la définition exportée', 'en')).toBe(
+      'Exported definition preview'
+    )
+    expect(translateStudioText('Animations exportées', 'zh-CN')).toBe('导出的动画')
+    expect(
+      translateStudioText(
+        'Choisis les animations puis exporte le JSON runtime ou un package autonome.',
+        'en'
+      )
+    ).toBe('Choose animations, then export runtime JSON or a standalone package.')
+    expect(
+      translateStudioText(
+        'Choisis les animations puis exporte le JSON runtime ou un package autonome.',
+        'zh-CN'
+      )
+    ).toBe('选择动画，然后导出运行时 JSON 或独立包。')
     expect(translateStudioText('Nouveau', 'en')).toBe('New')
     expect(translateStudioText('Nouveau', 'zh-CN')).toBe('新增')
-    expect(translateStudioText('Démarrage rapide npm', 'en')).toBe('npm quick start')
-    expect(translateStudioText('Démarrage rapide npm', 'zh-CN')).toBe('npm 快速开始')
     expect(translateStudioText('Lancer l’exemple', 'en')).toBe('Run example')
     expect(translateStudioText('Lancer l’exemple', 'zh-CN')).toBe('运行示例')
+    expect(translateStudioText('Guide d’utilisation', 'en')).toBe('Usage guide')
+    expect(translateStudioText('Guide d’utilisation', 'zh-CN')).toBe('使用指南')
+    expect(translateStudioText('Le rendu Pixel est temporairement désactivé.', 'en')).toBe(
+      'Pixel rendering is temporarily disabled.'
+    )
+    expect(translateStudioText('Le rendu Pixel est temporairement désactivé.', 'zh-CN')).toBe(
+      '像素渲染暂时已禁用。'
+    )
+    expect(translateStudioText('Props de l’avatar', 'en')).toBe('Avatar props')
+    expect(translateStudioText('Props de l’avatar', 'zh-CN')).toBe('头像 Props')
+    expect(translateStudioText('Cible et lecture', 'en')).toBe('Target and playback')
+    expect(translateStudioText('Présentation', 'zh-CN')).toBe('外观')
+    expect(translateStudioText('API impérative', 'en')).toBe('Imperative API')
+    expect(translateStudioText('API impérative', 'zh-CN')).toBe('命令式 API')
+    expect(
+      translateStudioText('Retourne l’animation, l’expression et le statut actifs.', 'en')
+    ).toBe('Returns the active animation, expression and status.')
+    expect(
+      translateStudioText(
+        'Utilise Avatar directement lorsque la définition est chargée à l’exécution ou change entre plusieurs avatars.',
+        'en'
+      )
+    ).toBe(
+      'Use Avatar directly when the definition is loaded at runtime or changes between multiple avatars.'
+    )
+    expect(
+      translateStudioText(
+        'createAvatar valide le JSON et retourne un composant dédié dont les clés d’animations sont typées.',
+        'en'
+      )
+    ).toBe(
+      'createAvatar validates the JSON and returns a dedicated component with typed animation keys.'
+    )
     expect(
       translateStudioText(
         'Exporte le fichier .avatar.json utilisé par les nouveaux packages npm.',
@@ -59,12 +119,12 @@ describe('avatar studio translations', () => {
       'Runtime export is incomplete'
     )
     expect(translateStudioText('Export runtime incomplet', 'zh-CN')).toBe('运行时导出不完整')
-    expect(translateStudioText('Effacer le projet local et recharger', 'en')).toBe(
-      'Clear local project and reload'
-    )
-    expect(translateStudioText('Effacer le projet local et recharger', 'zh-CN')).toBe(
-      '清除本地项目并重新加载'
-    )
+    expect(translateStudioText('Personnaliser', 'en')).toBe('Customize')
+    expect(translateStudioText('Personnaliser', 'zh-CN')).toBe('自定义')
+    expect(translateStudioText('Masquer la sélection', 'en')).toBe('Hide selection')
+    expect(translateStudioText('Masquer la sélection', 'zh-CN')).toBe('隐藏选择')
+    expect(translateStudioText('Expression de départ', 'en')).toBe('Starting expression')
+    expect(translateStudioText('Expression de départ', 'zh-CN')).toBe('起始表情')
     expect(translateStudioText('Copier le JSON formaté', 'en')).toBe('Copy formatted JSON')
     expect(translateStudioText('Copier le JSON formaté', 'zh-CN')).toBe('复制格式化的 JSON')
     expect(translateStudioText('JSON runtime copié dans le presse-papiers.', 'en')).toBe(

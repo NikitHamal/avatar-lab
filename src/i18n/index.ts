@@ -85,6 +85,8 @@ const english: Record<string, string> = {
   'Choisis la finition visuelle propre à cet avatar.':
     'Choose the visual finish specific to this avatar.',
   'Type de rendu': 'Rendering type',
+  'Le rendu Pixel est temporairement désactivé.': 'Pixel rendering is temporarily disabled.',
+  'Le mode Vectoriel est utilisé pour l’instant.': 'Vector rendering is currently used.',
   'Pixel utilise une palette franche, sans lissage ni couleur intermédiaire.':
     'Pixel uses a hard palette, with no smoothing or intermediate colors.',
   Vectoriel: 'Vector',
@@ -129,27 +131,145 @@ const english: Record<string, string> = {
   Nouveau: 'New',
   'Exporte le fichier .avatar.json utilisé par les nouveaux packages npm.':
     'Export the .avatar.json file used by the new npm packages.',
+  'JSON runtime + createAvatar': 'Runtime JSON + createAvatar',
   'Télécharge la définition portable complète de l’avatar actif.':
     'Download the complete portable definition for the active avatar.',
   'Définition runtime': 'Runtime definition',
   'Fichier .avatar.json portable': 'Portable .avatar.json file',
-  'Prêt pour l’export runtime': 'Ready for runtime export',
   'Export runtime incomplet': 'Runtime export is incomplete',
-  'Effacer le projet local et recharger': 'Clear local project and reload',
-  'animations standard disponibles': 'standard animations available',
+  'Corrige les clés signalées dans les éditeurs Expressions ou Animations.':
+    'Fix the highlighted keys in the Expressions or Animations editors.',
   'Télécharger la définition .avatar.json': 'Download .avatar.json definition',
   'Copier le JSON formaté': 'Copy formatted JSON',
   'JSON runtime copié dans le presse-papiers.': 'Runtime JSON copied to the clipboard.',
   'Impossible de copier le JSON runtime.': 'Could not copy the runtime JSON.',
-  'Démarrage rapide npm': 'npm quick start',
-  'Ces commandes fonctionneront après la publication des packages actuellement privés.':
-    'These commands will work after the currently private packages are published.',
   Installation: 'Installation',
-  'Exemple React minimal': 'Minimal React example',
   'Lancer l’exemple': 'Run example',
   'Masquer l’aperçu': 'Hide preview',
   'Aperçu avec le package React': 'Preview using the React package',
+  Preview: 'Preview',
+  'Définition prête à tester': 'Definition ready to test',
+  'Preview de la définition exportée': 'Exported definition preview',
+  'Teste les animations et expressions réellement présentes dans le fichier .avatar.json.':
+    'Test the animations and expressions actually included in the .avatar.json file.',
+  'Fermer la preview': 'Close preview',
+  'Définition exportée': 'Exported definition',
+  'Animation active': 'Active animation',
+  'Expression active': 'Active expression',
+  'Contrôles de lecture': 'Playback controls',
+  'Animations exportées': 'Exported animations',
+  'Expressions exportées': 'Exported expressions',
+  'Clique pour lancer': 'Click to play',
+  'Clique pour afficher': 'Click to display',
+  'Aucune animation exportée': 'No exported animation',
   'Aperçu runtime de l’avatar actif': 'Runtime preview of the active avatar',
+  'Animation de départ': 'Starting animation',
+  'Expression de départ': 'Starting expression',
+  'Aucune animation sélectionnée': 'No animation selected',
+  'Guide d’utilisation': 'Usage guide',
+  'Guide d’utilisation de l’avatar React': 'React avatar usage guide',
+  'Guide d’utilisation de l’avatar JavaScript': 'JavaScript avatar usage guide',
+  'Installe le package, crée ton composant et choisis le niveau de contrôle adapté.':
+    'Install the package, create your component and choose the right control level.',
+  'Fermer le guide': 'Close guide',
+  'Ajoute le package React et ses dépendances.': 'Add the React package and its dependencies.',
+  'Installe le module ESM, charge la définition JSON et monte l’avatar dans un élément du DOM.':
+    'Install the ESM module, load the JSON definition and mount the avatar in a DOM element.',
+  'Ajoute le renderer DOM, qui utilise automatiquement avatar-core.':
+    'Add the DOM renderer, which automatically uses avatar-core.',
+  'Utilisation avec un bundler ESM': 'Using an ESM bundler',
+  'Vite et les bundlers modernes résolvent le package et importent le même fichier .avatar.json que React.':
+    'Vite and modern bundlers resolve the package and import the same .avatar.json file as React.',
+  'Options de createAvatar': 'createAvatar options',
+  'Référence des valeurs acceptées lors du montage dans le DOM.':
+    'Reference for values accepted when mounting into the DOM.',
+  'Obligatoire. Définition JSON validée avant la création des éléments SVG.':
+    'Required. JSON definition validated before the SVG elements are created.',
+  'Optionnelle. Animation lancée au montage lorsque autoplay vaut true. Mutuellement exclusive avec defaultExpression.':
+    'Optional. Animation started on mount when autoplay is true. Mutually exclusive with defaultExpression.',
+  'Optionnelle. Expression initiale affichée sans lancer de timeline. Mutuellement exclusive avec defaultAnimation.':
+    'Optional. Initial expression displayed without starting a timeline. Mutually exclusive with defaultAnimation.',
+  'Optionnelle, défaut true. Contrôle uniquement le lancement automatique de defaultAnimation.':
+    'Optional, defaults to true. Only controls whether defaultAnimation starts automatically.',
+  'Optionnelle, défaut 240. Largeur et hauteur CSS du conteneur rendu.':
+    'Optional, defaults to 240. CSS width and height of the rendered container.',
+  'Optionnelle. Classe CSS ajoutée au conteneur rendu.':
+    'Optional. CSS class added to the rendered container.',
+  'Optionnelle, défaut « Procedural avatar ». Nom accessible du rendu.':
+    'Optional, defaults to “Procedural avatar”. Accessible name for the rendered avatar.',
+  'Optionnelle. Reçoit les erreurs de clé inconnue utilisées lors de l’initialisation.':
+    'Optional. Receives unknown-key errors encountered during initialization.',
+  'Optionnelle. Appelée lorsqu’une animation once se termine.':
+    'Optional. Called when a once animation completes.',
+  'Optionnelle. Appelée lorsque l’expression active change.':
+    'Optional. Called when the active expression changes.',
+  'API du contrôleur DOM': 'DOM controller API',
+  'createAvatar retourne immédiatement ces commandes impératives.':
+    'createAvatar immediately returns these imperative commands.',
+  'Lance ou reprend une animation par sa clé.': 'Starts or resumes an animation by key.',
+  'Affiche une expression avec une transition courte.':
+    'Displays an expression with a short transition.',
+  'Arrête la lecture et revient à neutral.': 'Stops playback and returns to neutral.',
+  'Annule la frame planifiée et retire uniquement le conteneur créé par avatar-web.':
+    'Cancels the scheduled frame and removes only the container created by avatar-web.',
+  'Navigateur sans bundler': 'Browser without a bundler',
+  'Utilise une URL ESM via un CDN ou une import map, puis charge la définition avec fetch.':
+    'Use an ESM URL through a CDN or import map, then load the definition with fetch.',
+  'Les packages sont encore privés. Cette commande fonctionnera après leur publication ; utilise le workspace ou les tarballs pour les tests locaux.':
+    'The packages are still private. This command will work after publication; use the workspace or tarballs for local testing.',
+  'API recommandée : créer un avatar concret': 'Recommended API: create a concrete avatar',
+  'createAvatar valide le JSON et retourne un composant dédié dont les clés d’animations sont typées.':
+    'createAvatar validates the JSON and returns a dedicated component with typed animation keys.',
+  'Props de l’avatar': 'Avatar props',
+  'Référence complète : type, valeur par défaut, comportement et contraintes de chaque prop.':
+    'Complete reference: type, default value, behavior and constraints for every prop.',
+  'Cible et lecture': 'Target and playback',
+  'Obligatoire. Objet AvatarDefinition validé contenant les expressions et les animations à afficher.':
+    'Required. Validated AvatarDefinition object containing the expressions and animations to display.',
+  'Optionnelle. Contrôle une timeline par sa clé. Chaque étape choisit l’expression affichée. Mutuellement exclusive avec expression ; une cible contrôlée prend priorité sur les valeurs default.':
+    'Optional. Controls a timeline by key. Each step chooses the displayed expression. Mutually exclusive with expression; a controlled target takes priority over default values.',
+  'Optionnelle. Contrôle directement une expression par sa clé. Mutuellement exclusive avec animation ; une cible contrôlée prend priorité sur les valeurs default.':
+    'Optional. Directly controls an expression by key. Mutually exclusive with animation; a controlled target takes priority over default values.',
+  'Optionnelle. Définit la timeline initiale en mode non contrôlé. Lue au montage ; autoplay est activé par défaut. Mutuellement exclusive avec defaultExpression.':
+    'Optional. Defines the initial timeline in uncontrolled mode. Read on mount; autoplay is enabled by default. Mutually exclusive with defaultExpression.',
+  'Optionnelle. Définit l’expression initiale en mode non contrôlé. Lue au montage, sans lancer de timeline. Mutuellement exclusive avec defaultAnimation.':
+    'Optional. Defines the initial expression in uncontrolled mode. Read on mount without starting a timeline. Mutually exclusive with defaultAnimation.',
+  'Optionnelle, défaut true. Lance automatiquement defaultAnimation ; sans defaultAnimation, elle n’a aucun effet.':
+    'Optional, defaults to true. Automatically starts defaultAnimation; without defaultAnimation, it has no effect.',
+  'Optionnelle. Donne accès à l’API impérative AvatarController.':
+    'Optional. Provides access to the imperative AvatarController API.',
+  Présentation: 'Presentation',
+  'Optionnelle, défaut 240. Nombre ou valeur CSS utilisée pour la largeur et la hauteur du conteneur.':
+    'Optional, defaults to 240. Number or CSS value used for the container width and height.',
+  'Optionnelle. Classe CSS ajoutée au conteneur externe.':
+    'Optional. CSS class added to the outer container.',
+  'Optionnelle. Styles inline du conteneur externe ; width et height viennent de size.':
+    'Optional. Inline styles for the outer container; width and height come from size.',
+  'Optionnelle, défaut « Procedural avatar ». Nom accessible annoncé aux lecteurs d’écran.':
+    'Optional, defaults to “Procedural avatar”. Accessible name announced to screen readers.',
+  'Callbacks de lecture': 'Playback callbacks',
+  'Optionnelle. Reçoit la clé de l’animation once terminée naturellement.':
+    'Optional. Receives the key of a once animation when it completes naturally.',
+  'Optionnelle. Reçoit la clé de l’expression chaque fois que l’expression sémantique affichée change.':
+    'Optional. Receives the expression key whenever the displayed semantic expression changes.',
+  'Optionnelle. Reçoit une erreur typée lorsqu’une prop animation, expression ou default référence une clé inconnue.':
+    'Optional. Receives a typed error when an animation, expression or default prop references an unknown key.',
+  'Avatar générique': 'Generic Avatar',
+  'Utilise Avatar directement lorsque la définition est chargée à l’exécution ou change entre plusieurs avatars.':
+    'Use Avatar directly when the definition is loaded at runtime or changes between multiple avatars.',
+  'API impérative': 'Imperative API',
+  'La ref expose les commandes de lecture et l’état courant de l’avatar.':
+    'The ref exposes playback commands and the avatar’s current state.',
+  'Les commandes de cible sont disponibles en mode non contrôlé ; sinon utilise les props.':
+    'Target commands are available in uncontrolled mode; otherwise use props.',
+  'Lance ou reprend une animation et retourne un résultat typé.':
+    'Starts or resumes an animation and returns a typed result.',
+  'Met en pause la timeline à sa position exacte.': 'Pauses the timeline at its exact position.',
+  'En mode non contrôlé, arrête la lecture et revient à neutral. En mode contrôlé, les props restent la source de vérité.':
+    'In uncontrolled mode, stops playback and returns to neutral. In controlled mode, props remain the source of truth.',
+  'Affiche directement une expression.': 'Directly displays an expression.',
+  'Retourne l’animation, l’expression et le statut actifs.':
+    'Returns the active animation, expression and status.',
   Expression: 'Expression',
   Animation: 'Animation',
   'Une étape référence une expression qui ne peut pas être exportée.':
@@ -159,22 +279,33 @@ const english: Record<string, string> = {
     'Download a standalone component with the animations you choose.',
   'Génère l’export ZIP autonome React ou JavaScript qui existait déjà.':
     'Generate the existing standalone React or JavaScript ZIP export.',
+  'Choisis les animations puis exporte le JSON runtime ou un package autonome.':
+    'Choose animations, then export runtime JSON or a standalone package.',
+  'Choisis les animations puis utilise la même définition JSON avec React ou JavaScript.':
+    'Choose animations, then use the same JSON definition with React or JavaScript.',
   'Avatar sélectionné': 'Selected avatar',
   Format: 'Format',
   'Choisis l’intégration correspondant à ton projet.':
     'Choose the integration that matches your project.',
   'Composant TSX autonome': 'Standalone TSX component',
   'Package React local (.zip)': 'Local React package (.zip)',
-  'Module JavaScript': 'JavaScript module',
+  'JavaScript / ESM': 'JavaScript / ESM',
+  'JSON runtime + avatar-web': 'Runtime JSON + avatar-web',
   'Module ES autonome': 'Standalone ES module',
   'Projet HTML + module JS (.zip)': 'HTML project + JS module (.zip)',
   sélectionnées: 'selected',
   'Animations à exporter': 'Animations to export',
   'Tout sélectionner': 'Select all',
   'Tout désélectionner': 'Deselect all',
+  Personnaliser: 'Customize',
+  'Masquer la sélection': 'Hide selection',
   'Télécharger le composant TSX': 'Download TSX component',
   'Télécharger le package React': 'Download React package',
   'Télécharger le module': 'Download module',
+  'Intégration ESM avec le package avatar-web': 'ESM integration with the avatar-web package',
+  'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.':
+    'The ZIP contains the exported JSON, an index.html demo and its README. The demo loads avatar-web from a CDN.',
+  'Télécharger l’intégration ESM (.zip)': 'Download ESM integration (.zip)',
   Snapshot: 'Snapshot',
   'Mode photo': 'Photo Mode',
   'Capture une image statique de l’avatar.': 'Capture a static image of the avatar.',

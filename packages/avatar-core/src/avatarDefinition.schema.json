@@ -12,8 +12,7 @@
     "expressions",
     "expressionOrder",
     "animations",
-    "animationOrder",
-    "standardAnimationSet"
+    "animationOrder"
   ],
   "properties": {
     "schema": { "const": "bible-strong/avatar-definition" },
@@ -49,7 +48,7 @@
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/semanticKey" }
     },
-    "standardAnimationSet": { "const": 1 }
+    "standardAnimationSet": { "const": 1, "deprecated": true }
   },
   "$defs": {
     "semanticKey": {

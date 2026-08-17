@@ -1,4 +1,5 @@
 import { applyAvatarEyeDefaults, type StudioAvatar } from '../avatar/avatars'
+import { avatarDefinitionFileName, type AvatarDefinition } from '@bible-strong/avatar-core'
 import type { Expression } from '../avatar/geometry'
 import { translateStudioText, type StudioLanguage } from '../../i18n'
 import { proceduralBrowserRuntime } from './proceduralBrowserRuntime'
@@ -354,6 +355,120 @@ export const generateJavaScriptAvatarPackage = (
   return createStoredZip([
     { name: 'index.html', content: generateJavaScriptAvatarHtml(payload, language) },
     { name: 'avatar.js', content: generateJavaScriptAvatarModule(payload) },
+  ])
+}
+
+export const generateJavaScriptEsmHtml = (
+  definitionFileName: string,
+  avatarName: string
+) => `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escapedHtml(avatarName)} · Avatar demo</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; padding: 32px; color: #f7f8fa; background: #0d1117; font-family: Inter, system-ui, sans-serif; }
+      main { width: min(980px, 100%); margin: auto; }
+      h1 { margin: 0 0 24px; }
+      .demo { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, .8fr); gap: 20px; }
+      .stage, .controls { border: 1px solid #293140; border-radius: 22px; background: #141a22; }
+      .stage { display: grid; min-height: 560px; place-items: center; }
+      #avatar { width: min(80%, 460px); aspect-ratio: 1; }
+      .controls { padding: 20px; }
+      h2 { margin: 0 0 12px; font-size: 15px; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 22px; }
+      button { min-width: 0; padding: 10px; overflow: hidden; color: #dbe3ef; border: 1px solid #354052; border-radius: 10px; background: #1b2330; font: inherit; text-overflow: ellipsis; cursor: pointer; }
+      button:hover, button[aria-pressed="true"] { color: #fff; border-color: #7392ed; background: #263657; }
+      @media (max-width: 760px) { body { padding: 16px; } .demo { grid-template-columns: 1fr; } .stage { min-height: 420px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>${escapedHtml(avatarName)}</h1>
+      <div class="demo">
+        <section class="stage"><div id="avatar"></div></section>
+        <aside class="controls">
+          <h2>Animations</h2>
+          <div class="grid" id="animations"></div>
+          <h2>Expressions</h2>
+          <div class="grid" id="expressions"></div>
+        </aside>
+      </div>
+    </main>
+    <script type="module">
+      import { createAvatar } from 'https://esm.sh/@bible-strong/avatar-web@0.1.0'
+
+      const definition = await fetch('./${definitionFileName}').then(response => response.json())
+      const avatar = createAvatar('#avatar', { definition, size: '100%' })
+
+      const addButtons = (containerId, keys, activate) => {
+        const container = document.querySelector(containerId)
+        keys.forEach(key => {
+          const button = document.createElement('button')
+          button.textContent = key
+          button.addEventListener('click', () => {
+            container.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', 'false'))
+            button.setAttribute('aria-pressed', 'true')
+            activate(key)
+          })
+          container.append(button)
+        })
+      }
+
+      addButtons('#animations', definition.animationOrder, key => avatar.play(key))
+      addButtons('#expressions', definition.expressionOrder, key => avatar.setExpression(key))
+      if (definition.animationOrder[0]) avatar.play(definition.animationOrder[0])
+    </script>
+  </body>
+</html>
+`
+
+export const generateJavaScriptEsmReadme = (
+  definitionFileName: string
+) => `# Avatar JavaScript / ESM
+
+This export uses the same .avatar.json definition as @bible-strong/avatar-react. The rendering and
+playback engine is provided by @bible-strong/avatar-web instead of being copied into this export.
+
+## Run the demo
+
+\`\`\`sh
+npx serve .
+\`\`\`
+
+Then open the local URL displayed by the command. index.html loads avatar-web from esm.sh and the
+exported ${definitionFileName} file from this folder.
+
+## Use in your application
+
+\`\`\`js
+import { createAvatar } from '@bible-strong/avatar-web'
+import definition from './${definitionFileName}'
+
+const avatar = createAvatar('#avatar', {
+  definition,
+  defaultAnimation: 'idle',
+})
+
+avatar.play('happy')
+avatar.pause()
+avatar.stop()
+\`\`\`
+
+The JSON import is intended for a modern ESM build tool such as Vite.
+`
+
+export const generateJavaScriptEsmPackage = (
+  definition: Readonly<AvatarDefinition>,
+  avatarName: string
+) => {
+  const definitionFileName = avatarDefinitionFileName(avatarName)
+  return createStoredZip([
+    { name: definitionFileName, content: JSON.stringify(definition, null, 2) },
+    { name: 'index.html', content: generateJavaScriptEsmHtml(definitionFileName, avatarName) },
+    { name: 'README.md', content: generateJavaScriptEsmReadme(definitionFileName) },
   ])
 }
 

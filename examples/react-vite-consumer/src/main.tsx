@@ -1,5 +1,5 @@
 import { validateAvatarDefinition, type AvatarDefinition } from '@bible-strong/avatar-core'
-import { Avatar } from '@bible-strong/avatar-react'
+import { Avatar, createAvatar } from '@bible-strong/avatar-react'
 import '@bible-strong/avatar-react/styles.css'
 import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -10,7 +10,9 @@ import './styles.css'
 const validation = validateAvatarDefinition(definitionJson)
 if (!validation.ok) throw new Error(validation.errors[0]?.message)
 const definition = validation.value as AvatarDefinition
-const expressions = Object.keys(definition.expressions)
+const StrobiAvatar = createAvatar(definitionJson)
+type StrobiExpressionKey = keyof typeof definitionJson.expressions
+const expressions = Object.keys(definition.expressions) as StrobiExpressionKey[]
 const horizontalPosition = (expression: string) =>
   expression.includes('left') ? 'left' : expression.includes('right') ? 'right' : 'center'
 const verticalPosition = (expression: string) =>
@@ -38,7 +40,7 @@ const formatExpressionName = (expression: string) =>
   expression.replaceAll('-', ' ').replace(/\b\w/g, letter => letter.toUpperCase())
 
 function Demo() {
-  const [expression, setExpression] = useState('neutral')
+  const [expression, setExpression] = useState<StrobiExpressionKey>('neutral')
 
   return (
     <main>
@@ -80,15 +82,14 @@ function Demo() {
           ))}
         </div>
       </section>
-      <Avatar
-        definition={definition}
-        expression={expression}
-        mode="floating"
-        draggable
-        size={128}
-        initialPosition={{ right: 24, bottom: 24 }}
-        ariaLabel="Floating draggable Strobi avatar"
-      />
+      <div className="avatar-overlay" aria-label="Positioned avatar example">
+        <Avatar
+          definition={definition}
+          expression={expression}
+          size={128}
+          ariaLabel="Positioned Strobi avatar"
+        />
+      </div>
     </main>
   )
 }

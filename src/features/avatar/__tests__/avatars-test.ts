@@ -52,20 +52,14 @@ describe('avatar render style', () => {
     expect(parseAvatarRenderStyle(undefined)).toEqual({ type: 'vector' })
   })
 
-  it('sanitizes pixel settings', () => {
+  it('falls back to vector rendering while pixel mode is disabled', () => {
     expect(
       parseAvatarRenderStyle({
         type: 'pixel',
         resolution: 500,
       })
-    ).toEqual({
-      type: 'pixel',
-      resolution: 192,
-    })
-    expect(parseAvatarRenderStyle({ type: 'pixel', resolution: 1 })).toEqual({
-      type: 'pixel',
-      resolution: 8,
-    })
+    ).toEqual({ type: 'vector' })
+    expect(parseAvatarRenderStyle({ type: 'pixel', resolution: 1 })).toEqual({ type: 'vector' })
   })
 })
 

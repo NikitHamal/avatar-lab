@@ -1,6 +1,4 @@
 import {
-  getStandardAnimationAvailabilityV1,
-  STANDARD_ANIMATIONS_V1,
   type AnimationKey,
   type AvatarAnimationDefinition,
   type AvatarDefinition,
@@ -8,11 +6,11 @@ import {
   type ExpressionKey,
 } from './avatarDefinition'
 import { applyAmbientMotion } from './ambientMotion'
-import { interpolatePose, poseFromExpression } from './geometry'
+import { interpolatePose, poseFromExpression, type Expression } from './geometry'
 import { expressionFromDefinition, renderAvatarExpression, type AvatarScene } from './scene'
 
 export type AvatarRuntimeError = {
-  code: 'unknown_animation' | 'unavailable_standard_animation' | 'unknown_expression'
+  code: 'unknown_animation' | 'unknown_expression'
   key: string
   message: string
 }
@@ -38,28 +36,12 @@ export const resolveAnimation = (
   key: AnimationKey
 ): AvatarCommandResult<Readonly<AvatarAnimationDefinition>> => {
   const explicit = definition.animations[key]
-  if (explicit) return { ok: true, value: explicit }
-  if (!(key in STANDARD_ANIMATIONS_V1)) {
-    return {
-      ok: false,
-      error: { code: 'unknown_animation', key, message: `Unknown animation '${key}'` },
-    }
-  }
-  const availability = getStandardAnimationAvailabilityV1(definition.expressions)
-  const unavailable = availability.unavailable.find(item => item.key === key)
-  if (unavailable) {
-    return {
-      ok: false,
-      error: {
-        code: 'unavailable_standard_animation',
-        key,
-        message: `Animation '${key}' requires: ${unavailable.missingExpressions.join(', ')}`,
-      },
-    }
-  }
-  const { requiredExpressions: _requiredExpressions, ...animation } =
-    STANDARD_ANIMATIONS_V1[key as keyof typeof STANDARD_ANIMATIONS_V1]
-  return { ok: true, value: animation }
+  return explicit
+    ? { ok: true, value: explicit }
+    : {
+        ok: false,
+        error: { code: 'unknown_animation', key, message: `Unknown animation '${key}'` },
+      }
 }
 
 export type AvatarPlaybackState = {
@@ -71,15 +53,21 @@ export type AvatarPlaybackState = {
   phase: 'transition' | 'hold'
   phaseStartedAt: number
   transitionFrom: ExpressionKey
+  transitionSnapshot?: AvatarFrameSnapshot
   pausedAt?: number
   blinkDueAt?: number
   blinkStartedAt?: number
   directTransition?: {
-    from: ExpressionKey
+    from: AvatarFrameSnapshot
     startedAt: number
     durationMs: number
     transition: AvatarAnimationDefinition['steps'][number]['transition']
   }
+}
+
+export type AvatarFrameSnapshot = {
+  expression: Expression
+  colors: AvatarScene['colors']
 }
 
 export type AvatarRuntimeEnvironment = {
@@ -100,7 +88,8 @@ export const createAvatarPlaybackState = (): AvatarPlaybackState => ({
 export const playAvatarAnimation = (
   definition: Readonly<AvatarDefinition>,
   key: AnimationKey,
-  now: number
+  now: number,
+  from?: AvatarFrameSnapshot
 ): AvatarCommandResult<AvatarPlaybackState> => {
   const result = resolveAnimation(definition, key)
   if (!result.ok) return result
@@ -115,6 +104,7 @@ export const playAvatarAnimation = (
       phase: 'transition',
       phaseStartedAt: now,
       transitionFrom: 'neutral',
+      ...(from ? { transitionSnapshot: from } : {}),
       blinkDueAt: now + result.value.blink.initialDelayMs,
     },
   }
@@ -189,6 +179,7 @@ export const advanceAvatarPlayback = (
     next.direction = cursor.direction
     next.phase = 'transition'
     next.transitionFrom = next.activeExpression
+    delete next.transitionSnapshot
     next.activeExpression = animation.steps[cursor.stepIndex].expression
   }
   return next
@@ -210,6 +201,14 @@ export const resumeAvatarPlayback = (
     ...state,
     status: 'playing',
     phaseStartedAt: state.phaseStartedAt + pauseDuration,
+    ...(state.directTransition
+      ? {
+          directTransition: {
+            ...state.directTransition,
+            startedAt: state.directTransition.startedAt + pauseDuration,
+          },
+        }
+      : {}),
     ...(state.blinkDueAt === undefined ? {} : { blinkDueAt: state.blinkDueAt + pauseDuration }),
     ...(state.blinkStartedAt === undefined
       ? {}
@@ -229,6 +228,38 @@ const easing = (
   return Math.max(0, Math.min(1, (1 - Math.exp(-6 * progress) * Math.cos(8 * progress)) / end))
 }
 
+const expressionColors = (
+  definition: Readonly<AvatarDefinition>,
+  expression: Readonly<AvatarExpressionDefinition>
+): AvatarScene['colors'] => ({
+  body: expression.colors?.body ?? definition.colors.body,
+  eyes: expression.colors?.eyes ?? definition.colors.eyes,
+})
+
+const interpolateHexColor = (from: string, to: string, progress: number) => {
+  const parse = (color: string) => {
+    const value = color.slice(1)
+    const expanded = value.length === 3 ? [...value].map(part => `${part}${part}`).join('') : value
+    return [0, 2, 4].map(index => Number.parseInt(expanded.slice(index, index + 2), 16))
+  }
+  const source = parse(from)
+  const target = parse(to)
+  if (source.some(Number.isNaN) || target.some(Number.isNaN)) return progress < 1 ? from : to
+  return `#${source
+    .map((value, index) => Math.round(value + (target[index] - value) * progress))
+    .map(value => value.toString(16).padStart(2, '0'))
+    .join('')}`
+}
+
+const interpolateColors = (
+  from: AvatarScene['colors'],
+  to: AvatarScene['colors'],
+  progress: number
+): AvatarScene['colors'] => ({
+  body: interpolateHexColor(from.body, to.body, progress),
+  eyes: interpolateHexColor(from.eyes, to.eyes, progress),
+})
+
 export const blinkOpacityAt = (
   animation: Readonly<AvatarAnimationDefinition>,
   state: Readonly<AvatarPlaybackState>,
@@ -240,54 +271,78 @@ export const blinkOpacityAt = (
   return Math.abs(progress * 2 - 1)
 }
 
-export const renderAvatarFrame = (
+export const sampleAvatarFrame = (
   definition: Readonly<AvatarDefinition>,
   state: Readonly<AvatarPlaybackState>,
   now: number,
   environment: AvatarRuntimeEnvironment
-): AvatarScene => {
+): AvatarFrameSnapshot & { blink: number; sampledAt: number } => {
+  const sampledAt = state.status === 'paused' && state.pausedAt !== undefined ? state.pausedAt : now
   const targetDefinition = definition.expressions[state.activeExpression]
-  if (!targetDefinition)
-    return renderAvatarExpression(
-      definition,
-      expressionFromDefinition('neutral', definition.expressions.neutral)
-    )
+  if (!targetDefinition) {
+    const neutral = definition.expressions.neutral
+    return {
+      expression: expressionFromDefinition('neutral', neutral),
+      colors: expressionColors(definition, neutral),
+      blink: 1,
+      sampledAt,
+    }
+  }
   let expression = expressionFromDefinition(state.activeExpression, targetDefinition)
+  let colors = expressionColors(definition, targetDefinition)
   let blink = 1
   if (state.directTransition && !environment.reduceMotion) {
-    const fromDefinition = definition.expressions[state.directTransition.from]
-    if (fromDefinition) {
-      const from = expressionFromDefinition(state.directTransition.from, fromDefinition)
-      const progress = easing(
-        state.directTransition.transition,
-        (now - state.directTransition.startedAt) / Math.max(state.directTransition.durationMs, 1)
-      )
-      expression = interpolatePose(
-        poseFromExpression(from),
-        poseFromExpression(expression),
-        progress
-      ).expression
-    }
+    const progress = easing(
+      state.directTransition.transition,
+      (sampledAt - state.directTransition.startedAt) /
+        Math.max(state.directTransition.durationMs, 1)
+    )
+    expression = interpolatePose(
+      poseFromExpression(state.directTransition.from.expression),
+      poseFromExpression(expression),
+      progress
+    ).expression
+    colors = interpolateColors(state.directTransition.from.colors, colors, progress)
   } else if (state.activeAnimation) {
     const resolved = resolveAnimation(definition, state.activeAnimation)
     if (resolved.ok) {
       const step = resolved.value.steps[state.stepIndex]
       if (state.phase === 'transition' && step && !environment.reduceMotion) {
         const fromDefinition = definition.expressions[state.transitionFrom]
-        if (fromDefinition) {
-          const from = expressionFromDefinition(state.transitionFrom, fromDefinition)
+        const from =
+          state.transitionSnapshot?.expression ??
+          (fromDefinition
+            ? expressionFromDefinition(state.transitionFrom, fromDefinition)
+            : undefined)
+        const fromColors =
+          state.transitionSnapshot?.colors ??
+          (fromDefinition ? expressionColors(definition, fromDefinition) : undefined)
+        if (from && fromColors) {
           const duration = Math.max(step.transitionMs, 1)
-          const progress = easing(step.transition, (now - state.phaseStartedAt) / duration)
+          const progress = easing(step.transition, (sampledAt - state.phaseStartedAt) / duration)
           expression = interpolatePose(
             poseFromExpression(from),
             poseFromExpression(expression),
             progress
           ).expression
+          colors = interpolateColors(fromColors, colors, progress)
         }
       }
-      blink = blinkOpacityAt(resolved.value, state, now)
+      blink = blinkOpacityAt(resolved.value, state, sampledAt)
     }
   }
-  if (!environment.reduceMotion) expression = applyAmbientMotion(expression, now)
-  return renderAvatarExpression(definition, expression, targetDefinition.colors, blink)
+  return { expression, colors, blink, sampledAt }
+}
+
+export const renderAvatarFrame = (
+  definition: Readonly<AvatarDefinition>,
+  state: Readonly<AvatarPlaybackState>,
+  now: number,
+  environment: AvatarRuntimeEnvironment
+): AvatarScene => {
+  const frame = sampleAvatarFrame(definition, state, now, environment)
+  const expression = environment.reduceMotion
+    ? frame.expression
+    : applyAmbientMotion(frame.expression, frame.sampledAt)
+  return renderAvatarExpression(definition, expression, frame.colors, frame.blink)
 }

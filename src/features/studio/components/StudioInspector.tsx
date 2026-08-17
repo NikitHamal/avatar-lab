@@ -1,6 +1,6 @@
 import {
   ArrowLeft,
-  CircleCheck,
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -18,11 +18,6 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
-
-import {
-  Avatar as RuntimeAvatar,
-  type AvatarController as RuntimeAvatarController,
-} from '@bible-strong/avatar-react'
 
 import { Accordion } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
@@ -59,11 +54,7 @@ import { ColorField, LinkButton, NumericField } from '@/app/components/controls'
 import { formatSeconds, scaleSurface, type Side, type SnapshotFormat } from '@/app/studio-utils'
 import { SequenceWorkspace } from '@/features/animation/components/SequenceWorkspace'
 import { findExpressionIndex, groupSequences } from '@/features/animation/sequences'
-import {
-  defaultAvatarEyes,
-  defaultPixelRenderStyle,
-  type AvatarRenderStyle,
-} from '@/features/avatar/avatars'
+import { defaultAvatarEyes } from '@/features/avatar/avatars'
 import { bodyPrimitiveTypes, MAX_BODY_NODES } from '@/features/avatar/body'
 import {
   ExpressionCard,
@@ -75,49 +66,15 @@ import { defaultExpression } from '@/features/avatar/presets'
 import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
 import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
+import { RuntimeGuideDialog } from '@/features/studio/components/RuntimeGuideDialog'
+import { RuntimePreviewDialog } from '@/features/studio/components/RuntimePreviewDialog'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
 
-const runtimeInstallExample =
-  'npm install @bible-strong/avatar-core @bible-strong/avatar-react react react-dom'
-
-const runtimeReactExample = `import { validateAvatarDefinition } from '@bible-strong/avatar-core'
-import { Avatar } from '@bible-strong/avatar-react'
-import '@bible-strong/avatar-react/styles.css'
-import avatarJson from './strobi.avatar.json'
-
-const avatar = validateAvatarDefinition(avatarJson)
-if (!avatar.ok) throw new Error(avatar.errors[0].message)
-
-export function Strobi() {
-  return <Avatar definition={avatar.value} defaultAnimation="idle" />
-}`
-
-const codeTokenPattern =
-  /(\/\/.*|'.*?'|".*?"|@[a-z0-9-/]+|<\/?[A-Z][A-Za-z]*|\b(?:npm|install|import|from|const|if|throw|new|export|function|return)\b)/g
-
-const highlightedCode = (source: string) =>
-  source.split(codeTokenPattern).map((token, index) => {
-    if (!token) return null
-    const kind = token.startsWith('//')
-      ? 'comment'
-      : token.startsWith("'") || token.startsWith('"') || token.startsWith('@')
-        ? 'string'
-        : token.startsWith('<')
-          ? 'tag'
-          : /^(?:npm|install|import|from|const|if|throw|new|export|function|return)$/.test(token)
-            ? 'keyword'
-            : 'plain'
-    return (
-      <span className={`runtime-token runtime-token-${kind}`} key={`${index}-${token}`}>
-        {token}
-      </span>
-    )
-  })
-
 export function StudioInspector({ controller }: { controller: StudioController }) {
-  const [runtimeExampleOpen, setRuntimeExampleOpen] = useState(false)
-  const runtimeExampleRef = useRef<RuntimeAvatarController>(null)
+  const [runtimePreviewOpen, setRuntimePreviewOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [exportAnimationsOpen, setExportAnimationsOpen] = useState(false)
   const {
     activateAvatar,
     activeAvatar,
@@ -144,7 +101,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     commitAvatarMove,
     commitExpressionMove,
     commitStateMove,
-    clearLocalStudioDocument,
     copyAvatarRuntimeDefinition,
     createNewAvatar,
     deleteSelectedBodyNode,
@@ -196,7 +152,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     runtimeDefinitionResult,
     runtimeCopyStatus,
     runtimeExportErrors,
-    runtimeStandardAvailability,
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
@@ -249,7 +204,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     toggleStatePlayback,
     transitionToExpression,
     updateAvatarColors,
-    updateAvatarRenderStyle,
     updateAvatarEyeDimension,
     updateAvatarEyePosition,
     updateAvatarEyeSize,
@@ -265,8 +219,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
     updateWireVisibility,
     workspaceBackButtonRef,
   } = controller
-  const pixelRenderStyle =
-    activeAvatar.renderStyle.type === 'pixel' ? activeAvatar.renderStyle : null
+  const runtimePreviewAnimation = runtimeDefinitionResult.ok
+    ? runtimeDefinitionResult.value.animationOrder[0]
+    : undefined
   const playbackFooterY = useMotionValue(0)
   const playbackHandleY = useMotionValue(0)
   const playbackHandleCounterY = useTransform(playbackHandleY, value => -value)
@@ -860,58 +815,17 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </ControlSection>
                     <ControlSection
                       title="Rendu"
-                      subtitle="Choisis la finition visuelle propre à cet avatar."
+                      subtitle="Le rendu Pixel est temporairement désactivé."
                     >
-                      <InspectorCard className="render-style-panel">
+                      <InspectorCard className="render-style-panel render-style-disabled">
                         <PanelTitle
                           level={3}
                           title="Type de rendu"
-                          subtitle="Pixel utilise une palette franche, sans lissage ni couleur intermédiaire."
+                          subtitle="Le mode Vectoriel est utilisé pour l’instant."
                         />
-                        <Field className="render-style-field" orientation="horizontal">
-                          <FieldTitle>{t('Style')}</FieldTitle>
-                          <Select
-                            value={activeAvatar.renderStyle.type}
-                            items={[
-                              { value: 'vector', label: t('Vectoriel') },
-                              { value: 'pixel', label: t('Pixel') },
-                            ]}
-                            onValueChange={next => {
-                              if (!next) return
-                              const renderStyle: AvatarRenderStyle =
-                                next === 'pixel'
-                                  ? { ...defaultPixelRenderStyle }
-                                  : { type: 'vector' }
-                              updateAvatarRenderStyle(renderStyle)
-                            }}
-                          >
-                            <SelectTrigger aria-label={t('Type de rendu')}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="vector">{t('Vectoriel')}</SelectItem>
-                              <SelectItem value="pixel">{t('Pixel')}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                        {pixelRenderStyle && (
-                          <div className="pixel-render-options">
-                            <NumericField
-                              label="Définition de la grille"
-                              value={pixelRenderStyle.resolution}
-                              min={8}
-                              max={192}
-                              step={8}
-                              unit="px"
-                              onChange={resolution =>
-                                updateAvatarRenderStyle({
-                                  ...pixelRenderStyle,
-                                  resolution: Math.round(resolution),
-                                })
-                              }
-                            />
-                          </div>
-                        )}
+                        <div className="render-style-status">
+                          <Badge variant="secondary">{t('Vectoriel')}</Badge>
+                        </div>
                       </InspectorCard>
                     </ControlSection>
                     <ControlSection
@@ -1699,169 +1613,11 @@ export function StudioInspector({ controller }: { controller: StudioController }
             )}
 
             {!sequenceEditing && !editing && !bodyEditing && mode === 'export' && (
-              <Accordion className="export-panel" defaultValue={['runtime']}>
-                <ExportSection
-                  value="runtime"
-                  title="Exporter le JSON runtime"
-                  subtitle="Exporte le fichier .avatar.json utilisé par les nouveaux packages npm."
-                  badge="Nouveau"
-                >
-                  <InspectorCard>
-                    <div className="export-avatar-summary">
-                      <ExpressionPreview
-                        expression={expressions[0] ?? defaultExpression}
-                        surface={activeAvatar.body.primary}
-                        bodyNodes={activeAvatar.body.nodes}
-                        colors={activeAvatar.colors}
-                        avatarEyes={activeAvatarEyes}
-                        renderStyle={activeAvatar.renderStyle}
-                        id={`runtime-avatar-${activeAvatar.id}`}
-                      />
-                      <div>
-                        <small>{t('Définition runtime')}</small>
-                        <strong>{activeAvatar.name}</strong>
-                        <span>{t('Fichier .avatar.json portable')}</span>
-                      </div>
-                    </div>
-                  </InspectorCard>
-
-                  <InspectorCard
-                    className="runtime-readiness"
-                    data-ready={runtimeDefinitionResult.ok || undefined}
-                  >
-                    <div className="runtime-readiness-heading">
-                      {runtimeDefinitionResult.ok ? <CircleCheck /> : <TriangleAlert />}
-                      <div>
-                        <strong>
-                          {t(
-                            runtimeDefinitionResult.ok
-                              ? 'Prêt pour l’export runtime'
-                              : 'Export runtime incomplet'
-                          )}
-                        </strong>
-                        {runtimeDefinitionResult.ok && runtimeStandardAvailability && (
-                          <small>
-                            {runtimeStandardAvailability.available.length}/6{' '}
-                            {t('animations standard disponibles')}
-                          </small>
-                        )}
-                      </div>
-                    </div>
-                    {runtimeExportErrors.length > 0 && (
-                      <>
-                        <ul className="runtime-error-list" role="alert">
-                          {runtimeExportErrors.map((error, index) => (
-                            <li key={`${index}-${error}`}>{error}</li>
-                          ))}
-                        </ul>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          onClick={clearLocalStudioDocument}
-                        >
-                          <Trash2 />
-                          {t('Effacer le projet local et recharger')}
-                        </Button>
-                      </>
-                    )}
-                  </InspectorCard>
-
-                  <InspectorCard className="runtime-quickstart">
-                    <PanelTitle
-                      title="Démarrage rapide npm"
-                      subtitle="Ces commandes fonctionneront après la publication des packages actuellement privés."
-                    />
-                    <div className="runtime-code-example">
-                      <small>{t('Installation')}</small>
-                      <pre tabIndex={0}>
-                        <code>{highlightedCode(runtimeInstallExample)}</code>
-                      </pre>
-                    </div>
-                    <div className="runtime-code-example">
-                      <small>{t('Exemple React minimal')}</small>
-                      <pre tabIndex={0}>
-                        <code>{highlightedCode(runtimeReactExample)}</code>
-                      </pre>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!runtimeDefinitionResult.ok}
-                      aria-expanded={runtimeExampleOpen}
-                      onClick={() => setRuntimeExampleOpen(open => !open)}
-                    >
-                      <Play />
-                      {t(runtimeExampleOpen ? 'Masquer l’aperçu' : 'Lancer l’exemple')}
-                    </Button>
-                    {runtimeExampleOpen && runtimeDefinitionResult.ok && (
-                      <div className="runtime-live-example">
-                        <div className="runtime-live-example-heading">
-                          <div>
-                            <small>{t('Aperçu avec le package React')}</small>
-                            <strong>defaultAnimation=&quot;idle&quot;</strong>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => runtimeExampleRef.current?.play('idle')}
-                          >
-                            <RotateCcw />
-                            {t('Relancer')}
-                          </Button>
-                        </div>
-                        <div className="runtime-live-example-stage">
-                          <RuntimeAvatar
-                            ref={runtimeExampleRef}
-                            definition={runtimeDefinitionResult.value}
-                            defaultAnimation="idle"
-                            size={150}
-                            ariaLabel={t('Aperçu runtime de l’avatar actif')}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </InspectorCard>
-
-                  <div className="runtime-export-actions">
-                    <Button
-                      className="export-download"
-                      type="button"
-                      disabled={!runtimeDefinitionResult.ok}
-                      onClick={downloadAvatarRuntimeDefinition}
-                    >
-                      <Download />
-                      {t('Télécharger la définition .avatar.json')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!runtimeDefinitionResult.ok}
-                      onClick={() => void copyAvatarRuntimeDefinition()}
-                    >
-                      <Copy />
-                      {t('Copier le JSON formaté')}
-                    </Button>
-                  </div>
-                  {runtimeCopyStatus !== 'idle' && (
-                    <p
-                      className="runtime-copy-status"
-                      role={runtimeCopyStatus === 'error' ? 'alert' : 'status'}
-                      aria-live={runtimeCopyStatus === 'error' ? 'assertive' : 'polite'}
-                    >
-                      {t(
-                        runtimeCopyStatus === 'success'
-                          ? 'JSON runtime copié dans le presse-papiers.'
-                          : 'Impossible de copier le JSON runtime.'
-                      )}
-                    </p>
-                  )}
-                </ExportSection>
-
+              <Accordion className="export-panel" defaultValue={['avatar']}>
                 <ExportSection
                   value="avatar"
                   title="Exporter l’avatar"
-                  subtitle="Génère l’export ZIP autonome React ou JavaScript qui existait déjà."
+                  subtitle="Choisis les animations puis utilise la même définition JSON avec React ou JavaScript."
                 >
                   <InspectorCard>
                     <div className="export-avatar-summary">
@@ -1896,7 +1652,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         <FileCode2 />
                         <span>
                           <strong>React / TypeScript</strong>
-                          <small>{t('Package React local (.zip)')}</small>
+                          <small>{t('JSON runtime + createAvatar')}</small>
                         </span>
                       </Button>
                       <Button
@@ -1907,8 +1663,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
                       >
                         <FileCode2 />
                         <span>
-                          <strong>{t('Module JavaScript')}</strong>
-                          <small>{t('Projet HTML + module JS (.zip)')}</small>
+                          <strong>{t('JavaScript / ESM')}</strong>
+                          <small>{t('JSON runtime + avatar-web')}</small>
                         </span>
                       </Button>
                     </div>
@@ -1926,65 +1682,197 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         variant="ghost"
                         size="sm"
                         type="button"
-                        onClick={() =>
-                          setExportAnimationIds(
-                            selectedExportAnimations.length === sequences.length
-                              ? []
-                              : sequences.map(animation => animation.id)
-                          )
-                        }
+                        aria-expanded={exportAnimationsOpen}
+                        onClick={() => setExportAnimationsOpen(open => !open)}
                       >
-                        {t(
-                          selectedExportAnimations.length === sequences.length
-                            ? 'Tout désélectionner'
-                            : 'Tout sélectionner'
-                        )}
+                        {exportAnimationsOpen ? <ChevronUp /> : <ChevronDown />}
+                        {t(exportAnimationsOpen ? 'Masquer la sélection' : 'Personnaliser')}
                       </Button>
                     </div>
-                    <div className="state-buttons export-animation-grid">
-                      {sequences.map(animation => {
-                        const firstStep = animation.steps[0]
-                        const firstExpression = firstStep
-                          ? expressionById.get(firstStep.expressionId)
-                          : undefined
-                        return (
-                          <Button
-                            className="expression-card state-card"
-                            variant="outline"
-                            type="button"
-                            key={animation.id}
-                            aria-pressed={exportAnimationIdSet.has(animation.id)}
-                            onClick={() => toggleExportAnimation(animation.id)}
-                          >
-                            <ExpressionPreview
-                              expression={firstExpression ?? expressions[0] ?? defaultExpression}
-                              surface={surface}
-                              bodyNodes={bodyNodes}
-                              colors={activeAvatar.colors}
-                              avatarEyes={activeAvatarEyes}
-                              renderStyle={activeAvatar.renderStyle}
-                              id={`export-animation-${animation.id}`}
-                            />
-                            <span>{animation.builtIn ? t(animation.name) : animation.name}</span>
-                          </Button>
-                        )
-                      })}
-                    </div>
+                    {exportAnimationsOpen && (
+                      <div className="export-animation-picker">
+                        <Button
+                          className="export-animation-select-all"
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() =>
+                            setExportAnimationIds(
+                              selectedExportAnimations.length === sequences.length
+                                ? []
+                                : sequences.map(animation => animation.id)
+                            )
+                          }
+                        >
+                          {t(
+                            selectedExportAnimations.length === sequences.length
+                              ? 'Tout désélectionner'
+                              : 'Tout sélectionner'
+                          )}
+                        </Button>
+                        <div className="state-buttons export-animation-grid">
+                          {sequences.map(animation => {
+                            const firstStep = animation.steps[0]
+                            const firstExpression = firstStep
+                              ? expressionById.get(firstStep.expressionId)
+                              : undefined
+                            return (
+                              <Button
+                                className="expression-card state-card"
+                                variant="outline"
+                                type="button"
+                                key={animation.id}
+                                aria-pressed={exportAnimationIdSet.has(animation.id)}
+                                onClick={() => toggleExportAnimation(animation.id)}
+                              >
+                                <ExpressionPreview
+                                  expression={
+                                    firstExpression ?? expressions[0] ?? defaultExpression
+                                  }
+                                  surface={surface}
+                                  bodyNodes={bodyNodes}
+                                  colors={activeAvatar.colors}
+                                  avatarEyes={activeAvatarEyes}
+                                  renderStyle={activeAvatar.renderStyle}
+                                  id={`export-animation-${animation.id}`}
+                                />
+                                <span>
+                                  {animation.builtIn ? t(animation.name) : animation.name}
+                                </span>
+                              </Button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </InspectorCard>
 
-                  <Button
-                    className="export-download"
-                    type="button"
-                    disabled={!selectedExportAnimations.length}
-                    onClick={downloadAvatarExport}
-                  >
-                    <Download />
-                    {t(
-                      exportFormat === 'react'
-                        ? 'Télécharger le package React'
-                        : 'Télécharger le module'
+                  {runtimeExportErrors.length > 0 && (
+                    <InspectorCard>
+                      <div className="runtime-export-error" role="alert">
+                        <div className="runtime-export-error-heading">
+                          <TriangleAlert />
+                          <strong>{t('Export runtime incomplet')}</strong>
+                        </div>
+                        <ul className="runtime-error-list">
+                          {runtimeExportErrors.map((error, index) => (
+                            <li key={`${index}-${error}`}>{error}</li>
+                          ))}
+                        </ul>
+                        <p className="runtime-export-error-help">
+                          {t(
+                            'Corrige les clés signalées dans les éditeurs Expressions ou Animations.'
+                          )}
+                        </p>
+                        <div className="runtime-export-error-actions">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setMode('expressions')}
+                          >
+                            {t('Expressions')}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => setMode('states')}>
+                            {t('Animations')}
+                          </Button>
+                        </div>
+                      </div>
+                    </InspectorCard>
+                  )}
+
+                  <InspectorCard className="runtime-example-card">
+                    <div className="runtime-example-heading">
+                      <div>
+                        <small>{t('Définition prête à tester')}</small>
+                        <strong>
+                          {selectedExportAnimations.length} {t('animations')} ·{' '}
+                          {runtimeDefinitionResult.ok
+                            ? runtimeDefinitionResult.value.expressionOrder.length
+                            : 0}{' '}
+                          {t('expressions')}
+                        </strong>
+                      </div>
+                      <div className="runtime-example-actions">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!runtimeDefinitionResult.ok}
+                          onClick={() => setRuntimePreviewOpen(true)}
+                        >
+                          <Play />
+                          {t('Preview')}
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={() => setGuideOpen(true)}>
+                          <BookOpen />
+                          {t('Guide d’utilisation')}
+                        </Button>
+                      </div>
+                    </div>
+                    {exportFormat === 'javascript' && (
+                      <p className="runtime-export-description">
+                        {t(
+                          'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.'
+                        )}
+                      </p>
                     )}
-                  </Button>
+                  </InspectorCard>
+
+                  <div className="runtime-export-actions">
+                    <Button
+                      className="export-download"
+                      type="button"
+                      disabled={!runtimeDefinitionResult.ok}
+                      onClick={downloadAvatarRuntimeDefinition}
+                    >
+                      <Download />
+                      {t('Télécharger la définition .avatar.json')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!runtimeDefinitionResult.ok}
+                      onClick={() => void copyAvatarRuntimeDefinition()}
+                    >
+                      <Copy />
+                      {t('Copier le JSON formaté')}
+                    </Button>
+                    {exportFormat === 'javascript' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!runtimeDefinitionResult.ok}
+                        onClick={downloadAvatarExport}
+                      >
+                        <Download />
+                        {t('Télécharger l’intégration ESM (.zip)')}
+                      </Button>
+                    )}
+                  </div>
+                  {runtimeCopyStatus !== 'idle' && (
+                    <p
+                      className="runtime-copy-status"
+                      role={runtimeCopyStatus === 'error' ? 'alert' : 'status'}
+                      aria-live={runtimeCopyStatus === 'error' ? 'assertive' : 'polite'}
+                    >
+                      {t(
+                        runtimeCopyStatus === 'success'
+                          ? 'JSON runtime copié dans le presse-papiers.'
+                          : 'Impossible de copier le JSON runtime.'
+                      )}
+                    </p>
+                  )}
+                  <RuntimePreviewDialog
+                    definition={runtimeDefinitionResult.ok ? runtimeDefinitionResult.value : null}
+                    initialAnimation={runtimePreviewAnimation}
+                    open={runtimePreviewOpen}
+                    onOpenChange={setRuntimePreviewOpen}
+                  />
+                  <RuntimeGuideDialog
+                    animationKey={runtimePreviewAnimation}
+                    integration={exportFormat}
+                    open={guideOpen}
+                    onOpenChange={setGuideOpen}
+                  />
                 </ExportSection>
 
                 <ExportSection

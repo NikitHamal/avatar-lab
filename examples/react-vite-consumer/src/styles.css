@@ -27,6 +27,15 @@ main {
   background: white;
 }
 
+.avatar-overlay {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+  width: 128px;
+  height: 128px;
+}
+
 .expression-picker {
   width: min(100%, 720px);
 }

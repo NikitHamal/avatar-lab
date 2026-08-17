@@ -1,24 +1,12 @@
 // @vitest-environment jsdom
 
-import { renderAvatarDefinition, type AvatarDefinition } from '@bible-strong/avatar-core'
+import { type AvatarDefinition } from '@bible-strong/avatar-core'
 import { act, createRef, Profiler, StrictMode } from 'react'
-import { hydrateRoot } from 'react-dom/client'
-import { renderToString } from 'react-dom/server'
-import { fireEvent, render } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { vi } from 'vitest'
 
 import { Avatar, type AvatarController } from '../Avatar'
-
-let resizeCallbacks: ResizeObserverCallback[] = []
-
-class TestResizeObserver implements ResizeObserver {
-  constructor(callback: ResizeObserverCallback) {
-    resizeCallbacks.push(callback)
-  }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+import { createAvatar } from '../createAvatar'
 
 const expression = {
   head: { x: 0, y: 0, z: 0 },
@@ -67,37 +55,42 @@ const definition: AvatarDefinition = {
     },
   },
   animationOrder: ['greet', 'wave-once'],
-  standardAnimationSet: 1,
 }
 
 beforeAll(() => {
-  HTMLElement.prototype.setPointerCapture = () => undefined
-  HTMLElement.prototype.hasPointerCapture = () => true
-  HTMLElement.prototype.releasePointerCapture = () => undefined
   window.matchMedia = () =>
     ({
       matches: false,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
     }) as unknown as MediaQueryList
-  globalThis.ResizeObserver = TestResizeObserver
-})
-
-beforeEach(() => {
-  resizeCallbacks = []
-  Object.defineProperties(window, {
-    innerWidth: { configurable: true, value: 1_024 },
-    innerHeight: { configurable: true, value: 768 },
-  })
 })
 
 describe('@bible-strong/avatar-react', () => {
-  it('renders semantic SVG geometry in embedded mode', () => {
+  it('creates a validated concrete component from a definition', () => {
+    const ConcreteAvatar = createAvatar(definition)
+    const view = render(<ConcreteAvatar animation="greet" ariaLabel="Concrete avatar" />)
+
+    expect(view.getByRole('img', { name: 'Concrete avatar' })).toBeTruthy()
+  })
+
+  it('rejects invalid definitions before creating a component', () => {
+    expect(() => createAvatar({})).toThrow('Invalid avatar definition')
+  })
+
+  it('renders semantic SVG geometry', () => {
     const view = render(<Avatar definition={definition} ariaLabel="Assistant avatar" />)
     const avatar = view.getByRole('img', { name: 'Assistant avatar' })
-    expect(avatar.classList.contains('bs-avatar--embedded')).toBe(true)
+    expect(avatar.classList.contains('bs-avatar')).toBe(true)
+    expect(avatar.className).toBe('bs-avatar')
     expect(avatar.querySelector('svg path')).not.toBeNull()
-    expect(document.body.querySelector('.bs-avatar--floating')).toBeNull()
+  })
+
+  it('keeps stable SVG layer slots for nodes moving in front of or behind the head', () => {
+    const view = render(<Avatar definition={definition} ariaLabel="Layered avatar" />)
+    const svg = view.getByRole('img', { name: 'Layered avatar' }).querySelector('svg')
+
+    expect(svg?.querySelectorAll(':scope > path')).toHaveLength(37)
   })
 
   it('exposes semantic imperative controls without Studio identifiers', () => {
@@ -111,7 +104,7 @@ describe('@bible-strong/avatar-react', () => {
     expect(result).toEqual({ ok: true })
     expect(controller.current?.getState()).toMatchObject({
       activeExpression: 'smile',
-      status: 'stopped',
+      status: 'playing',
     })
     expect(controller.current?.play('missing')).toMatchObject({
       ok: false,
@@ -149,12 +142,100 @@ describe('@bible-strong/avatar-react', () => {
     })
   })
 
+  it('retargets from the currently painted SVG frame without a target-frame flash', () => {
+    let nextFrame = 0
+    const frames = new Map<number, FrameRequestCallback>()
+    const request = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      frames.set(++nextFrame, callback)
+      return nextFrame
+    })
+    const cancel = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(id => {
+      frames.delete(id)
+    })
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(1_000)
+    const controller = createRef<AvatarController>()
+    const view = render(<Avatar definition={definition} ref={controller} />)
+    const eye = view.container.querySelector<SVGPathElement>('.bs-avatar__svg g path')
+    const neutralPath = eye?.getAttribute('d')
+
+    act(() => controller.current?.setExpression('smile'))
+    expect(eye?.getAttribute('d')).toBe(neutralPath)
+
+    act(() => {
+      const callback = [...frames.values()].at(-1)
+      frames.clear()
+      callback?.(1_200)
+    })
+    const inFlightPath = eye?.getAttribute('d')
+    expect(inFlightPath).not.toBe(neutralPath)
+
+    clock.mockReturnValue(1_200)
+    act(() => controller.current?.setExpression('neutral'))
+    expect(eye?.getAttribute('d')).toBe(inFlightPath)
+
+    act(() => {
+      const callback = [...frames.values()].at(-1)
+      frames.clear()
+      callback?.(1_200)
+    })
+    expect(eye?.getAttribute('d')).toBe(inFlightPath)
+
+    clock.mockRestore()
+    request.mockRestore()
+    cancel.mockRestore()
+  })
+
   it('rejects simultaneous controlled animation and expression props', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     expect(() =>
       render(<Avatar definition={definition} animation="greet" expression="neutral" />)
     ).toThrow('Avatar accepts either animation or expression, not both.')
     errors.mockRestore()
+  })
+
+  it('rejects simultaneous uncontrolled animation and expression defaults', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(() =>
+      render(
+        <Avatar definition={definition} defaultAnimation="greet" defaultExpression="neutral" />
+      )
+    ).toThrow('Avatar accepts either defaultAnimation or defaultExpression, not both.')
+    errors.mockRestore()
+  })
+
+  it('reports unknown controlled and default targets through onError', () => {
+    const onError = vi.fn()
+    const controlled = render(
+      <Avatar definition={definition} animation="missing-animation" onError={onError} />
+    )
+
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'unknown_animation', key: 'missing-animation' })
+    )
+
+    onError.mockClear()
+    controlled.rerender(
+      <Avatar definition={definition} defaultExpression="missing-expression" onError={onError} />
+    )
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'unknown_expression', key: 'missing-expression' })
+    )
+  })
+
+  it('keeps a controlled expression above an uncontrolled animation default', () => {
+    const controller = createRef<AvatarController>()
+    render(
+      <Avatar
+        definition={definition}
+        expression="neutral"
+        defaultAnimation="greet"
+        ref={controller}
+      />
+    )
+    expect(controller.current?.getState()).toEqual({
+      activeExpression: 'neutral',
+      status: 'stopped',
+    })
   })
 
   it('honors uncontrolled defaults without autoplay when requested', () => {
@@ -166,333 +247,6 @@ describe('@bible-strong/avatar-react', () => {
       activeExpression: 'smile',
       status: 'stopped',
     })
-  })
-
-  it('portals floating mode to the document body after mount', () => {
-    const host = document.createElement('section')
-    document.body.append(host)
-    const view = render(<Avatar definition={definition} mode="floating" />, { container: host })
-    expect(document.body.querySelector('.bs-avatar--floating')).not.toBeNull()
-    view.unmount()
-    host.remove()
-  })
-
-  it('normalizes an uncontrolled floating initial position only once', () => {
-    const view = render(
-      <Avatar definition={definition} mode="floating" initialPosition={{ x: 10, y: 12 }} />
-    )
-    expect(view.getByRole('img').style.transform).toBe('translate3d(10px, 12px, 0)')
-    view.rerender(
-      <Avatar definition={definition} mode="floating" initialPosition={{ x: 80, y: 90 }} />
-    )
-    expect(view.getByRole('img').style.transform).toBe('translate3d(10px, 12px, 0)')
-  })
-
-  it('server-renders a neutral floating placeholder before portal handoff', () => {
-    const markup = renderToString(
-      <Avatar definition={definition} mode="floating" defaultExpression="smile" size={180} />
-    )
-    const neutral = renderAvatarDefinition(definition, 'neutral')
-    expect(markup).toContain('bs-avatar--floating')
-    expect(markup).toContain('width:180px;height:180px')
-    expect(markup).toContain(`d="${neutral.geometry.leftPath}"`)
-  })
-
-  it('hydrates the floating placeholder before moving it to a portal without warnings', async () => {
-    const host = document.createElement('section')
-    const markup = renderToString(<Avatar definition={definition} mode="floating" size={180} />)
-    host.innerHTML = markup
-    document.body.append(host)
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    let root: ReturnType<typeof hydrateRoot> | undefined
-    await act(async () => {
-      root = hydrateRoot(host, <Avatar definition={definition} mode="floating" size={180} />)
-      await Promise.resolve()
-    })
-    expect(errors).not.toHaveBeenCalled()
-    expect(host.querySelector('.bs-avatar--floating')).toBeNull()
-    expect(document.body.querySelector('.bs-avatar--floating')).not.toBeNull()
-    act(() => root?.unmount())
-    errors.mockRestore()
-    host.remove()
-  })
-
-  it('moves by pointer without React state updates on every pointer move and commits once', () => {
-    const previews: { x: number; y: number }[] = []
-    const commits: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        draggable
-        constrainTo="none"
-        onPositionPreview={point => previews.push(point)}
-        onPositionCommit={point => commits.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    fireEvent.pointerDown(avatar, { pointerId: 1, button: 0, clientX: 10, clientY: 10 })
-    fireEvent.pointerMove(avatar, { pointerId: 1, clientX: 35, clientY: 45 })
-    expect(avatar.style.transform).toBe('translate3d(25px, 35px, 0)')
-    fireEvent.pointerUp(avatar, { pointerId: 1, clientX: 35, clientY: 45 })
-    expect(commits).toEqual([{ x: 25, y: 35 }])
-    expect(previews.length).toBeLessThanOrEqual(1)
-  })
-
-  it('uses the visible grip as the floating avatar drag target', () => {
-    const view = render(
-      <Avatar
-        definition={definition}
-        mode="floating"
-        draggable
-        constrainTo="none"
-        initialPosition={{ x: 0, y: 0 }}
-      />
-    )
-    const avatar = view.getByRole('group')
-    const grip = avatar.querySelector('.bs-avatar__drag-grip')
-    expect(grip).not.toBeNull()
-
-    fireEvent.pointerDown(avatar, { pointerId: 8, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(avatar, { pointerId: 8, clientX: 20, clientY: 20 })
-    expect(avatar.style.transform).toBe('translate3d(0px, 0px, 0)')
-
-    fireEvent.pointerDown(grip!, { pointerId: 9, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(avatar, { pointerId: 9, clientX: 20, clientY: 20 })
-    expect(avatar.style.transform).toBe('translate3d(20px, 20px, 0)')
-  })
-
-  it('limits drag previews to one callback per animation frame with the latest position', () => {
-    let nextFrame = 0
-    const frames = new Map<number, FrameRequestCallback>()
-    const request = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
-      frames.set(++nextFrame, callback)
-      return nextFrame
-    })
-    const cancel = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(id => {
-      frames.delete(id)
-    })
-    const previews: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        draggable
-        constrainTo="none"
-        onPositionPreview={point => previews.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    fireEvent.pointerDown(avatar, { pointerId: 6, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(avatar, { pointerId: 6, clientX: 10, clientY: 12 })
-    fireEvent.pointerMove(avatar, { pointerId: 6, clientX: 20, clientY: 24 })
-    expect(previews).toEqual([])
-    act(() => {
-      const callbacks = [...frames.values()]
-      frames.clear()
-      callbacks.forEach(callback => callback(16))
-    })
-    expect(previews).toEqual([{ x: 20, y: 24 }])
-    fireEvent.pointerUp(avatar, { pointerId: 6 })
-    request.mockRestore()
-    cancel.mockRestore()
-  })
-
-  it('does not render React once per pointer movement', () => {
-    let renders = 0
-    const view = render(
-      <Profiler id="avatar" onRender={() => renders++}>
-        <Avatar definition={definition} draggable constrainTo="none" />
-      </Profiler>
-    )
-    const avatar = view.getByRole('group')
-    const beforeMoves = renders
-    fireEvent.pointerDown(avatar, { pointerId: 2, button: 0, clientX: 0, clientY: 0 })
-    for (let index = 1; index <= 20; index++) {
-      fireEvent.pointerMove(avatar, { pointerId: 2, clientX: index, clientY: index })
-    }
-    expect(renders).toBe(beforeMoves)
-  })
-
-  it('restores the drag origin on pointer cancel', () => {
-    const commits: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        draggable
-        constrainTo="none"
-        initialPosition={{ x: 5, y: 7 }}
-        onPositionCommit={point => commits.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    fireEvent.pointerDown(avatar, { pointerId: 3, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(avatar, { pointerId: 3, clientX: 40, clientY: 50 })
-    fireEvent.pointerCancel(avatar, { pointerId: 3 })
-    expect(avatar.style.transform).toBe('translate3d(0px, 0px, 0)')
-    expect(commits.at(-1)).toEqual({ x: 0, y: 0 })
-  })
-
-  it('restores the drag origin when Escape cancels an active drag', () => {
-    const commits: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        draggable
-        constrainTo="none"
-        onPositionCommit={point => commits.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    fireEvent.pointerDown(avatar, { pointerId: 7, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(avatar, { pointerId: 7, clientX: 30, clientY: 40 })
-    fireEvent.keyDown(avatar, { key: 'Escape' })
-    expect(avatar.style.transform).toBe('translate3d(0px, 0px, 0)')
-    expect(commits).toEqual([{ x: 0, y: 0 }])
-  })
-
-  it('clamps pointer movement to an embedded parent', () => {
-    const view = render(<Avatar definition={definition} draggable constrainTo="parent" size={40} />)
-    const avatar = view.getByRole('group')
-    Object.defineProperties(avatar, {
-      offsetWidth: { configurable: true, value: 40 },
-      offsetHeight: { configurable: true, value: 40 },
-    })
-    Object.defineProperties(avatar.parentElement!, {
-      clientWidth: { configurable: true, value: 100 },
-      clientHeight: { configurable: true, value: 100 },
-    })
-    fireEvent.pointerDown(avatar, { pointerId: 4, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(avatar, { pointerId: 4, clientX: 200, clientY: 200 })
-    fireEvent.pointerUp(avatar, { pointerId: 4 })
-    expect(avatar.style.transform).toBe('translate3d(60px, 60px, 0)')
-  })
-
-  it('keeps controlled position authoritative while reporting a constrained commit', () => {
-    const commits: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        draggable
-        constrainTo="parent"
-        size={40}
-        position={{ x: 10, y: 12 }}
-        onPositionCommit={point => commits.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    Object.defineProperties(avatar, {
-      offsetWidth: { configurable: true, value: 40 },
-      offsetHeight: { configurable: true, value: 40 },
-    })
-    Object.defineProperties(avatar.parentElement!, {
-      clientWidth: { configurable: true, value: 100 },
-      clientHeight: { configurable: true, value: 100 },
-    })
-    fireEvent.pointerDown(avatar, { pointerId: 5, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(avatar, { pointerId: 5, clientX: 200, clientY: 200 })
-    fireEvent.pointerUp(avatar, { pointerId: 5 })
-    expect(commits).toEqual([{ x: 60, y: 60 }])
-    expect(avatar.style.transform).toBe('translate3d(10px, 12px, 0)')
-  })
-
-  it('re-clamps on resize without emitting a movement commit', () => {
-    const changes: { x: number; y: number }[] = []
-    const commits: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        mode="floating"
-        draggable
-        size={40}
-        position={{ x: 90, y: 90 }}
-        onPositionChange={point => changes.push(point)}
-        onPositionCommit={point => commits.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    Object.defineProperties(avatar, {
-      offsetWidth: { configurable: true, value: 40 },
-      offsetHeight: { configurable: true, value: 40 },
-    })
-    Object.defineProperties(window, {
-      innerWidth: { configurable: true, value: 100 },
-      innerHeight: { configurable: true, value: 100 },
-    })
-    act(() => resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver)))
-    expect(changes.at(-1)).toEqual({ x: 60, y: 60 })
-    expect(commits).toEqual([])
-    expect(avatar.style.transform).toBe('translate3d(90px, 90px, 0)')
-  })
-
-  it('re-clamps an uncontrolled floating position without emitting a movement commit', () => {
-    const commits: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        mode="floating"
-        draggable
-        size={40}
-        initialPosition={{ x: 90, y: 90 }}
-        onPositionCommit={point => commits.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    Object.defineProperties(avatar, {
-      offsetWidth: { configurable: true, value: 40 },
-      offsetHeight: { configurable: true, value: 40 },
-    })
-    Object.defineProperties(window, {
-      innerWidth: { configurable: true, value: 100 },
-      innerHeight: { configurable: true, value: 100 },
-    })
-    act(() => resizeCallbacks.forEach(callback => callback([], {} as ResizeObserver)))
-    expect(avatar.style.transform).toBe('translate3d(60px, 60px, 0)')
-    expect(commits).toEqual([])
-  })
-
-  it('re-clamps to the viewport on window resize without ResizeObserver support', () => {
-    const originalObserver = globalThis.ResizeObserver
-    // @ts-expect-error This test covers browsers without ResizeObserver.
-    globalThis.ResizeObserver = undefined
-    const view = render(
-      <Avatar
-        definition={definition}
-        mode="floating"
-        draggable
-        size={40}
-        initialPosition={{ x: 90, y: 90 }}
-      />
-    )
-    const avatar = view.getByRole('group')
-    Object.defineProperties(avatar, {
-      offsetWidth: { configurable: true, value: 40 },
-      offsetHeight: { configurable: true, value: 40 },
-    })
-    Object.defineProperties(window, {
-      innerWidth: { configurable: true, value: 100 },
-      innerHeight: { configurable: true, value: 100 },
-    })
-    act(() => window.dispatchEvent(new Event('resize')))
-    expect(avatar.style.transform).toBe('translate3d(60px, 60px, 0)')
-    globalThis.ResizeObserver = originalObserver
-  })
-
-  it('provides keyboard movement and an accessible reset control', () => {
-    const commits: { x: number; y: number }[] = []
-    const view = render(
-      <Avatar
-        definition={definition}
-        draggable
-        constrainTo="none"
-        onPositionCommit={point => commits.push(point)}
-      />
-    )
-    const avatar = view.getByRole('group')
-    fireEvent.keyDown(avatar, { key: 'ArrowRight' })
-    expect(commits.at(-1)).toEqual({ x: 10, y: 0 })
-    act(() => view.getByRole('button', { name: 'Move avatar down' }).click())
-    expect(commits.at(-1)).toEqual({ x: 10, y: 10 })
-    act(() => view.getByRole('button', { name: 'Reset avatar position' }).click())
-    expect(commits.at(-1)).toEqual({ x: 0, y: 0 })
   })
 
   it('resumes the current paused animation instead of restarting it', () => {
