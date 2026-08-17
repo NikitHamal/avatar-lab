@@ -34,7 +34,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm packages:build && changeset publish",
-    "check": "pnpm engine:check && pnpm format:check && pnpm typecheck && pnpm test && pnpm packages:build && pnpm build"
+    "check": "pnpm engine:check && pnpm format:check && pnpm packages:build && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
