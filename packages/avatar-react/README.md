@@ -9,9 +9,6 @@ dependencies; `@bible-strong/avatar-core` is installed as a normal dependency.
 pnpm add @bible-strong/avatar-react react react-dom
 ```
 
-The packages are currently private. This registry command will work after publication; use the
-workspace packages or locally packed tarballs for development verification in the meantime.
-
 Import the package stylesheet once in the application entry point:
 
 ```tsx
@@ -123,6 +120,6 @@ that reference changes.
 The stylesheet exposes `.bs-avatar` and `.bs-avatar__svg`. Consumer `className` and `style` are
 applied to the outer wrapper.
 
-The public component never exposes Studio IDs or document types. This package is private while
-copyright ownership, Apache-2.0 relicensing and repository metadata are confirmed. Local tarballs
-are for verification only and must not be published.
+The public component never exposes Studio IDs or document types. The package follows Semantic
+Versioning. While it remains below `1.0.0`, breaking API changes increment the minor version and
+fixes increment the patch version.

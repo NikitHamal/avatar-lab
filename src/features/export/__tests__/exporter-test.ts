@@ -17,6 +17,24 @@ import { loadStudioDocument } from '@/features/studio/studioDocument'
 import { initialExpressions } from '@/features/avatar/presets'
 import { createInitialSequences } from '@/features/animation/sequences'
 
+const storedZipFileNames = (archive: Uint8Array) => {
+  const names: string[] = []
+  const decoder = new TextDecoder()
+  const view = new DataView(archive.buffer, archive.byteOffset, archive.byteLength)
+  let offset = 0
+
+  while (offset + 30 <= archive.byteLength && view.getUint32(offset, true) === 0x04034b50) {
+    const contentLength = view.getUint32(offset + 18, true)
+    const nameLength = view.getUint16(offset + 26, true)
+    const extraLength = view.getUint16(offset + 28, true)
+    const nameStart = offset + 30
+    names.push(decoder.decode(archive.subarray(nameStart, nameStart + nameLength)))
+    offset = nameStart + nameLength + extraLength + contentLength
+  }
+
+  return names
+}
+
 describe('avatar export', () => {
   const avatar = createAvatar('Strobi')
   const animations = createInitialSequences().filter(item =>
@@ -149,10 +167,7 @@ describe('avatar export', () => {
       await generateJavaScriptEsmPackage(definition.value, 'Strobi').arrayBuffer()
     )
     const contents = new TextDecoder().decode(archive)
-    expect(contents).toContain('strobi.avatar.json')
-    expect(contents).toContain('index.html')
-    expect(contents).not.toContain('avatar.js')
-    expect(contents).toContain('README.md')
+    expect(storedZipFileNames(archive)).toEqual(['strobi.avatar.json', 'index.html', 'README.md'])
     expect(contents).toContain('esm.sh/@bible-strong/avatar-web@0.1.0')
     expect(contents).not.toContain('AvatarProceduralEngine')
   })

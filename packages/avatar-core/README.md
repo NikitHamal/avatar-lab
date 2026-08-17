@@ -76,5 +76,5 @@ Application integrations are kept in separate packages: `@bible-strong/avatar-re
 React 19, while `@bible-strong/avatar-web` mounts the same definition directly into the DOM. Both
 depend on this package and use the same playback and scene implementation.
 
-This package is private while copyright ownership, Apache-2.0 relicensing and repository metadata
-are confirmed. Local tarballs are for verification only and must not be published.
+The package follows Semantic Versioning. While it remains below `1.0.0`, breaking API changes
+increment the minor version and fixes increment the patch version.

@@ -2,8 +2,24 @@
   "name": "@bible-strong/avatar-core",
   "version": "0.1.0",
   "description": "Framework-independent runtime for Bible Strong procedural avatars.",
+  "keywords": [
+    "avatar",
+    "svg",
+    "animation",
+    "renderer",
+    "typescript"
+  ],
+  "author": "Stéphane Montlouis-Calixte",
   "license": "AGPL-3.0-only",
-  "private": true,
+  "homepage": "https://github.com/smontlouis/bible-strong-avatar-lab#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smontlouis/bible-strong-avatar-lab.git",
+    "directory": "packages/avatar-core"
+  },
+  "bugs": {
+    "url": "https://github.com/smontlouis/bible-strong-avatar-lab/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -36,7 +52,11 @@
   },
   "scripts": {
     "build": "vite build --config vite.config.ts && tsc -p tsconfig.build.json",
+    "prepack": "pnpm build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "ajv": "^8.20.0"

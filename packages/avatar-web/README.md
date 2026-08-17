@@ -24,5 +24,5 @@ avatar.stop()
 For a browser project without a bundler, load an ESM build through an import map or CDN and fetch
 the definition JSON before calling `createAvatar`.
 
-This package is private while copyright ownership, Apache-2.0 relicensing and repository metadata
-are confirmed. Local tarballs are for verification only and must not be published.
+The package follows Semantic Versioning. While it remains below `1.0.0`, breaking API changes
+increment the minor version and fixes increment the patch version.
