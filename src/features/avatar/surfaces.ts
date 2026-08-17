@@ -133,7 +133,8 @@ const polarProfile = (
 const normalizedProfile = (
   config: SurfaceConfig,
   points: readonly (readonly [number, number])[]
-): SurfaceProfilePoint[] => points.map(([x, y]) => [x * (config.width / 2), y * (config.height / 2)])
+): SurfaceProfilePoint[] =>
+  points.map(([x, y]) => [x * (config.width / 2), y * (config.height / 2)])
 
 /**
  * Distinct front silhouettes for icon-like primitives. The procedural 3D
@@ -148,7 +149,12 @@ export const surfaceProfilePoints = (config: SurfaceConfig): SurfaceProfilePoint
         return point % 2 === 0 ? 1 : 0.44
       })
     case 'flower':
-      return polarProfile(config.width, config.height, 96, angle => 0.7 + 0.3 * (0.5 + 0.5 * Math.cos(angle * 6)))
+      return polarProfile(
+        config.width,
+        config.height,
+        96,
+        angle => 0.7 + 0.3 * (0.5 + 0.5 * Math.cos(angle * 6))
+      )
     case 'cloud':
       return polarProfile(config.width, config.height, 96, angle => {
         const lobes = 0.9 + 0.11 * Math.cos(angle * 3 - 0.35) + 0.055 * Math.cos(angle * 5 + 0.8)
@@ -166,11 +172,26 @@ export const surfaceProfilePoints = (config: SurfaceConfig): SurfaceProfilePoint
     }
     case 'hand':
       return normalizedProfile(config, [
-        [-0.74, 0.62], [-0.9, 0.28], [-0.78, 0.02], [-0.58, 0.04],
-        [-0.67, -0.34], [-0.52, -0.72], [-0.31, -0.7], [-0.23, -0.3],
-        [-0.12, -0.86], [0.1, -0.94], [0.22, -0.37], [0.35, -0.82],
-        [0.56, -0.76], [0.5, -0.24], [0.76, -0.42], [0.92, -0.2],
-        [0.76, 0.2], [0.66, 0.56], [0.35, 0.88], [-0.12, 0.98],
+        [-0.74, 0.62],
+        [-0.9, 0.28],
+        [-0.78, 0.02],
+        [-0.58, 0.04],
+        [-0.67, -0.34],
+        [-0.52, -0.72],
+        [-0.31, -0.7],
+        [-0.23, -0.3],
+        [-0.12, -0.86],
+        [0.1, -0.94],
+        [0.22, -0.37],
+        [0.35, -0.82],
+        [0.56, -0.76],
+        [0.5, -0.24],
+        [0.76, -0.42],
+        [0.92, -0.2],
+        [0.76, 0.2],
+        [0.66, 0.56],
+        [0.35, 0.88],
+        [-0.12, 0.98],
       ])
     case 'egg':
       return polarProfile(config.width, config.height, 96, angle => 1 - 0.14 * Math.sin(angle))
@@ -180,13 +201,25 @@ export const surfaceProfilePoints = (config: SurfaceConfig): SurfaceProfilePoint
         const y = Math.sin(angle)
         const bend = 0.15 * (y * y - 0.35)
         const waist = 0.9 + 0.1 * Math.cos(angle * 2)
-        return [(Math.cos(angle) * waist + bend) * config.width / 2, y * config.height / 2] as const
+        return [
+          ((Math.cos(angle) * waist + bend) * config.width) / 2,
+          (y * config.height) / 2,
+        ] as const
       })
     case 'droplet':
       return normalizedProfile(config, [
-        [0, -1], [0.28, -0.68], [0.58, -0.28], [0.78, 0.18], [0.72, 0.55],
-        [0.48, 0.84], [0, 1], [-0.48, 0.84], [-0.72, 0.55], [-0.78, 0.18],
-        [-0.58, -0.28], [-0.28, -0.68],
+        [0, -1],
+        [0.28, -0.68],
+        [0.58, -0.28],
+        [0.78, 0.18],
+        [0.72, 0.55],
+        [0.48, 0.84],
+        [0, 1],
+        [-0.48, 0.84],
+        [-0.72, 0.55],
+        [-0.78, 0.18],
+        [-0.58, -0.28],
+        [-0.28, -0.68],
       ])
     case 'pebble':
       return polarProfile(
@@ -203,22 +236,48 @@ export const surfaceProfilePoints = (config: SurfaceConfig): SurfaceProfilePoint
       ])
     case 'book':
       return normalizedProfile(config, [
-        [-1, -0.82], [-0.18, -0.94], [0, -0.82], [0.18, -0.94], [1, -0.82],
-        [1, 0.82], [0.18, 0.94], [0, 0.82], [-0.18, 0.94], [-1, 0.82],
+        [-1, -0.82],
+        [-0.18, -0.94],
+        [0, -0.82],
+        [0.18, -0.94],
+        [1, -0.82],
+        [1, 0.82],
+        [0.18, 0.94],
+        [0, 0.82],
+        [-0.18, 0.94],
+        [-1, 0.82],
       ])
     case 'hexagon':
       return polarProfile(config.width, config.height, 6, () => 1)
     case 'shield':
       return normalizedProfile(config, [
-        [-0.9, -0.72], [0, -0.96], [0.9, -0.72], [0.82, 0.05], [0.58, 0.52],
-        [0, 1], [-0.58, 0.52], [-0.82, 0.05],
+        [-0.9, -0.72],
+        [0, -0.96],
+        [0.9, -0.72],
+        [0.82, 0.05],
+        [0.58, 0.52],
+        [0, 1],
+        [-0.58, 0.52],
+        [-0.82, 0.05],
       ])
     case 'clover':
-      return polarProfile(config.width, config.height, 120, angle => 0.7 + 0.3 * (0.5 + 0.5 * Math.cos(angle * 4)))
+      return polarProfile(
+        config.width,
+        config.height,
+        120,
+        angle => 0.7 + 0.3 * (0.5 + 0.5 * Math.cos(angle * 4))
+      )
     case 'gem':
       return normalizedProfile(config, [
-        [-0.78, -0.58], [-0.34, -0.96], [0.34, -0.96], [0.78, -0.58],
-        [0.96, 0.05], [0.54, 0.78], [0, 1], [-0.54, 0.78], [-0.96, 0.05],
+        [-0.78, -0.58],
+        [-0.34, -0.96],
+        [0.34, -0.96],
+        [0.78, -0.58],
+        [0.96, 0.05],
+        [0.54, 0.78],
+        [0, 1],
+        [-0.54, 0.78],
+        [-0.96, 0.05],
       ])
     default:
       return null

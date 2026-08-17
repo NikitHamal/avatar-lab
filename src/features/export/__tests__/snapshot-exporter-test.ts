@@ -48,7 +48,6 @@ describe('avatar snapshot export', () => {
     expect(svg).toContain('fill="rgba(4,74,95,1)"')
   })
 
-
   it('preserves live reaction effects and custom mouth stroke in snapshots', () => {
     const mouthGeometry = renderAvatar(
       poseFromExpression({ ...defaultExpression, mouth: 'smile', mouthStrokeWidth: 6.2 }),

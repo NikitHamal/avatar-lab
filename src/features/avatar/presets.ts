@@ -28,46 +28,6 @@ const calibrated: number[][] = [
   [-29.6, 7.5, 10.1, 21.5, 23.2, 32, 33.5, 51.2, -37.4, 0, 0],
 ]
 
-const calibratedExpressions: Expression[] = calibrated.map(
-  (
-    [
-      headX,
-      headY,
-      headZ,
-      widthLeft,
-      widthRight,
-      heightLeft,
-      heightRight,
-      spacing,
-      latitude,
-      leftAngle,
-      rightAngle,
-    ],
-    index
-  ) => ({
-    id: `expression-${String(index).padStart(2, '0')}`,
-    headX,
-    headY,
-    headZ,
-    widthLeft,
-    widthRight,
-    heightLeft,
-    heightRight,
-    spacing,
-    positionXLeft: 0,
-    positionXRight: 0,
-    positionYLeft: latitude,
-    positionYRight: latitude,
-    leftAngle,
-    rightAngle,
-    perspective: 1,
-    eyeMotion: 'none',
-    bodyMotion: 'none',
-    mouth: 'none',
-    mouthScale: 1,
-  })
-)
-
 export const defaultExpression: Expression = {
   id: 'expression-neutral',
   headX: 0,
@@ -96,6 +56,47 @@ export const defaultExpression: Expression = {
   mouthStrokeWidth: 3.2,
   effect: 'none',
 }
+
+const calibratedExpressions: Expression[] = calibrated.map(
+  (
+    [
+      headX,
+      headY,
+      headZ,
+      widthLeft,
+      widthRight,
+      heightLeft,
+      heightRight,
+      spacing,
+      latitude,
+      leftAngle,
+      rightAngle,
+    ],
+    index
+  ) => ({
+    ...defaultExpression,
+    id: `expression-${String(index).padStart(2, '0')}`,
+    headX,
+    headY,
+    headZ,
+    widthLeft,
+    widthRight,
+    heightLeft,
+    heightRight,
+    spacing,
+    positionXLeft: 0,
+    positionXRight: 0,
+    positionYLeft: latitude,
+    positionYRight: latitude,
+    leftAngle,
+    rightAngle,
+    perspective: 1,
+    eyeMotion: 'none',
+    bodyMotion: 'none',
+    mouth: 'none',
+    mouthScale: 1,
+  })
+)
 
 const expressionPreset = (id: string, changes: Partial<Omit<Expression, 'id'>>): Expression => ({
   ...defaultExpression,
@@ -669,6 +670,36 @@ const enhancedExpressions: Expression[] = [
     bodyMotion: 'slowDrift',
     effect: 'introGlow',
   }),
+  expressionPreset('orbit', {
+    headX: 28.5,
+    headY: 28.6,
+    headZ: -13,
+    widthLeft: 22,
+    widthRight: 22,
+    heightLeft: 46,
+    heightRight: 46,
+    spacing: 38,
+    positionYLeft: -4,
+    positionYRight: -4,
+    eyeMotion: 'orbit',
+    bodyMotion: 'float',
+    effect: 'orbit',
+  }),
+  expressionPreset('play', {
+    headX: 12,
+    headY: -8,
+    headZ: -6,
+    widthLeft: 22,
+    widthRight: 22,
+    heightLeft: 42,
+    heightRight: 42,
+    spacing: 36,
+    positionYLeft: 0,
+    positionYRight: 0,
+    eyeMotion: 'none',
+    bodyMotion: 'slowDrift',
+    effect: 'playArcs',
+  }),
 ]
 
 export const initialExpressions: Expression[] = [...calibratedExpressions, ...enhancedExpressions]
@@ -716,6 +747,8 @@ export const expressionDisplayNames: Record<string, string> = {
   'intro-neby-signature': 'Neby intro · signature',
   'intro-pop': 'Intro pop',
   'intro-scan': 'Intro scan',
+  orbit: 'Orbit 3D',
+  play: 'Play sweep',
 }
 
 export const getExpressionDisplayName = (expression: Expression, index: number) =>
@@ -762,6 +795,9 @@ export const stateGroups = {
     'notification',
     'dizzy',
     'dance',
+    'kiss',
+    'orbit',
+    'play',
   ],
 } as const
 
@@ -818,6 +854,9 @@ export const statePools: Record<string, number[]> = {
   notification: expressionPool('idle-front', 'notification', 'focus'),
   dizzy: expressionPool('dizzy', 'eye-roll', 'dizzy'),
   dance: expressionPool('cheer', 'wink', 'love', 'joy'),
+  kiss: expressionPool('anticipation', 'kiss', 'love', 'soft-smile'),
+  orbit: expressionPool('orbit'),
+  play: expressionPool('play'),
 }
 
 export const stateDisplayNames: Record<string, string> = {
@@ -924,30 +963,38 @@ export const getStatePlaybackConfig = (name: string): StatePlaybackConfig => {
   }
 }
 
-
 export const stateNotes: Record<string, string> = {
-  'intro-neby': 'Intro cinématique Neby : silence, regard qui s’ouvre, verrouillage caméra et signature lumineuse.',
-  'intro-cinematic': 'Révélation courte et premium, conçue pour présenter un personnage dans une app ou une vidéo.',
+  'intro-neby':
+    'Intro cinématique Neby : silence, regard qui s’ouvre, verrouillage caméra et signature lumineuse.',
+  'intro-cinematic':
+    'Révélation courte et premium, conçue pour présenter un personnage dans une app ou une vidéo.',
   'intro-pop': 'Entrée vive et ludique avec anticipation, pop visuel et regard souriant.',
   'intro-scan': 'Intro technologique : balayage du regard, focus puis pose de signature.',
   sleeping: 'Yeux presque fermés, respiration lente et expression de sommeil.',
   waking: 'Animation courte de réveil avant retour vers une expression neutre.',
   idle: 'Regard frontal au repos, puis brèves œillades latérales avec respiration légère.',
-  listening: 'Regard frontal attentif, légère inclinaison et micro-ajustements sans dépendre d’une bouche.',
+  listening:
+    'Regard frontal attentif, légère inclinaison et micro-ajustements sans dépendre d’une bouche.',
   thinking: 'Regard haut et latéral, expressions asymétriques et changements fréquents.',
   searching: 'Balayage rapide et changements très fréquents.',
   working: 'Rythme régulier et expressions concentrées.',
   excited: 'Grandes expressions et transitions rapides.',
   curious: 'Inclinaisons et forte asymétrie.',
-  speaking: 'Cycle de jeu oculaire A/B/C et micro-saccades pour parler visuellement même bouche désactivée.',
+  speaking:
+    'Cycle de jeu oculaire A/B/C et micro-saccades pour parler visuellement même bouche désactivée.',
   presenting: 'Gestuelle calme, regard engagé et sourire léger.',
   scanning: 'Balayage latéral du regard pour les agents en recherche.',
   greeting: 'Accueil chaleureux avec clin d’œil et rebond subtil.',
   agree: 'Réaction positive courte pour confirmer une action.',
   disagree: 'Réaction négative lisible sans agressivité excessive.',
-  success: 'Réussite courte avec anticipation, burst visuel et retour propre vers le regard frontal.',
+  success:
+    'Réussite courte avec anticipation, burst visuel et retour propre vers le regard frontal.',
   error: 'Signal d’erreur expressif avec tremblement bref.',
-  notification: 'Accroche visuelle rapide : snap du regard, alerte, puis recentrage sans pause morte.',
+  notification:
+    'Accroche visuelle rapide : snap du regard, alerte, puis recentrage sans pause morte.',
   dance: 'Boucle ludique plus rythmée, sans longs temps morts, pilotée surtout par les yeux.',
   celebrate: 'Célébration avec vrais confettis procéduraux, yeux pétillants et rebond bref.',
+  orbit:
+    'Orbite 3D : anneaux arc-en-ciel en rotation orbitale autour de l’avatar et regard dynamique.',
+  play: 'Lecture : bouquet d’arcs lumineux chromatiques balayant le corps avec pose dynamique.',
 }

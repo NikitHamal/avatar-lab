@@ -24,7 +24,6 @@ describe('state playback configuration', () => {
     expect(initialExpressions[statePools.idle[0]].id).toBe('idle-front')
   })
 
-
   it('uses real visual effects for effect-driven reactions', () => {
     const confetti = initialExpressions.find(expression => expression.id === 'confetti')
     const puzzled = initialExpressions.find(expression => expression.id === 'puzzled')

@@ -62,7 +62,10 @@ const saccade = (elapsedMs: number, axis: number, seed: number) => {
 }
 
 export const hasAmbientMotion = (expression: Expression) =>
-  expression.eyeMotion !== 'none' || expression.bodyMotion !== 'none'
+  expression.eyeMotion !== 'none' ||
+  expression.bodyMotion !== 'none' ||
+  expression.effect === 'orbit' ||
+  expression.effect === 'playArcs'
 
 export const ambientBodyOffset = (expression: Expression, elapsedMs: number, strength = 1) => {
   const seed = expressionSeed(expression)

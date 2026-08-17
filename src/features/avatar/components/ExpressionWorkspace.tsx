@@ -205,7 +205,39 @@ export function ExpressionPreview({
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        {geometry.orbitalArcs?.map(arc => (
+          <linearGradient
+            key={`grad-${arc.id}`}
+            id={`${clipId}-grad-${arc.id}`}
+            gradientUnits="userSpaceOnUse"
+            x1={arc.grad.x1}
+            y1={arc.grad.y1}
+            x2={arc.grad.x2}
+            y2={arc.grad.y2}
+          >
+            {arc.grad.stops.map((stopColor, idx) => (
+              <stop
+                key={idx}
+                offset={`${(idx / (arc.grad.stops.length - 1)) * 100}%`}
+                stopColor={stopColor}
+              />
+            ))}
+          </linearGradient>
+        ))}
       </defs>
+      {geometry.orbitalArcs
+        ?.filter(arc => arc.back && arc.opacity > 0.01)
+        .map(arc => (
+          <path
+            key={`back-${arc.id}`}
+            d={arc.back}
+            stroke={`url(#${clipId}-grad-${arc.id})`}
+            strokeWidth={arc.width}
+            strokeLinecap="round"
+            fill="none"
+            opacity={arc.opacity}
+          />
+        ))}
       {geometry.backPaths.map((pathValue, index) => {
         const nodeId = geometry.backNodeIds[index]
         const style = nodeId ? geometry.nodeStyles?.[nodeId] : undefined
@@ -316,6 +348,19 @@ export function ExpressionPreview({
           />
         )
       })}
+      {geometry.orbitalArcs
+        ?.filter(arc => arc.front && arc.opacity > 0.01)
+        .map(arc => (
+          <path
+            key={`front-${arc.id}`}
+            d={arc.front}
+            stroke={`url(#${clipId}-grad-${arc.id})`}
+            strokeWidth={arc.width}
+            strokeLinecap="round"
+            fill="none"
+            opacity={arc.opacity}
+          />
+        ))}
       <AvatarEffectLayer effect={expression.effect} />
     </svg>
   )
@@ -611,7 +656,9 @@ export function ExpressionWorkspace({
                 onChange={eyeMotion => update({ eyeMotion })}
               />
               <p className="field-help">
-                {t('Anime le regard avec des micro-jeux, darts, squints, orbites et anticipations pensés pour jouer l’émotion sans bouche.')}
+                {t(
+                  'Anime le regard avec des micro-jeux, darts, squints, orbites et anticipations pensés pour jouer l’émotion sans bouche.'
+                )}
               </p>
             </Card>
             {(['width', 'height', 'size'] as const).map(dimension => (
@@ -729,7 +776,9 @@ export function ExpressionWorkspace({
               <div className="switch">
                 <div>
                   <strong>{t('Bouche de cet avatar')}</strong>
-                  <small>{t('Désactivée par défaut : le jeu émotionnel reste porté par les yeux.')}</small>
+                  <small>
+                    {t('Désactivée par défaut : le jeu émotionnel reste porté par les yeux.')}
+                  </small>
                 </div>
                 <Switch
                   checked={mouthEnabled}

@@ -8,6 +8,7 @@ import type {
   CreatureEyeFrame,
   DecalPath,
 } from '../avatar/geometry'
+import type { RenderedOrbitalArc } from '../avatar/orbitalRings'
 
 const bodyPathSlots = MAX_BODY_NODES + 2
 const decalPathSlots = 4
@@ -42,6 +43,7 @@ export type RenderedScene = {
   offsetX: MotionValue<number>
   offsetY: MotionValue<number>
   wirePaths: MotionValue<string>[]
+  orbitalArcs: { current: RenderedOrbitalArc[] }
 }
 
 export type RenderedColors = {
@@ -103,6 +105,7 @@ export const createRenderedScene = (geometry: AvatarGeometry): RenderedScene => 
   offsetX: motionValue(0),
   offsetY: motionValue(0),
   wirePaths: geometry.wirePaths.map(path => motionValue(path)),
+  orbitalArcs: { current: geometry.orbitalArcs ?? [] },
 })
 
 export const paintRenderedScene = (scene: RenderedScene, geometry: AvatarGeometry) => {
@@ -126,6 +129,7 @@ export const paintRenderedScene = (scene: RenderedScene, geometry: AvatarGeometr
   scene.mouthPath.set(geometry.mouthPath ?? '')
   scene.mouthOpacity.set(geometry.mouthVisible ? 1 : 0)
   scene.wirePaths.forEach((path, index) => path.set(geometry.wirePaths[index] ?? ''))
+  scene.orbitalArcs.current = geometry.orbitalArcs ?? []
 }
 
 export const findBodyNodePath = (scene: RenderedScene, selectedBodyNodeId: 'primary' | string) => {

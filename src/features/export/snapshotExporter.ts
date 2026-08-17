@@ -137,16 +137,45 @@ export const serializeAvatarSnapshot = (
 
   const effectMarkup = avatarEffectSvgMarkup(renderOptions.effect, renderOptions.elapsedMs ?? 0)
 
+  const orbitalArcs = scene.orbitalArcs?.current ?? []
+  const orbitalDefs = orbitalArcs
+    .map(
+      arc =>
+        `<linearGradient id="snapshot-grad-${arc.id}" gradientUnits="userSpaceOnUse" x1="${arc.grad.x1}" y1="${arc.grad.y1}" x2="${arc.grad.x2}" y2="${arc.grad.y2}">${arc.grad.stops
+          .map(
+            (stopColor, idx) =>
+              `<stop offset="${((idx / (arc.grad.stops.length - 1)) * 100).toFixed(1)}%" stop-color="${escapeXml(stopColor)}"/>`
+          )
+          .join('')}</linearGradient>`
+    )
+    .join('')
+  const orbitalBackMarkup = orbitalArcs
+    .filter(arc => arc.back && arc.opacity > 0.01)
+    .map(
+      arc =>
+        `<path d="${escapeXml(arc.back)}" stroke="url(#snapshot-grad-${arc.id})" stroke-width="${arc.width.toFixed(2)}" stroke-linecap="round" fill="none" opacity="${arc.opacity.toFixed(2)}"/>`
+    )
+    .join('')
+  const orbitalFrontMarkup = orbitalArcs
+    .filter(arc => arc.front && arc.opacity > 0.01)
+    .map(
+      arc =>
+        `<path d="${escapeXml(arc.front)}" stroke="url(#snapshot-grad-${arc.id})" stroke-width="${arc.width.toFixed(2)}" stroke-linecap="round" fill="none" opacity="${arc.opacity.toFixed(2)}"/>`
+    )
+    .join('')
+
   const body = [
+    orbitalBackMarkup,
     backPaths,
     path(headPath, colors.body),
     `<g clip-path="url(#snapshot-head-clip)">${decalsMarkup}${eyeMarkup}${mouthMarkup}</g>`,
     frontPaths,
+    orbitalFrontMarkup,
   ].join('')
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}" role="img" aria-label="${escapeXml(name)}">
-  <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath><clipPath id="snapshot-left-eye-clip"><path d="${escapeXml(scene.leftPath.get())}"/></clipPath><clipPath id="snapshot-right-eye-clip"><path d="${escapeXml(scene.rightPath.get())}"/></clipPath>${creatureClipDefinition}</defs>
+  <defs>${gradientMarkup(options)}${nodePaintDefs}${orbitalDefs}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath><clipPath id="snapshot-left-eye-clip"><path d="${escapeXml(scene.leftPath.get())}"/></clipPath><clipPath id="snapshot-right-eye-clip"><path d="${escapeXml(scene.rightPath.get())}"/></clipPath>${creatureClipDefinition}</defs>
   ${backgroundMarkup(options)}
   <g transform="translate(${offsetX} ${offsetY})">${body}</g>${effectMarkup}
 </svg>`

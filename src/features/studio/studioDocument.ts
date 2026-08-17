@@ -183,7 +183,6 @@ const enhancedExpressionIds = [
   'intro-scan',
 ] as const
 
-
 const previousBundledPools: Record<string, number[]> = {
   sleeping: [42, 13, 42],
   waking: [42, 26, 50],
@@ -228,10 +227,10 @@ const expressionIdForBundledIndex = (index: number) =>
 const poolMatchesSequence = (sequence: AvatarSequence, pool: number[] | undefined) =>
   Boolean(
     pool &&
-      sequence.steps.length === pool.length &&
-      sequence.steps.every(
-        (step, index) => step.expressionId === expressionIdForBundledIndex(pool[index])
-      )
+    sequence.steps.length === pool.length &&
+    sequence.steps.every(
+      (step, index) => step.expressionId === expressionIdForBundledIndex(pool[index])
+    )
   )
 
 const isLegacyBundledSequence = (sequence: AvatarSequence | undefined) => {
@@ -303,7 +302,9 @@ export const loadStudioDocument = (
     // Refresh only untouched built-in sequences from the previous bundle. Custom and edited
     // sequences retain their authored steps, while stock reactions gain the expressive eye poses.
     fallback.sequences.forEach(fallbackSequence => {
-      const existingIndex = parsed.sequences.findIndex(sequence => sequence.id === fallbackSequence.id)
+      const existingIndex = parsed.sequences.findIndex(
+        sequence => sequence.id === fallbackSequence.id
+      )
       if (existingIndex >= 0 && isLegacyBundledSequence(parsed.sequences[existingIndex])) {
         parsed.sequences[existingIndex] = structuredClone(fallbackSequence)
       }

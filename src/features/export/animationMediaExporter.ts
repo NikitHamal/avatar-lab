@@ -14,7 +14,11 @@ import {
 import type { AvatarSequence, SequenceTransition } from '../animation/sequences'
 import { GifEncoder } from './gifEncoder'
 import { avatarEffectSvgMarkup } from '../rendering/avatarEffects'
-import { createCreatureInstance, creaturePathSide, creaturePathToSvg } from '../creature/creatureEngine'
+import {
+  createCreatureInstance,
+  creaturePathSide,
+  creaturePathToSvg,
+} from '../creature/creatureEngine'
 import type { CreatureShape } from '../creature/creatureSwatches'
 import type { CreatureEyeFrame } from '../avatar/geometry'
 import { canUseFastWebmEncoder, encodeCanvasFramesToWebm } from './webmVideoEncoder'
@@ -246,7 +250,8 @@ export const sampleAnimationFrames = (
     for (let i = 0; i < expandedSteps.length; i++) {
       const step = expandedSteps[i]
       const exp = expressionById.get(step.expressionId)!
-      const isFinalOnceStep = sequence.playbackMode === 'once' && loop === numLoops - 1 && i === expandedSteps.length - 1
+      const isFinalOnceStep =
+        sequence.playbackMode === 'once' && loop === numLoops - 1 && i === expandedSteps.length - 1
       const nextStep = isFinalOnceStep ? step : expandedSteps[(i + 1) % expandedSteps.length]
       const nextExp = expressionById.get(nextStep.expressionId)!
 
@@ -282,18 +287,37 @@ export const sampleAnimationFrames = (
   // because WebCodecs handles it off the main playback clock.
   const maxSamplingFps =
     options.format === 'gif'
-      ? quality === 'fast' ? 12 : quality === 'high' ? 30 : 18
-      : quality === 'fast' ? 24 : quality === 'high' ? 60 : 30
+      ? quality === 'fast'
+        ? 12
+        : quality === 'high'
+          ? 30
+          : 18
+      : quality === 'fast'
+        ? 24
+        : quality === 'high'
+          ? 60
+          : 30
   const effectiveFps = Math.min(requestedFps, maxSamplingFps)
   const requestedIntervalMs = Math.max(16, 1000 / effectiveFps)
   const baseFrameBudget =
     options.format === 'gif'
-      ? quality === 'fast' ? 140 : quality === 'high' ? 420 : 240
-      : quality === 'fast' ? 520 : quality === 'high' ? 2200 : 1200
+      ? quality === 'fast'
+        ? 140
+        : quality === 'high'
+          ? 420
+          : 240
+      : quality === 'fast'
+        ? 520
+        : quality === 'high'
+          ? 2200
+          : 1200
   const gifResolutionScale =
     options.format !== 'gif' ? 1 : options.size >= 1024 ? 0.55 : options.size >= 768 ? 0.75 : 1
   const frameBudget = Math.max(80, Math.round(baseFrameBudget * gifResolutionScale))
-  const frameIntervalMs = Math.max(16, Math.round(Math.max(requestedIntervalMs, totalDurationMs / frameBudget)))
+  const frameIntervalMs = Math.max(
+    16,
+    Math.round(Math.max(requestedIntervalMs, totalDurationMs / frameBudget))
+  )
   const frames: SampledAnimationFrame[] = []
 
   const blinkSettings = sequence.blink
@@ -326,16 +350,33 @@ export const sampleAnimationFrames = (
         id: `interp-${t}`,
         eyeMotion: to.eyeMotion !== 'none' ? to.eyeMotion : from.eyeMotion,
         bodyMotion: to.bodyMotion !== 'none' ? to.bodyMotion : from.bodyMotion,
-        eyeStyle: progress >= 0.5 ? to.eyeStyle ?? from.eyeStyle : from.eyeStyle ?? to.eyeStyle,
-        mouth: progress >= 0.5 ? to.mouth ?? from.mouth : from.mouth ?? to.mouth,
-        effect: progress >= 0.16 ? to.effect ?? 'none' : from.effect ?? 'none',
+        eyeStyle: progress >= 0.5 ? (to.eyeStyle ?? from.eyeStyle) : (from.eyeStyle ?? to.eyeStyle),
+        mouth: progress >= 0.5 ? (to.mouth ?? from.mouth) : (from.mouth ?? to.mouth),
+        effect: progress >= 0.16 ? (to.effect ?? 'none') : (from.effect ?? 'none'),
       }
       const optionalMouthFields = [
-        'mouthScale', 'mouthOffsetX', 'mouthOffsetY', 'mouthWidth', 'mouthCurve', 'mouthStrokeWidth',
+        'mouthScale',
+        'mouthOffsetX',
+        'mouthOffsetY',
+        'mouthWidth',
+        'mouthCurve',
+        'mouthStrokeWidth',
       ] as const
       optionalMouthFields.forEach(field => {
-        const fromValue = from[field] ?? (field === 'mouthOffsetX' || field === 'mouthOffsetY' ? 0 : field === 'mouthStrokeWidth' ? 3.2 : 1)
-        const toValue = to[field] ?? (field === 'mouthOffsetX' || field === 'mouthOffsetY' ? 0 : field === 'mouthStrokeWidth' ? 3.2 : 1)
+        const fromValue =
+          from[field] ??
+          (field === 'mouthOffsetX' || field === 'mouthOffsetY'
+            ? 0
+            : field === 'mouthStrokeWidth'
+              ? 3.2
+              : 1)
+        const toValue =
+          to[field] ??
+          (field === 'mouthOffsetX' || field === 'mouthOffsetY'
+            ? 0
+            : field === 'mouthStrokeWidth'
+              ? 3.2
+              : 1)
         blended[field] = fromValue + (toValue - fromValue) * progress
       })
 
@@ -381,7 +422,8 @@ export const sampleAnimationFrames = (
     let blinkAmount = 1
     if (blinkSettings.enabled) {
       const initialDelay = Math.max(0, blinkSettings.initialDelayMs || 600)
-      const cycleTime = t >= initialDelay ? (t - initialDelay) % blinkInterval : Number.POSITIVE_INFINITY
+      const cycleTime =
+        t >= initialDelay ? (t - initialDelay) % blinkInterval : Number.POSITIVE_INFINITY
       if (cycleTime < blinkDuration) {
         const blinkProgress = cycleTime / blinkDuration
         // Dip to 0 (closed) and back up to 1
@@ -400,10 +442,12 @@ export const sampleAnimationFrames = (
     const bodyOffset = ambientBodyOffset(interpolated, t)
     const eyeOffset = ambientEyeOffset(interpolated, t)
 
+    const timeSec = t / 1000
     const pose = poseFromExpression(renderExpression)
     const scene = renderAvatar(pose, avatar.body.primary, blinkAmount, {
       bodyNodes: avatar.body.nodes,
       eyeOffset,
+      timeSec,
     })
 
     const clipId = `frame-clip-${frameCounter}`
@@ -439,7 +483,8 @@ export const sampleAnimationFrames = (
         ? `<path d="${escapeXml(scene.mouthPath)}" stroke="${escapeXml(eyeColor)}" stroke-width="${(renderExpression.mouthStrokeWidth ?? 3.2).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
         : ''
     const fallbackEyeMarkup = `${scene.leftVisible ? pathMarkup(scene.leftPath, eyeColor) : ''}${scene.rightVisible ? pathMarkup(scene.rightPath, eyeColor) : ''}`
-    const classicEyeMarkup = avatar.eyeRenderer === 'creature' ? '<!--CREATURE_EYES-->' : fallbackEyeMarkup
+    const classicEyeMarkup =
+      avatar.eyeRenderer === 'creature' ? '<!--CREATURE_EYES-->' : fallbackEyeMarkup
     const effectMarkup = avatarEffectSvgMarkup(renderExpression.effect, t)
 
     const decalsMarkup = (scene.decals ?? [])
@@ -452,11 +497,38 @@ export const sampleAnimationFrames = (
       bodyColor
     )
 
+    const orbitalArcs = scene.orbitalArcs ?? []
+    const orbitalDefs = orbitalArcs
+      .map(
+        arc =>
+          `<linearGradient id="frame-${frameCounter}-grad-${arc.id}" gradientUnits="userSpaceOnUse" x1="${arc.grad.x1}" y1="${arc.grad.y1}" x2="${arc.grad.x2}" y2="${arc.grad.y2}">${arc.grad.stops
+            .map(
+              (stopColor, idx) =>
+                `<stop offset="${((idx / (arc.grad.stops.length - 1)) * 100).toFixed(1)}%" stop-color="${escapeXml(stopColor)}"/>`
+            )
+            .join('')}</linearGradient>`
+      )
+      .join('')
+    const orbitalBackMarkup = orbitalArcs
+      .filter(arc => arc.back && arc.opacity > 0.01)
+      .map(
+        arc =>
+          `<path d="${escapeXml(arc.back)}" stroke="url(#frame-${frameCounter}-grad-${arc.id})" stroke-width="${arc.width.toFixed(2)}" stroke-linecap="round" fill="none" opacity="${arc.opacity.toFixed(2)}"/>`
+      )
+      .join('')
+    const orbitalFrontMarkup = orbitalArcs
+      .filter(arc => arc.front && arc.opacity > 0.01)
+      .map(
+        arc =>
+          `<path d="${escapeXml(arc.front)}" stroke="url(#frame-${frameCounter}-grad-${arc.id})" stroke-width="${arc.width.toFixed(2)}" stroke-linecap="round" fill="none" opacity="${arc.opacity.toFixed(2)}"/>`
+      )
+      .join('')
+
     const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}">
-  <defs>${gradientMarkup(options)}${nodePaintDefs}<clipPath id="${clipId}"><path d="${escapeXml(scene.headPath)}"/></clipPath><!--CREATURE_EYE_DEFS--></defs>
+  <defs>${gradientMarkup(options)}${nodePaintDefs}${orbitalDefs}<clipPath id="${clipId}"><path d="${escapeXml(scene.headPath)}"/></clipPath><!--CREATURE_EYE_DEFS--></defs>
   ${backgroundMarkup(options)}
-  <g transform="translate(${offsetX} ${offsetY})">${backPathsMarkup}${pathMarkup(scene.headPath, bodyColor)}<g clip-path="url(#${clipId})">${decalsMarkup}${classicEyeMarkup}${mouthMarkup}</g>${frontPathsMarkup}</g>${effectMarkup}
+  <g transform="translate(${offsetX} ${offsetY})">${orbitalBackMarkup}${backPathsMarkup}${pathMarkup(scene.headPath, bodyColor)}<g clip-path="url(#${clipId})">${decalsMarkup}${classicEyeMarkup}${mouthMarkup}</g>${frontPathsMarkup}${orbitalFrontMarkup}</g>${effectMarkup}
 </svg>`
 
     frames.push({
@@ -464,9 +536,10 @@ export const sampleAnimationFrames = (
       delayMs: frameIntervalMs,
       elapsedMs: t,
       creatureEyeFrame: avatar.eyeRenderer === 'creature' ? scene.creatureEyeFrame : undefined,
-      creatureShape: avatar.eyeRenderer === 'creature'
-        ? ((renderExpression.eyeStyle ?? avatar.eyes.eyeStyle ?? 'dot') as CreatureShape)
-        : undefined,
+      creatureShape:
+        avatar.eyeRenderer === 'creature'
+          ? ((renderExpression.eyeStyle ?? avatar.eyes.eyeStyle ?? 'dot') as CreatureShape)
+          : undefined,
       fallbackEyeMarkup,
     })
   }
@@ -479,7 +552,8 @@ const hydrateCreatureEyeFrames = async (
   frames: SampledAnimationFrame[],
   onProgress?: AnimationExportProgress
 ): Promise<SampledAnimationFrame[]> => {
-  if (avatar.eyeRenderer !== 'creature' || !frames.some(frame => frame.creatureEyeFrame)) return frames
+  if (avatar.eyeRenderer !== 'creature' || !frames.some(frame => frame.creatureEyeFrame))
+    return frames
 
   const firstShape = frames.find(frame => frame.creatureShape)?.creatureShape ?? 'dot'
   let instance: Awaited<ReturnType<typeof createCreatureInstance>> | null = null
@@ -519,7 +593,7 @@ const hydrateCreatureEyeFrames = async (
         : ''
       const eyes = outer.length
         ? `${outer.map(item => pathMarkup(item.d, item.fill)).join('')}<g clip-path="url(#${clipId})">${inner.map(item => pathMarkup(item.d, item.fill)).join('')}</g>`
-        : frame.fallbackEyeMarkup ?? ''
+        : (frame.fallbackEyeMarkup ?? '')
 
       if (onProgress && (index % 12 === 0 || index === frames.length - 1)) {
         const percent = Math.round(((index + 1) / frames.length) * 12)
@@ -527,7 +601,9 @@ const hydrateCreatureEyeFrames = async (
       }
       return {
         ...frame,
-        svg: frame.svg.replace('<!--CREATURE_EYE_DEFS-->', defs).replace('<!--CREATURE_EYES-->', eyes),
+        svg: frame.svg
+          .replace('<!--CREATURE_EYE_DEFS-->', defs)
+          .replace('<!--CREATURE_EYES-->', eyes),
       }
     })
   } catch (error) {
@@ -549,7 +625,12 @@ const prepareAnimationFrames = async (
   expressions: Expression[],
   options: AnimationMediaOptions,
   onProgress?: AnimationExportProgress
-) => hydrateCreatureEyeFrames(avatar, sampleAnimationFrames(avatar, sequence, expressions, options), onProgress)
+) =>
+  hydrateCreatureEyeFrames(
+    avatar,
+    sampleAnimationFrames(avatar, sequence, expressions, options),
+    onProgress
+  )
 
 /**
  * Loads an SVG string and draws it onto a canvas.

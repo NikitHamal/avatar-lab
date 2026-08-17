@@ -1623,7 +1623,11 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         <div className="switch">
                           <div>
                             <strong>{t('Bouche de cet avatar')}</strong>
-                            <small>{t('Désactivée par défaut : les yeux restent la source principale d’émotion.')}</small>
+                            <small>
+                              {t(
+                                'Désactivée par défaut : les yeux restent la source principale d’émotion.'
+                              )}
+                            </small>
                           </div>
                           <Switch
                             checked={activeAvatar.mouthEnabled}
@@ -1672,7 +1676,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   max={1.8}
                                   step={0.05}
                                   unit="×"
-                                  onChange={mouthScale => updateImmediate({ ...expression, mouthScale })}
+                                  onChange={mouthScale =>
+                                    updateImmediate({ ...expression, mouthScale })
+                                  }
                                 />
                                 <NumericField
                                   label="Largeur"
@@ -1681,7 +1687,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   max={2.2}
                                   step={0.05}
                                   unit="×"
-                                  onChange={mouthWidth => updateImmediate({ ...expression, mouthWidth })}
+                                  onChange={mouthWidth =>
+                                    updateImmediate({ ...expression, mouthWidth })
+                                  }
                                 />
                                 <div className="eye-columns">
                                   <NumericField
@@ -1691,7 +1699,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                     max={48}
                                     step={1}
                                     unit="u"
-                                    onChange={mouthOffsetX => updateImmediate({ ...expression, mouthOffsetX })}
+                                    onChange={mouthOffsetX =>
+                                      updateImmediate({ ...expression, mouthOffsetX })
+                                    }
                                   />
                                   <NumericField
                                     label="Position Y"
@@ -1700,7 +1710,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                     max={48}
                                     step={1}
                                     unit="u"
-                                    onChange={mouthOffsetY => updateImmediate({ ...expression, mouthOffsetY })}
+                                    onChange={mouthOffsetY =>
+                                      updateImmediate({ ...expression, mouthOffsetY })
+                                    }
                                   />
                                 </div>
                                 <NumericField
@@ -1710,7 +1722,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   max={2.4}
                                   step={0.05}
                                   unit="×"
-                                  onChange={mouthCurve => updateImmediate({ ...expression, mouthCurve })}
+                                  onChange={mouthCurve =>
+                                    updateImmediate({ ...expression, mouthCurve })
+                                  }
                                 />
                                 <NumericField
                                   label="Épaisseur"
@@ -1719,7 +1733,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   max={8}
                                   step={0.2}
                                   unit="px"
-                                  onChange={mouthStrokeWidth => updateImmediate({ ...expression, mouthStrokeWidth })}
+                                  onChange={mouthStrokeWidth =>
+                                    updateImmediate({ ...expression, mouthStrokeWidth })
+                                  }
                                 />
                               </>
                             )}

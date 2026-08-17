@@ -14,6 +14,7 @@ import {
   creatureEyeRigFromExpression,
   type CreatureEyeRig,
 } from '../creature/creatureExpression'
+import { evaluateOrbitArcs, evaluatePlayArcs, type RenderedOrbitalArc } from './orbitalRings'
 
 export type Quaternion = readonly [number, number, number, number]
 export type Point3 = readonly [number, number, number]
@@ -45,6 +46,8 @@ export type AvatarVisualEffect =
   | 'zzz'
   | 'question'
   | 'introGlow'
+  | 'orbit'
+  | 'playArcs'
 
 export type Expression = {
   id: string
@@ -142,12 +145,15 @@ export type AvatarGeometry = {
   decals: DecalPath[]
   nodeStyles: Record<string, AvatarNodeStyle>
   wirePaths: string[]
+  orbitalArcs?: RenderedOrbitalArc[]
 }
 
 export type RenderAvatarOptions = {
   includeWire?: boolean
   bodyNodes?: BodyNode[]
   eyeOffset?: Readonly<{ x: number; y: number }>
+  timeSec?: number
+  orbitalArcs?: RenderedOrbitalArc[]
 }
 
 export type EyeEditorGeometry = {
@@ -1463,7 +1469,10 @@ const accessoryPath = (pose: AvatarPose, node: BodyNode) => {
         locallyRotated[1] + node.position[1],
         locallyRotated[2] + node.position[2],
       ]
-      return project(rotateWithQuaternion(pose.orientation, positioned), pose.expression.perspective)
+      return project(
+        rotateWithQuaternion(pose.orientation, positioned),
+        pose.expression.perspective
+      )
     })
     return sharpProfileTypes.has(node.surface.type)
       ? path(projected)
@@ -1620,14 +1629,7 @@ const mouthPoints = (
   for (let index = 0; index < sampleCount; index += 1) {
     const t = (index / (sampleCount - 1)) * 2 - 1
     const x = mouthX + t * mouthHalfWidth * (type === 'grin' ? 1.2 : 1)
-    const baseCurve =
-      type === 'smile'
-        ? -7
-        : type === 'grin'
-          ? -12
-          : type === 'frown'
-            ? 7
-            : 0
+    const baseCurve = type === 'smile' ? -7 : type === 'grin' ? -12 : type === 'frown' ? 7 : 0
     const catCurve = type === 'cat' ? -5 * Math.abs(Math.sin(t * Math.PI)) + 2.5 : 0
     const smirkCurve = type === 'smirk' ? (-6 * (t + 1)) / 2 : 0
     const curveOffset = ((1 - t * t) * baseCurve + catCurve + smirkCurve) * curveMultiplier
@@ -1892,6 +1894,15 @@ export const renderAvatar = (
     }
   })
 
+  const timeSec = options.timeSec ?? 0
+  const orbitalArcs =
+    options.orbitalArcs ??
+    (pose.expression.effect === 'orbit'
+      ? evaluateOrbitArcs(timeSec, surface.width * 0.52)
+      : pose.expression.effect === 'playArcs'
+        ? evaluatePlayArcs(timeSec, surface.width * 0.52)
+        : [])
+
   return {
     backPaths: [...compositePaths, ...accessories.backPaths],
     frontPaths: accessories.frontPaths,
@@ -1910,5 +1921,6 @@ export const renderAvatar = (
     decals,
     nodeStyles,
     wirePaths: options.includeWire === false ? [] : wirePaths(pose, surface),
+    orbitalArcs,
   }
 }

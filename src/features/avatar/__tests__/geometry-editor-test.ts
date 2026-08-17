@@ -79,12 +79,9 @@ describe('body node editor geometry', () => {
     const flower = renderAvatar(poseFromExpression(defaultExpression), surfacePresets.flower, 1, {
       includeWire: false,
     }).headPath
-    const pyramid = renderAvatar(
-      poseFromExpression(defaultExpression),
-      surfacePresets.pyramid,
-      1,
-      { includeWire: false }
-    ).headPath
+    const pyramid = renderAvatar(poseFromExpression(defaultExpression), surfacePresets.pyramid, 1, {
+      includeWire: false,
+    }).headPath
 
     expect((star.match(/L/g) ?? []).length).toBeGreaterThanOrEqual(9)
     expect(flower).toContain('C')

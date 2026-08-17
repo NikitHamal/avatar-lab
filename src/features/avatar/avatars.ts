@@ -232,7 +232,7 @@ export const parseExpressions = (value: unknown): Expression[] => {
       ;(parsed as unknown as Record<string, unknown>)[field] =
         typeof stored === 'number' && Number.isFinite(stored)
           ? Math.min(maximum, Math.max(minimum, stored))
-          : (defaultExpression as unknown as Record<string, unknown>)[field] ?? fallback
+          : ((defaultExpression as unknown as Record<string, unknown>)[field] ?? fallback)
     }
     const storedEffect = (item as { effect?: unknown }).effect
     if (
@@ -248,6 +248,8 @@ export const parseExpressions = (value: unknown): Expression[] => {
         'zzz',
         'question',
         'introGlow',
+        'orbit',
+        'playArcs',
       ].includes(storedEffect)
     ) {
       parsed.effect = storedEffect as Expression['effect']

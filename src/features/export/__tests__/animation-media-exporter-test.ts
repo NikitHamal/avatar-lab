@@ -91,10 +91,28 @@ describe('animationMediaExporter', () => {
     const sequence = {
       ...createInitialSequences().find(item => item.id === 'intro-neby')!,
       playbackMode: 'once' as const,
-      blink: { enabled: false, initialDelayMs: 0, minIntervalMs: 3000, maxIntervalMs: 5000, durationMs: 200 },
+      blink: {
+        enabled: false,
+        initialDelayMs: 0,
+        minIntervalMs: 3000,
+        maxIntervalMs: 5000,
+        durationMs: 200,
+      },
       steps: [
-        { id: 'first', expressionId: first.id, holdMs: 100, transitionMs: 0, transition: 'smooth' as const },
-        { id: 'final', expressionId: final.id, holdMs: 240, transitionMs: 120, transition: 'spring' as const },
+        {
+          id: 'first',
+          expressionId: first.id,
+          holdMs: 100,
+          transitionMs: 0,
+          transition: 'smooth' as const,
+        },
+        {
+          id: 'final',
+          expressionId: final.id,
+          holdMs: 240,
+          transitionMs: 120,
+          transition: 'spring' as const,
+        },
       ],
     }
     const frames = sampleAnimationFrames(avatar, sequence, [first, final], {
@@ -132,5 +150,4 @@ describe('animationMediaExporter', () => {
     expect(frames.some(frame => frame.svg.includes('<rect'))).toBe(true)
     expect(frames.every(frame => !frame.svg.includes('stroke-linecap="round"'))).toBe(true)
   })
-
 })

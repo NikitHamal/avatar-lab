@@ -56,13 +56,33 @@ const finite = (value: unknown, fallback: number, min: number, max: number) =>
 const createId = (prefix: string) =>
   `${prefix}-${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`}`
 
-
 const introSequenceIds = new Set(['intro-neby', 'intro-cinematic', 'intro-pop', 'intro-scan'])
 const fastReactionIds = new Set([
-  'excited', 'surprised', 'laughing', 'scared', 'playful', 'celebrate', 'greeting',
-  'agree', 'disagree', 'wink', 'love', 'success', 'error', 'notification', 'dizzy', 'dance',
+  'excited',
+  'surprised',
+  'laughing',
+  'scared',
+  'playful',
+  'celebrate',
+  'greeting',
+  'agree',
+  'disagree',
+  'wink',
+  'love',
+  'success',
+  'error',
+  'notification',
+  'dizzy',
+  'dance',
 ])
-const attentiveSequenceIds = new Set(['listening', 'thinking', 'searching', 'working', 'scanning', 'presenting'])
+const attentiveSequenceIds = new Set([
+  'listening',
+  'thinking',
+  'searching',
+  'working',
+  'scanning',
+  'presenting',
+])
 const calmSequenceIds = new Set(['sleeping', 'drowsy', 'bored', 'sad'])
 
 const builtInStepTiming = (id: string, index: number) => {

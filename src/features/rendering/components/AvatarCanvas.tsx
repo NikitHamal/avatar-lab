@@ -48,6 +48,11 @@ import { CreatureEyeSvgLayer } from '@/features/creature/CreatureEyeSvgLayer'
 import type { CreatureShape } from '@/features/creature/creatureSwatches'
 import { type CanvasPreviewTarget } from '@/features/rendering/canvasPreview'
 import { AvatarEffectLayer } from '@/features/rendering/avatarEffects'
+import {
+  evaluateOrbitArcs,
+  evaluatePlayArcs,
+  type RenderedOrbitalArc,
+} from '@/features/avatar/orbitalRings'
 import { type RenderedRotationGizmo } from '@/features/rendering/renderedRotationGizmo'
 import {
   findBodyNodePath,
@@ -486,6 +491,107 @@ export function BodyNodeGizmo({
   )
 }
 
+function OrbitalArcsCanvasDefs({
+  effect,
+  scale = 120,
+}: {
+  effect?: AvatarVisualEffect
+  scale?: number
+}) {
+  const [arcs, setArcs] = useState<RenderedOrbitalArc[]>([])
+  useEffect(() => {
+    if (effect !== 'orbit' && effect !== 'playArcs') {
+      setArcs([])
+      return
+    }
+    let handle: number
+    const tick = (now: number) => {
+      const timeSec = now / 1000
+      const current =
+        effect === 'orbit' ? evaluateOrbitArcs(timeSec, scale) : evaluatePlayArcs(timeSec, scale)
+      setArcs(current)
+      handle = requestAnimationFrame(tick)
+    }
+    handle = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(handle)
+  }, [effect, scale])
+
+  if (!arcs.length) return null
+
+  return (
+    <>
+      {arcs.map(arc => (
+        <linearGradient
+          key={`stage-grad-${arc.id}`}
+          id={`stage-grad-${arc.id}`}
+          gradientUnits="userSpaceOnUse"
+          x1={arc.grad.x1}
+          y1={arc.grad.y1}
+          x2={arc.grad.x2}
+          y2={arc.grad.y2}
+        >
+          {arc.grad.stops.map((stopColor, idx) => (
+            <stop
+              key={idx}
+              offset={`${(idx / (arc.grad.stops.length - 1)) * 100}%`}
+              stopColor={stopColor}
+            />
+          ))}
+        </linearGradient>
+      ))}
+    </>
+  )
+}
+
+function OrbitalArcsCanvasLayer({
+  effect,
+  scale = 120,
+  layer,
+}: {
+  effect?: AvatarVisualEffect
+  scale?: number
+  layer: 'front' | 'back'
+}) {
+  const [arcs, setArcs] = useState<RenderedOrbitalArc[]>([])
+  useEffect(() => {
+    if (effect !== 'orbit' && effect !== 'playArcs') {
+      setArcs([])
+      return
+    }
+    let handle: number
+    const tick = (now: number) => {
+      const timeSec = now / 1000
+      const current =
+        effect === 'orbit' ? evaluateOrbitArcs(timeSec, scale) : evaluatePlayArcs(timeSec, scale)
+      setArcs(current)
+      handle = requestAnimationFrame(tick)
+    }
+    handle = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(handle)
+  }, [effect, scale])
+
+  if (!arcs.length) return null
+
+  return (
+    <g className={`avatar-orbital-arcs-${layer}`}>
+      {arcs
+        .filter(arc => (layer === 'front' ? arc.front : arc.back) && arc.opacity > 0.005)
+        .map(arc => (
+          <path
+            key={`${layer}-${arc.id}`}
+            d={layer === 'front' ? arc.front : arc.back}
+            stroke={`url(#stage-grad-${arc.id})`}
+            strokeWidth={arc.width}
+            strokeLinecap="round"
+            fill="none"
+            opacity={arc.opacity}
+            pointerEvents="none"
+          />
+        ))}
+    </g>
+  )
+}
+
 export function AvatarCanvas({
   expression,
   avatarEyes,
@@ -568,6 +674,7 @@ export function AvatarCanvas({
     creatureEyeFrame,
     creatureEyePaths,
   } = scene
+  const activeEffect = visualEffect ?? expression.effect
   const creatureEyesActive = eyeRenderer === 'creature'
   const [creatureEyesReady, setCreatureEyesReady] = useState(false)
   const creatureShape = (expression.eyeStyle ?? avatarEyes.eyeStyle ?? 'dot') as CreatureShape
@@ -896,8 +1003,10 @@ export function AvatarCanvas({
               </filter>
             ) : null
           )}
+          <OrbitalArcsCanvasDefs effect={activeEffect} scale={surface.width * 0.52} />
         </defs>
         <motion.g style={{ x: offsetX, y: offsetY }}>
+          <OrbitalArcsCanvasLayer effect={activeEffect} scale={surface.width * 0.52} layer="back" />
           {backPaths.map((pathValue, index) => {
             const nodeId = backNodeIds.current[index]
             const style = nodeId ? nodeStyles.current[nodeId] : undefined
@@ -1053,6 +1162,11 @@ export function AvatarCanvas({
               />
             )
           })}
+          <OrbitalArcsCanvasLayer
+            effect={activeEffect}
+            scale={surface.width * 0.52}
+            layer="front"
+          />
         </motion.g>
         <AvatarEffectLayer effect={visualEffect} />
         {selectedBodyPath && (

@@ -187,7 +187,13 @@ export const encodeCanvasFramesToWebm = async ({
       encoderError = error
     },
   })
-  encoder.configure({ codec: 'vp8', width: canvas.width, height: canvas.height, framerate: fps, bitrate })
+  encoder.configure({
+    codec: 'vp8',
+    width: canvas.width,
+    height: canvas.height,
+    framerate: fps,
+    bitrate,
+  })
 
   const keyFrameEvery = Math.max(1, Math.round(fps * 2))
   try {

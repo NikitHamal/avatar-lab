@@ -62,7 +62,14 @@ export function AvatarEffectLayer({ effect = 'none' }: { effect?: AvatarVisualEf
                   begin={`${delay}s`}
                   repeatCount="indefinite"
                 />
-                <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.82;1" dur={`${duration}s`} begin={`${delay}s`} repeatCount="indefinite" />
+                <animate
+                  attributeName="opacity"
+                  values="0;1;1;0"
+                  keyTimes="0;0.08;0.82;1"
+                  dur={`${duration}s`}
+                  begin={`${delay}s`}
+                  repeatCount="indefinite"
+                />
               </rect>
             </g>
           )
@@ -80,22 +87,65 @@ export function AvatarEffectLayer({ effect = 'none' }: { effect?: AvatarVisualEf
       [78, -112, 6],
     ] as const
     return (
-      <g className={`avatar-effect avatar-effect-${effect}`} pointerEvents="none" aria-hidden="true">
+      <g
+        className={`avatar-effect avatar-effect-${effect}`}
+        pointerEvents="none"
+        aria-hidden="true"
+      >
         {effect === 'introGlow' && (
           <>
-            <circle cx="0" cy="0" r="126" fill="none" stroke="#7dd3fc" strokeWidth="2" opacity="0.16">
+            <circle
+              cx="0"
+              cy="0"
+              r="126"
+              fill="none"
+              stroke="#7dd3fc"
+              strokeWidth="2"
+              opacity="0.16"
+            >
               <animate attributeName="r" values="112;136;112" dur="2.4s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.05;0.24;0.05" dur="2.4s" repeatCount="indefinite" />
+              <animate
+                attributeName="opacity"
+                values="0.05;0.24;0.05"
+                dur="2.4s"
+                repeatCount="indefinite"
+              />
             </circle>
-            <circle cx="0" cy="0" r="136" fill="none" stroke="#bae6fd" strokeWidth="1" opacity="0.1">
+            <circle
+              cx="0"
+              cy="0"
+              r="136"
+              fill="none"
+              stroke="#bae6fd"
+              strokeWidth="1"
+              opacity="0.1"
+            >
               <animate attributeName="r" values="126;146;126" dur="3.2s" repeatCount="indefinite" />
             </circle>
           </>
         )}
         {positions.map(([x, y, radius], index) => (
-          <path key={index} d={starPath(x, y, radius)} fill={CONFETTI_COLORS[(index + 1) % CONFETTI_COLORS.length]}>
-            <animateTransform attributeName="transform" type="rotate" values={`0 ${x} ${y};180 ${x} ${y};360 ${x} ${y}`} dur={`${1.1 + index * 0.17}s`} begin={`${index * -0.21}s`} repeatCount="indefinite" additive="sum" />
-            <animate attributeName="opacity" values="0.2;1;0.2" dur={`${1.1 + index * 0.17}s`} begin={`${index * -0.21}s`} repeatCount="indefinite" />
+          <path
+            key={index}
+            d={starPath(x, y, radius)}
+            fill={CONFETTI_COLORS[(index + 1) % CONFETTI_COLORS.length]}
+          >
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              values={`0 ${x} ${y};180 ${x} ${y};360 ${x} ${y}`}
+              dur={`${1.1 + index * 0.17}s`}
+              begin={`${index * -0.21}s`}
+              repeatCount="indefinite"
+              additive="sum"
+            />
+            <animate
+              attributeName="opacity"
+              values="0.2;1;0.2"
+              dur={`${1.1 + index * 0.17}s`}
+              begin={`${index * -0.21}s`}
+              repeatCount="indefinite"
+            />
           </path>
         ))}
       </g>
@@ -111,9 +161,27 @@ export function AvatarEffectLayer({ effect = 'none' }: { effect?: AvatarVisualEf
           const endY = -116 - (index % 2) * 16
           const duration = 1.9 + (index % 3) * 0.35
           return (
-            <path key={index} d={heartPath(x, startY, 0.58 + (index % 3) * 0.11)} fill={index % 2 ? '#ff4d8d' : '#ff7aa8'}>
-              <animateTransform attributeName="transform" type="translate" values={`0 0;${index % 2 ? 10 : -10} ${endY - startY}`} dur={`${duration}s`} begin={`${index * -0.28}s`} repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.15;0.75;1" dur={`${duration}s`} begin={`${index * -0.28}s`} repeatCount="indefinite" />
+            <path
+              key={index}
+              d={heartPath(x, startY, 0.58 + (index % 3) * 0.11)}
+              fill={index % 2 ? '#ff4d8d' : '#ff7aa8'}
+            >
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values={`0 0;${index % 2 ? 10 : -10} ${endY - startY}`}
+                dur={`${duration}s`}
+                begin={`${index * -0.28}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0;0.9;0.9;0"
+                keyTimes="0;0.15;0.75;1"
+                dur={`${duration}s`}
+                begin={`${index * -0.28}s`}
+                repeatCount="indefinite"
+              />
             </path>
           )
         })}
@@ -129,7 +197,12 @@ export function AvatarEffectLayer({ effect = 'none' }: { effect?: AvatarVisualEf
           <animate attributeName="opacity" values="0.5;0" dur="0.9s" repeatCount="indefinite" />
         </circle>
         <path d="M0 -140 L-8 -122 L8 -122 Z" fill="#ffd166">
-          <animate attributeName="opacity" values="0.25;1;0.25" dur="0.72s" repeatCount="indefinite" />
+          <animate
+            attributeName="opacity"
+            values="0.25;1;0.25"
+            dur="0.72s"
+            repeatCount="indefinite"
+          />
         </path>
       </g>
     )
@@ -145,8 +218,23 @@ export function AvatarEffectLayer({ effect = 'none' }: { effect?: AvatarVisualEf
           const x2 = Math.cos(angle) * 137
           const y2 = Math.sin(angle) * 137
           return (
-            <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} stroke={CONFETTI_COLORS[index % CONFETTI_COLORS.length]} strokeWidth="4" strokeLinecap="round">
-              <animate attributeName="opacity" values="0.2;1;0.2" dur="0.9s" begin={`${index * -0.04}s`} repeatCount="indefinite" />
+            <line
+              key={index}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke={CONFETTI_COLORS[index % CONFETTI_COLORS.length]}
+              strokeWidth="4"
+              strokeLinecap="round"
+            >
+              <animate
+                attributeName="opacity"
+                values="0.2;1;0.2"
+                dur="0.9s"
+                begin={`${index * -0.04}s`}
+                repeatCount="indefinite"
+              />
             </line>
           )
         })}
@@ -168,11 +256,30 @@ export function AvatarEffectLayer({ effect = 'none' }: { effect?: AvatarVisualEf
   if (effect === 'zzz' || effect === 'question') {
     const text = effect === 'zzz' ? 'Z' : '?'
     return (
-      <g className={`avatar-effect avatar-effect-${effect}`} pointerEvents="none" aria-hidden="true" fill="#64748b">
+      <g
+        className={`avatar-effect avatar-effect-${effect}`}
+        pointerEvents="none"
+        aria-hidden="true"
+        fill="#64748b"
+      >
         {[0, 1, 2].map(index => (
-          <text key={index} x={76 + index * 20} y={-78 - index * 22} fontSize={18 + index * 5} fontWeight="700" textAnchor="middle" opacity="0.72">
+          <text
+            key={index}
+            x={76 + index * 20}
+            y={-78 - index * 22}
+            fontSize={18 + index * 5}
+            fontWeight="700"
+            textAnchor="middle"
+            opacity="0.72"
+          >
             {text}
-            <animate attributeName="opacity" values="0.18;0.85;0.18" dur={`${1.7 + index * 0.25}s`} begin={`${index * -0.3}s`} repeatCount="indefinite" />
+            <animate
+              attributeName="opacity"
+              values="0.18;0.85;0.18"
+              dur={`${1.7 + index * 0.25}s`}
+              begin={`${index * -0.3}s`}
+              repeatCount="indefinite"
+            />
           </text>
         ))}
       </g>
@@ -182,7 +289,10 @@ export function AvatarEffectLayer({ effect = 'none' }: { effect?: AvatarVisualEf
   return null
 }
 
-export const avatarEffectSvgMarkup = (effect: AvatarVisualEffect | undefined, elapsedMs: number) => {
+export const avatarEffectSvgMarkup = (
+  effect: AvatarVisualEffect | undefined,
+  elapsedMs: number
+) => {
   if (!effect || effect === 'none') return ''
   const time = elapsedMs / 1000
 
@@ -210,15 +320,27 @@ export const avatarEffectSvgMarkup = (effect: AvatarVisualEffect | undefined, el
   }
 
   if (effect === 'sparkles' || effect === 'introGlow') {
-    const positions = [[-104,-78,10],[108,-55,8],[-118,45,7],[112,64,11],[78,-112,6]]
-    const rings = effect === 'introGlow'
-      ? `<circle cx="0" cy="0" r="${(124 + Math.sin(time * 2.4) * 10).toFixed(2)}" fill="none" stroke="#93c5fd" stroke-width="2" opacity="0.18"/><circle cx="0" cy="0" r="${(136 + Math.cos(time * 1.9) * 8).toFixed(2)}" fill="none" stroke="#60a5fa" stroke-width="1" opacity="0.12"/>`
-      : ''
-    return rings + positions.map((entry, index) => {
-      const [x,y,r] = entry
-      const pulse = 0.72 + (Math.sin(time * (4 + index * 0.33) + index) + 1) * 0.22
-      return `<path d="${starPath(x, y, r * pulse)}" fill="${CONFETTI_COLORS[(index + 1) % CONFETTI_COLORS.length]}" opacity="${(0.45 + pulse * 0.45).toFixed(3)}"/>`
-    }).join('')
+    const positions = [
+      [-104, -78, 10],
+      [108, -55, 8],
+      [-118, 45, 7],
+      [112, 64, 11],
+      [78, -112, 6],
+    ]
+    const rings =
+      effect === 'introGlow'
+        ? `<circle cx="0" cy="0" r="${(124 + Math.sin(time * 2.4) * 10).toFixed(2)}" fill="none" stroke="#93c5fd" stroke-width="2" opacity="0.18"/><circle cx="0" cy="0" r="${(136 + Math.cos(time * 1.9) * 8).toFixed(2)}" fill="none" stroke="#60a5fa" stroke-width="1" opacity="0.12"/>`
+        : ''
+    return (
+      rings +
+      positions
+        .map((entry, index) => {
+          const [x, y, r] = entry
+          const pulse = 0.72 + (Math.sin(time * (4 + index * 0.33) + index) + 1) * 0.22
+          return `<path d="${starPath(x, y, r * pulse)}" fill="${CONFETTI_COLORS[(index + 1) % CONFETTI_COLORS.length]}" opacity="${(0.45 + pulse * 0.45).toFixed(3)}"/>`
+        })
+        .join('')
+    )
   }
 
   if (effect === 'alert') {
@@ -241,7 +363,12 @@ export const avatarEffectSvgMarkup = (effect: AvatarVisualEffect | undefined, el
 
   if (effect === 'zzz' || effect === 'question') {
     const text = effect === 'zzz' ? 'Z' : '?'
-    return [0,1,2].map(index => `<text x="${76 + index * 20}" y="${-78 - index * 22}" font-size="${18 + index * 5}" font-weight="700" text-anchor="middle" fill="#64748b" opacity="${(0.45 + Math.sin(time * (2.2 + index * 0.2) + index) * 0.25).toFixed(3)}">${text}</text>`).join('')
+    return [0, 1, 2]
+      .map(
+        index =>
+          `<text x="${76 + index * 20}" y="${-78 - index * 22}" font-size="${18 + index * 5}" font-weight="700" text-anchor="middle" fill="#64748b" opacity="${(0.45 + Math.sin(time * (2.2 + index * 0.2) + index) * 0.25).toFixed(3)}">${text}</text>`
+      )
+      .join('')
   }
 
   return ''

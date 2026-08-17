@@ -126,7 +126,11 @@ function quantizeRgba(
     for (let r = 0; r < 8; r += 1) {
       for (let g = 0; g < 8; g += 1) {
         for (let b = 0; b < 4; b += 1) {
-          palette.push(Math.round((r * 255) / 7), Math.round((g * 255) / 7), Math.round((b * 255) / 3))
+          palette.push(
+            Math.round((r * 255) / 7),
+            Math.round((g * 255) / 7),
+            Math.round((b * 255) / 3)
+          )
         }
       }
     }

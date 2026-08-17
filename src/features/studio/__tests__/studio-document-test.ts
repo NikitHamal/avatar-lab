@@ -67,12 +67,16 @@ describe('Studio document', () => {
     const legacy = structuredClone(loadStudioDocument(storage()))
     legacy.library.avatars = legacy.library.avatars.filter(avatar => avatar.id !== 'strobi')
     legacy.library.activeAvatarId = legacy.library.avatars[0].id
-    legacy.expressions = legacy.expressions.filter(expression => expression.id !== 'intro-neby-closed')
+    legacy.expressions = legacy.expressions.filter(
+      expression => expression.id !== 'intro-neby-closed'
+    )
     legacy.sequences = legacy.sequences.filter(sequence => sequence.id !== 'intro-neby')
 
     const migrated = loadStudioDocument(storage(JSON.stringify(legacy)))
 
-    expect(migrated.expressions.some(expression => expression.id === 'intro-neby-closed')).toBe(true)
+    expect(migrated.expressions.some(expression => expression.id === 'intro-neby-closed')).toBe(
+      true
+    )
     expect(migrated.sequences.some(sequence => sequence.id === 'intro-neby')).toBe(true)
   })
 
@@ -87,7 +91,9 @@ describe('Studio document', () => {
 
     const avatar = legacy.library.avatars[0]
     avatar.behavior = {
-      expressions: legacyIds.map(id => legacy.expressions.find(expression => expression.id === id)!),
+      expressions: legacyIds.map(id =>
+        legacy.expressions.find(expression => expression.id === id)!
+      ),
       sequences: [structuredClone(sleeping)],
     }
 
@@ -107,9 +113,9 @@ describe('Studio document', () => {
       'sleepy',
       'sleepy',
     ])
-    expect(migrated.library.avatars[0].behavior?.expressions.some(item => item.id === 'sleepy')).toBe(
-      true
-    )
+    expect(
+      migrated.library.avatars[0].behavior?.expressions.some(item => item.id === 'sleepy')
+    ).toBe(true)
   })
 
   it('keeps a locally saved project authoritative over the bundled snapshot', () => {

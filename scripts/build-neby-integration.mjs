@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import vm from 'node:vm'
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const nebRoot = 'F:/NEB'
@@ -11,8 +12,6 @@ const documentJson = JSON.parse(
 
 const nebyAvatar =
   documentJson.library.avatars.find(a => a.id === 'avatar-neby') || documentJson.library.avatars[0]
-const expressions = documentJson.expressions
-const sequences = documentJson.sequences
 
 // Load standalone engine bundle
 const engineGenerated = await readFile(
@@ -28,10 +27,30 @@ if (match) {
   throw new Error('Failed to extract standaloneEngineSource')
 }
 
-// Build the export payload with expressions and sequences
-const expressionMap = Object.fromEntries(expressions.map(e => [e.id, e]))
+// Execute bundled engine to get the full, latest studio expressions and sequences
+const sandbox = { window: {}, process: { env: { NODE_ENV: 'production' } }, console }
+vm.createContext(sandbox)
+vm.runInContext(engineCode, sandbox)
+const engineExports = sandbox.AvatarProceduralEngine || sandbox.window?.AvatarProceduralEngine || {}
+
+const allExpressions = engineExports.initialExpressions || documentJson.expressions
+const allSequences =
+  typeof engineExports.createInitialSequences === 'function'
+    ? engineExports.createInitialSequences()
+    : documentJson.sequences
+
+// Also sync defaultStudioDocument.json so the file itself contains the full suite
+documentJson.expressions = allExpressions
+documentJson.sequences = allSequences
+await writeFile(
+  path.join(root, 'src/features/studio/defaultStudioDocument.json'),
+  JSON.stringify(documentJson, null, 2)
+)
+
+// Build the export payload with all expressions and sequences
+const expressionMap = Object.fromEntries(allExpressions.map(e => [e.id, e]))
 const animationMap = {}
-for (const seq of sequences) {
+for (const seq of allSequences) {
   const key = seq.id || seq.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   animationMap[key] = {
     name: seq.name,
@@ -161,9 +180,17 @@ const runtimeCode = `
     mouth.setAttribute('stroke-linejoin', 'round');
 
     const frontLayer = svgElement('g');
+    const orbitalFrontLayer = svgElement('g');
+    orbitalFrontLayer.setAttribute('class', 'neby-orbital-front');
 
-    motionLayer.append(backLayer, head, decalsLayer, eyesLayer, mouth, frontLayer);
-    svg.append(motionLayer);
+    const orbitalBackLayer = svgElement('g');
+    orbitalBackLayer.setAttribute('class', 'neby-orbital-back');
+
+    const effectsLayer = svgElement('g');
+    effectsLayer.setAttribute('class', 'neby-effects-layer');
+
+    motionLayer.append(backLayer, orbitalBackLayer, head, decalsLayer, eyesLayer, mouth, frontLayer, orbitalFrontLayer);
+    svg.append(motionLayer, effectsLayer);
     container.innerHTML = '';
     container.append(svg);
 
@@ -281,6 +308,12 @@ const runtimeCode = `
       } else {
         mouth.style.display = 'none';
       }
+
+      if (expr.effect && expr.effect !== 'none' && typeof AvatarProceduralEngine.avatarEffectSvgMarkup === 'function') {
+        effectsLayer.innerHTML = AvatarProceduralEngine.avatarEffectSvgMarkup(expr.effect) || '';
+      } else {
+        effectsLayer.innerHTML = '';
+      }
     };
 
     const tick = time => {
@@ -308,75 +341,56 @@ const runtimeCode = `
           currentPose = transitionState.toPose;
           currentColors = transitionState.toColors;
           transitionState = null;
+          eyeAmbientStartedAt = time;
+          bodyAmbientStartedAt = time;
           ambientStrength = 1;
         }
       }
 
       if (blinkState) {
-        const progress = clamp01((time - blinkState.startedAt) / blinkState.durationMs);
-        if (progress <= 0.42) {
-          const closeProgress = progress / 0.42;
-          blinkAmount = 1 - closeProgress * closeProgress;
+        const elapsed = time - blinkState.startedAt;
+        const half = blinkState.durationMs / 2;
+        if (elapsed < half) {
+          blinkAmount = 1 - elapsed / half;
+        } else if (elapsed < blinkState.durationMs) {
+          blinkAmount = (elapsed - half) / half;
         } else {
-          const openProgress = (progress - 0.42) / 0.58;
-          blinkAmount = 1 - Math.pow(1 - openProgress, 2);
-        }
-        if (progress >= 1) {
           blinkAmount = 1;
           blinkState = null;
         }
       }
 
-      const ambientActive = AvatarProceduralEngine.hasAmbientMotion(currentPose.expression);
-      const trackingActive = Math.abs(cursorTargetX - cursorCurrentX) > 0.001 || Math.abs(cursorTargetY - cursorCurrentY) > 0.001;
+      render(time);
 
-      if (transitionState || blinkState || trackingActive || !ambientActive || time - lastAmbientFrame >= 1000 / 30) {
-        render(time);
-        if (ambientActive) lastAmbientFrame = time;
-      }
-
-      if (playing && (transitionState || blinkState || trackingActive || ambientActive)) {
-        frameRequest = requestAnimationFrame(tick);
+      if (playing || transitionState || blinkState || isMouseOver || (currentPose && currentPose.expression && currentPose.expression.bodyMotion !== 'none')) {
+        requestTick();
       }
     };
 
     const requestTick = () => {
-      if (frameRequest === null && playing) frameRequest = requestAnimationFrame(tick);
+      if (frameRequest === null && !paused) {
+        frameRequest = requestAnimationFrame(tick);
+      }
     };
 
-    const animateTo = (expressionId, durationMs, transition) => {
-      const target = NEBY_DATA.expressions[expressionId];
-      if (!target) return;
-      const now = performance.now();
-      if (target.eyeMotion !== eyeAmbientSignature) {
-        eyeAmbientSignature = target.eyeMotion;
-        eyeAmbientStartedAt = now;
-      }
-      if (target.bodyMotion !== bodyAmbientSignature) {
-        bodyAmbientSignature = target.bodyMotion;
-        bodyAmbientStartedAt = now;
-      }
-      const resolved = resolvedTargetExpression(target, currentPose.expression);
-      const targetPose = AvatarProceduralEngine.poseFromExpression(resolved);
-      const targetColors = resolveColors(target);
-
-      if (durationMs <= 0) {
-        ambientStrength = 1;
-        transitionState = null;
-        currentPose = targetPose;
-        currentColors = targetColors;
-        render();
-        requestTick();
-        return;
-      }
+    const animateTo = (expressionId, durationMs = 300, transition = 'spring') => {
+      const targetExpression = NEBY_DATA.expressions[expressionId] || Object.values(NEBY_DATA.expressions)[0];
+      const targetColors = resolveColors(targetExpression);
+      const startExpression = transitionState
+        ? currentPose.expression
+        : (currentAnimation && NEBY_DATA.animations[currentAnimation] && NEBY_DATA.animations[currentAnimation].steps[stepIndex]
+            ? NEBY_DATA.expressions[NEBY_DATA.animations[currentAnimation].steps[stepIndex].expressionId] || currentPose.expression
+            : currentPose.expression);
+      const startColors = transitionState ? currentColors : resolveColors(startExpression);
+      const resolvedTarget = resolvedTargetExpression(targetExpression, startExpression);
 
       transitionState = {
-        fromPose: currentPose,
-        toPose: targetPose,
-        fromColors: currentColors,
+        startedAt: performance.now(),
+        durationMs: durationMs,
+        fromPose: AvatarProceduralEngine.poseFromExpression(startExpression),
+        toPose: AvatarProceduralEngine.poseFromExpression(resolvedTarget),
+        fromColors: startColors,
         toColors: targetColors,
-        startedAt: now,
-        durationMs,
         transition: transition || 'spring',
         expressionId,
       };
@@ -446,20 +460,22 @@ const runtimeCode = `
       let animName = 'celebrate';
       if (type === 'wink') animName = 'wink';
       else if (type === 'joy' || type === 'celebrate' || type === 'happy') animName = 'celebrate';
-      else if (type === 'think' || type === 'focus' || type === 'scanning') animName = 'scanning';
+      else if (type === 'think' || type === 'focus' || type === 'scanning' || type === 'searching') animName = 'scanning';
       else if (type === 'talk' || type === 'speaking' || type === 'chat') animName = 'speaking';
       else if (type === 'dance' || type === 'groove') animName = 'dance';
-      else if (type === 'love' || type === 'heart' || type === 'kiss') animName = 'love';
-      else if (type === 'agree' || type === 'nod' || type === 'yes' || type === 'affirm') animName = 'success';
+      else if (type === 'love' || type === 'heart') animName = 'love';
+      else if (type === 'kiss' || type === 'smooch') animName = 'kiss';
+      else if (type === 'agree' || type === 'nod' || type === 'yes' || type === 'affirm') animName = 'agree';
       else if (type === 'disagree' || type === 'no' || type === 'skeptical') animName = 'disagree';
-      else if (type === 'angry' || type === 'mad' || type === 'hot') animName = 'error';
-      else if (type === 'sleepy' || type === 'sleep' || type === 'tired' || type === 'nap') animName = 'sad';
-      else if (type === 'playful' || type === 'laugh' || type === 'laughing') animName = 'playful';
-      else if (type === 'presenting') animName = 'presenting';
-      else if (type === 'scared' || type === 'panic' || type === 'surprised') animName = 'surprised';
-      else if (type === 'shy') animName = 'shy';
+      else if (type === 'angry' || type === 'mad' || type === 'hot') animName = 'angry';
+      else if (type === 'sleepy' || type === 'sleep' || type === 'tired' || type === 'nap') animName = 'sleeping';
+      else if (type === 'laugh' || type === 'laughing' || type === 'playful') animName = 'laughing';
       else if (type === 'proud') animName = 'proud';
-      else if (type === 'confused') animName = 'confused';
+      else if (type === 'shy') animName = 'shy';
+      else if (type === 'dizzy') animName = 'dizzy';
+      else if (type === 'orbit') animName = 'orbit';
+      else if (type === 'play') animName = 'play';
+      else if (type === 'notification' || type === 'alert') animName = 'notification';
       else if (NEBY_DATA.animations[type]) animName = type;
 
       if (NEBY_DATA.animations[animName]) {
@@ -469,7 +485,7 @@ const runtimeCode = `
             if (currentAnimation === animName) {
               playSequence('idle');
             }
-          }, 3200);
+          }, 3400);
         }
       } else if (NEBY_DATA.expressions[type]) {
         animateTo(type, 180, 'spring');
@@ -506,8 +522,8 @@ const runtimeCode = `
 
       const onClick = () => {
         const reactions = [
-          'wink', 'dance', 'speaking', 
-          'scanning', 'agree', 'disagree', 'sleepy', 'playful', 'shy'
+          'wink', 'love', 'kiss', 'celebrate', 'dance', 'speaking', 
+          'scanning', 'agree', 'disagree', 'laughing', 'proud', 'shy', 'sleepy', 'dizzy'
         ];
         const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
         triggerReaction(randomReaction);

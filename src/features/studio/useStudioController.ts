@@ -156,7 +156,9 @@ export function useStudioController() {
   const [animationExportFormat, setAnimationExportFormat] = useState<AnimationMediaFormat>('gif')
   const [animationExportSize, setAnimationExportSize] = useState('512')
   const [animationExportFps, setAnimationExportFps] = useState('24')
-  const [animationExportQuality, setAnimationExportQuality] = useState<'fast' | 'balanced' | 'high'>('balanced')
+  const [animationExportQuality, setAnimationExportQuality] = useState<
+    'fast' | 'balanced' | 'high'
+  >('balanced')
   const [animationExportPlaybackRate, setAnimationExportPlaybackRate] = useState('1.15')
   const [animationExportBackground, setAnimationExportBackground] =
     useState<SnapshotBackground>('transparent')
@@ -304,12 +306,9 @@ export function useStudioController() {
       : { ...initialExpression, mouth: 'none' as const }
     return {
       pose,
-      geometry: renderAvatar(
-        poseWithAvatarEyes(renderExpression, initialAvatar.eyes),
-        surface,
-        1,
-        { bodyNodes }
-      ),
+      geometry: renderAvatar(poseWithAvatarEyes(renderExpression, initialAvatar.eyes), surface, 1, {
+        bodyNodes,
+      }),
     }
   })
   const { pose: initialPose, geometry: initialGeometry } = initialRender
@@ -354,7 +353,9 @@ export function useStudioController() {
   const blinkAnimating = useRef(false)
   const blinkValue = useMotionValue(1)
   const [renderedScene] = useState(() => createRenderedScene(initialGeometry))
-  const [renderedEffect, setRenderedEffect] = useState<Expression['effect']>(initialExpression.effect ?? 'none')
+  const [renderedEffect, setRenderedEffect] = useState<Expression['effect']>(
+    initialExpression.effect ?? 'none'
+  )
   const renderedEffectRef = useRef<Expression['effect']>(initialExpression.effect ?? 'none')
   const [renderedRotationGizmo] = useState(() => createRenderedRotationGizmo(initialExpression))
   const bodyColorAnimation = useRef<ReturnType<typeof animate> | null>(null)
@@ -395,9 +396,10 @@ export function useStudioController() {
       lastBodyAmbientElapsed.current = frameTimeMs - bodyAmbientStartedAt.current
     }
     const ambientElapsed = Math.max(lastEyeAmbientElapsed.current, lastBodyAmbientElapsed.current)
-    const renderedExpression = bodyAmbientEnabled || eyeAmbientEnabled
-      ? applyAmbientBodyMotion(pose.expression, ambientElapsed, resolvedAmbientStrength)
-      : pose.expression
+    const renderedExpression =
+      bodyAmbientEnabled || eyeAmbientEnabled
+        ? applyAmbientBodyMotion(pose.expression, ambientElapsed, resolvedAmbientStrength)
+        : pose.expression
     const eyeOffset = eyeAmbientEnabled
       ? ambientEyeOffset(pose.expression, lastEyeAmbientElapsed.current, resolvedAmbientStrength)
       : { x: 0, y: 0 }
@@ -412,10 +414,12 @@ export function useStudioController() {
     const renderPose = avatar
       ? poseWithAvatarEyes(renderExpression, avatar.eyes ?? defaultAvatarEyes)
       : poseFromExpression(renderExpression)
+    const timeSec = (frameTimeMs ?? performance.now()) / 1000
     const geometry = renderAvatar(renderPose, surfaceRef.current, blink ?? blinkValue.get(), {
       includeWire: showWireRef.current || highlightRef.current === 'head',
       bodyNodes: bodyNodesRef.current,
       eyeOffset,
+      timeSec,
     })
     paintRenderedScene(renderedScene, geometry)
     paintRenderedOffset(
