@@ -29,6 +29,24 @@ describe('avatar studio translations', () => {
     expect(translateStudioText('Télécharger en PNG', 'zh-CN')).toBe('下载 PNG')
     expect(translateStudioText('Prendre une photo', 'zh-CN')).toBe('拍照')
     expect(translateStudioText('Format d’export', 'zh-CN')).toBe('导出格式')
+    expect(translateStudioText('Ouvrir le mode photo', 'en')).toBe('Open Photo Mode')
+    expect(translateStudioText('Ouvrir le mode photo', 'zh-CN')).toBe('打开照片模式')
+    expect(translateStudioText('Cadrage', 'en')).toBe('Framing')
+    expect(translateStudioText('Recentrer le cadrage', 'zh-CN')).toBe('重置构图')
+    expect(translateStudioText('Réinitialiser la pose et le cadrage', 'en')).toBe(
+      'Reset pose and framing'
+    )
+    expect(translateStudioText('Réinitialiser la pose et le cadrage', 'zh-CN')).toBe(
+      '重置姿态和构图'
+    )
+    expect(translateStudioText('Aléatoire', 'en')).toBe('Random')
+    expect(translateStudioText('Aléatoire', 'zh-CN')).toBe('随机')
+    expect(translateStudioText('Position, zoom et coins du cadre photo.', 'en')).toBe(
+      'Position, zoom and photo frame corners.'
+    )
+    expect(translateStudioText('Orientation, regard, couleurs et perspective.', 'zh-CN')).toBe(
+      '方向、视线、颜色和透视。'
+    )
   })
 
   it('keeps runtime-export authoring copy synchronized in all three languages', () => {

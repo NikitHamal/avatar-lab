@@ -16,6 +16,7 @@ import {
   type ExportFormat,
   type Highlight,
   type Mode,
+  type PhotoTool,
   type PlaybackStatus,
   type Side,
   type SnapshotFormat,
@@ -95,6 +96,10 @@ import {
   type SnapshotBackground,
 } from '@/features/export/snapshotExporter'
 import {
+  defaultSnapshotComposition,
+  normalizeSnapshotComposition,
+} from '@/features/export/snapshotComposition'
+import {
   resetBodyEditorView,
   resolveCanvasPreviewExpression,
   shouldSyncCanvasPreviewToReact,
@@ -153,6 +158,12 @@ export function useStudioController() {
   const [snapshotColorTo, setSnapshotColorTo] = useState('#C9D5FF')
   const [snapshotSize, setSnapshotSize] = useState('1024')
   const [snapshotFormat, setSnapshotFormat] = useState<SnapshotFormat>('png')
+  const [snapshotComposition, setSnapshotComposition] = useState(() => ({
+    ...defaultSnapshotComposition,
+    cornerRadius: 18,
+  }))
+  const [photoTool, setPhotoTool] = useState<PhotoTool>('frame')
+  const [photoPanelSections, setPhotoPanelSections] = useState<PhotoTool[]>([])
   const [photoFlash, setPhotoFlash] = useState(0)
   const [runtimeCopyFeedback, setRuntimeCopyFeedback] = useState<{
     status: 'idle' | 'success' | 'error'
@@ -472,6 +483,13 @@ export function useStudioController() {
     setExpression(renderedExpression)
     setActiveExpression(null)
     return renderedExpression
+  }
+
+  const openPhotoMode = () => {
+    freezeLivePreviewForManipulation()
+    setPhotoTool('frame')
+    setPhotoPanelSections([])
+    setMode('photo')
   }
 
   const updateImmediate = (next: Expression, preservePlayback = false) => {
@@ -1652,6 +1670,7 @@ export function useStudioController() {
         colorFrom: snapshotColorFrom,
         colorTo: snapshotColorTo,
         size: Number(snapshotSize),
+        composition: snapshotComposition,
       }
     )
 
@@ -1664,6 +1683,11 @@ export function useStudioController() {
     canvas.height = size
     const context = canvas.getContext('2d')
     if (!context) return null
+    const composition = normalizeSnapshotComposition(snapshotComposition)
+    context.save()
+    context.beginPath()
+    context.roundRect(0, 0, size, size, (size * composition.cornerRadius) / 100)
+    context.clip()
     if (snapshotBackground === 'solid') {
       context.fillStyle = snapshotColorFrom
       context.fillRect(0, 0, size, size)
@@ -1716,7 +1740,13 @@ export function useStudioController() {
       renderStyle
     )
     context.imageSmoothingEnabled = false
-    context.drawImage(avatarCanvas, 0, 0, size, size)
+    context.translate(
+      size / 2 + (composition.x / 300) * size,
+      size / 2 + (composition.y / 300) * size
+    )
+    context.scale(composition.scale, composition.scale)
+    context.drawImage(avatarCanvas, -size / 2, -size / 2, size, size)
+    context.restore()
     return canvas
   }
   const downloadSnapshotSvg = () => {
@@ -1938,11 +1968,14 @@ export function useStudioController() {
     linked,
     mode,
     openExpressionEditor,
+    openPhotoMode,
     openSequenceEditor,
     pauseState,
     pendingProjectImport,
     persistEditedEyeExpression,
     photoFlash,
+    photoPanelSections,
+    photoTool,
     playbackStatus,
     playbackVisual,
     prepareStudioProjectImport,
@@ -1989,12 +2022,15 @@ export function useStudioController() {
     setLinked,
     setMode,
     setPendingProjectImport,
+    setPhotoPanelSections,
+    setPhotoTool,
     setSelectedEyeSide,
     setSelectedSequenceStepId,
     setSequenceEditing,
     setSnapshotBackground,
     setSnapshotColorFrom,
     setSnapshotColorTo,
+    setSnapshotComposition,
     setSnapshotFormat,
     setSnapshotSize,
     setSpringSpeed,
@@ -2003,6 +2039,7 @@ export function useStudioController() {
     snapshotBackground,
     snapshotColorFrom,
     snapshotColorTo,
+    snapshotComposition,
     snapshotFormat,
     snapshotSize,
     springSpeed,

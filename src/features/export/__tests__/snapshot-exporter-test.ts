@@ -26,7 +26,23 @@ describe('avatar snapshot export', () => {
     expect(svg).toContain('transform="translate(3 -2)"')
     expect(svg).toContain(`d="${geometry.headPath}" fill="#5b7fe5"`)
     expect(svg).toContain('fill="#111316"')
-    expect(svg).not.toContain('<rect')
+    expect(svg).not.toContain('width="300" height="300" fill=')
+  })
+
+  it('applies logo framing without changing the rendered avatar scene', () => {
+    const svg = serializeAvatarSnapshot('Strobi', scene, colors, {
+      background: 'solid',
+      colorFrom: '#818181',
+      colorTo: '#818181',
+      size: 1024,
+      composition: { x: 55, y: 65, scale: 1.3, cornerRadius: 18 },
+    })
+
+    expect(svg).toContain('<clipPath id="snapshot-frame-clip">')
+    expect(svg).toContain('rx="54"')
+    expect(svg).toContain('clip-path="url(#snapshot-frame-clip)"')
+    expect(svg).toContain('transform="translate(55 65) scale(1.3)"')
+    expect(svg).toContain('fill="#818181"')
   })
 
   it('embeds a radial background without external dependencies', () => {

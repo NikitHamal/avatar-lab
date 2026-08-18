@@ -280,10 +280,43 @@ export const chinese: Record<string, string> = {
   'Prêt à exporter': '可以导出',
   Snapshot: '快照',
   'Mode photo': '照片模式',
+  Cadrage: '构图',
+  Quitter: '退出',
+  'Outils du mode photo': '照片模式工具',
+  'Orientation, regard, couleurs et perspective.': '方向、视线、颜色和透视。',
+  'Position, zoom et coins du cadre photo.': '照片画框的位置、缩放和圆角。',
+  'Ouvrir le mode photo': '打开照片模式',
+  'Recentrer le cadrage': '重置构图',
+  'Réinitialiser la pose et le cadrage': '重置姿态和构图',
+  'Choisis l’expression visible sur la photo.': '选择照片中显示的表情。',
+  'Utilise l’outil Cadrage dans l’aperçu ou saisis des valeurs précises。':
+    '使用预览中的构图工具，或输入精确数值。',
+  'Utilise l’outil Cadrage dans l’aperçu ou saisis des valeurs précises.':
+    '使用预览中的构图工具，或输入精确数值。',
+  'Prépare une image statique directement dans l’aperçu principal.': '直接在主预览中准备静态图像。',
+  'Composer dans le live preview': '在实时预览中构图',
+  'Choisis une expression, ajuste la pose et cadre l’avatar dans un espace dédié.':
+    '选择表情、调整姿态，并在专用空间中为头像构图。',
+  'Utilise Pose pour orienter l’avatar et Cadrage pour le déplacer ou le zoomer.':
+    '使用“姿态”调整头像方向，使用“构图”移动或缩放头像。',
+  'Ouvre le mode photo pour choisir une expression, cadrer puis exporter l’avatar.':
+    '打开照片模式，选择表情、构图并导出头像。',
   'Capture une image statique de l’avatar.': '捕获头像的静态图像。',
   'Les options de capture seront configurées ici.': '快照选项将在此配置。',
   'Aperçu du Snapshot': '快照预览',
   'Aperçu du mode photo': '照片模式预览',
+  'Cadre du logo. Glisse pour déplacer l’avatar et utilise la molette pour zoomer.':
+    '徽标画框。拖动以移动头像，使用滚轮缩放。',
+  'Glisse l’avatar pour le placer. La molette zoome sans faire défiler la page.':
+    '拖动头像以调整位置。滚轮缩放时页面不会滚动。',
+  'Cadrage du logo': '徽标构图',
+  'Place, agrandis et recadre l’avatar sans modifier sa géométrie.':
+    '在不改变头像几何结构的情况下移动、缩放和裁剪。',
+  'Position X': 'X 位置',
+  'Position Y': 'Y 位置',
+  Zoom: '缩放',
+  'Coins arrondis': '圆角',
+  'Exporter le logo': '导出徽标',
   'Arrière-plan': '背景',
   'Choisis un fond transparent, uni ou en dégradé.': '选择透明、纯色或渐变背景。',
   Style: '样式',
@@ -292,6 +325,7 @@ export const chinese: Record<string, string> = {
   'Dégradé linéaire': '线性渐变',
   'Dégradé radial': '径向渐变',
   'Style d’arrière-plan': '背景样式',
+  Aléatoire: '随机',
   Couleur: '颜色',
   Départ: '起始颜色',
   Arrivée: '结束颜色',

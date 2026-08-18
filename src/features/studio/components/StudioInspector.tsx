@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Camera,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -11,6 +12,8 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Scan,
+  Shuffle,
   Smile,
   Trash2,
   TriangleAlert,
@@ -19,7 +22,12 @@ import {
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
 
-import { Accordion } from '@/components/ui/accordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,7 +55,6 @@ import {
   ExportSection,
   InspectorCard,
   PanelTitle,
-  SnapshotPreview,
   StatePlayer,
 } from '@/app/components/common'
 import { ColorField, LinkButton, NumericField } from '@/app/components/controls'
@@ -61,6 +68,7 @@ import {
   ExpressionWorkspace,
 } from '@/features/avatar/components/ExpressionWorkspace'
 import { defaultExpression } from '@/features/avatar/presets'
+import { randomSnapshotPalette } from '@/features/export/snapshotPalette'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
 import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
 import { BodyConstructionAccordion } from '@/features/studio/components/BodyConstructionAccordion'
@@ -92,6 +100,300 @@ const avatar = createAvatar('#avatar', {
   definition,
   ${animationKey ? `defaultAnimation: '${animationKey}',` : `defaultExpression: 'neutral',`}
 })`
+
+function PoseControls({ controller }: { controller: StudioController }) {
+  const {
+    activeAvatar,
+    expression,
+    linked,
+    setLinked,
+    showWire,
+    t,
+    updateDimension,
+    updateHighlight,
+    updateImmediate,
+    updateSize,
+    updateSpacing,
+    updateWireVisibility,
+  } = controller
+
+  return (
+    <>
+      <ControlSection title="Corps" subtitle="Orientation et apparence générale de la pose.">
+        <InspectorCard className="color-panel">
+          <PanelTitle
+            level={3}
+            title="Couleur du corps"
+            subtitle="La pose peut remplacer temporairement la couleur de l’avatar."
+          />
+          <ColorField
+            label="Corps"
+            value={expression.bodyColor ?? activeAvatar.colors.body}
+            onChange={bodyColor => updateImmediate({ ...expression, bodyColor })}
+          />
+          {expression.bodyColor && (
+            <Button
+              className="inherit-colors"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('Reprendre la couleur de l’avatar')}
+              onClick={() => {
+                const next = { ...expression }
+                delete next.bodyColor
+                updateImmediate(next)
+              }}
+            >
+              <RotateCcw />
+            </Button>
+          )}
+        </InspectorCard>
+        <InspectorCard>
+          <PanelTitle
+            level={3}
+            title="Rotation de la tête"
+            subtitle="Les libellés ↔ sont scrubbables, comme dans Figma."
+          />
+          <NumericField
+            label="Rotation X"
+            value={expression.headX}
+            unit="°"
+            onActiveChange={active => updateHighlight(active ? 'head' : null)}
+            onChange={value => updateImmediate({ ...expression, headX: value })}
+          />
+          <NumericField
+            label="Rotation Y"
+            value={expression.headY}
+            unit="°"
+            onActiveChange={active => updateHighlight(active ? 'head' : null)}
+            onChange={value => updateImmediate({ ...expression, headY: value })}
+          />
+          <NumericField
+            label="Rotation Z"
+            value={expression.headZ}
+            unit="°"
+            onActiveChange={active => updateHighlight(active ? 'head' : null)}
+            onChange={value => updateImmediate({ ...expression, headZ: value })}
+          />
+        </InspectorCard>
+      </ControlSection>
+      <ControlSection title="Yeux" subtitle="Forme, placement, orientation et couleur du regard.">
+        <InspectorCard className="color-panel">
+          <PanelTitle
+            level={3}
+            title="Couleur des yeux"
+            subtitle="La pose peut remplacer temporairement la couleur de l’avatar."
+          />
+          <ColorField
+            label="Yeux"
+            value={expression.eyeColor ?? activeAvatar.colors.eyes}
+            onChange={eyeColor => updateImmediate({ ...expression, eyeColor })}
+          />
+          {expression.eyeColor && (
+            <Button
+              className="inherit-colors"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('Reprendre la couleur de l’avatar')}
+              onClick={() => {
+                const next = { ...expression }
+                delete next.eyeColor
+                updateImmediate(next)
+              }}
+            >
+              <RotateCcw />
+            </Button>
+          )}
+        </InspectorCard>
+        {(['width', 'height', 'size'] as const).map(dimension => (
+          <InspectorCard className="compact" key={dimension}>
+            <div className="panel-inline-title">
+              <h3>
+                {t(
+                  {
+                    width: 'Largeur',
+                    height: 'Hauteur',
+                    size: 'Taille proportionnelle',
+                  }[dimension]
+                )}
+              </h3>
+              <LinkButton
+                linked={linked[dimension]}
+                label={`Lier ${dimension}`}
+                onClick={() =>
+                  setLinked(current => ({
+                    ...current,
+                    [dimension]: !current[dimension],
+                  }))
+                }
+              />
+            </div>
+            <div className="eye-columns">
+              {(['Left', 'Right'] as Side[]).map(side => {
+                const width = expression[`width${side}`]
+                const height = expression[`height${side}`]
+                const value =
+                  dimension === 'width'
+                    ? width
+                    : dimension === 'height'
+                      ? height
+                      : Math.max(width, height)
+                return (
+                  <NumericField
+                    key={side}
+                    label={side === 'Left' ? 'Œil gauche' : 'Œil droit'}
+                    value={value}
+                    min={10}
+                    max={dimension === 'size' ? 110 : 100}
+                    unit="u"
+                    onActiveChange={active =>
+                      updateHighlight(
+                        active
+                          ? linked[dimension]
+                            ? 'both'
+                            : side === 'Left'
+                              ? 'left'
+                              : 'right'
+                          : null
+                      )
+                    }
+                    onChange={next =>
+                      dimension === 'size'
+                        ? updateSize(side, next)
+                        : updateDimension(side, dimension, next)
+                    }
+                  />
+                )
+              })}
+            </div>
+          </InspectorCard>
+        ))}
+        <InspectorCard>
+          <PanelTitle
+            level={3}
+            title="Position et espacement"
+            subtitle="Coordonnées communes projetées sur la forme choisie."
+          />
+          <div className="eye-columns">
+            <div className="eye-column">
+              <h3>{t('Œil gauche')}</h3>
+              <NumericField
+                label="Horizontale"
+                value={expression.positionXLeft}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'left' : null)}
+                onChange={value => updateImmediate({ ...expression, positionXLeft: value })}
+              />
+              <NumericField
+                label="Verticale"
+                value={expression.positionYLeft}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'left' : null)}
+                onChange={value => updateImmediate({ ...expression, positionYLeft: value })}
+              />
+            </div>
+            <div className="eye-column">
+              <h3>{t('Œil droit')}</h3>
+              <NumericField
+                label="Horizontale"
+                value={expression.positionXRight}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'right' : null)}
+                onChange={value => updateImmediate({ ...expression, positionXRight: value })}
+              />
+              <NumericField
+                label="Verticale"
+                value={expression.positionYRight}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'right' : null)}
+                onChange={value => updateImmediate({ ...expression, positionYRight: value })}
+              />
+            </div>
+          </div>
+          <div className="position-spacing">
+            <NumericField
+              label="Espacement"
+              value={expression.spacing}
+              min={0}
+              max={150}
+              unit="u"
+              onActiveChange={active => updateHighlight(active ? 'both' : null)}
+              onChange={updateSpacing}
+            />
+          </div>
+        </InspectorCard>
+        <InspectorCard>
+          <div className="panel-inline-title">
+            <PanelTitle
+              level={3}
+              title="Rotation locale"
+              subtitle="Inclinaison propre à chaque œil."
+            />
+            <LinkButton
+              linked={linked.rotation}
+              label="Lier les rotations"
+              onClick={() => setLinked(current => ({ ...current, rotation: !current.rotation }))}
+            />
+          </div>
+          <div className="eye-columns">
+            <NumericField
+              label="Œil gauche"
+              value={expression.leftAngle}
+              unit="°"
+              onActiveChange={active =>
+                updateHighlight(active ? (linked.rotation ? 'both' : 'left') : null)
+              }
+              onChange={value =>
+                updateImmediate({
+                  ...expression,
+                  leftAngle: value,
+                  ...(linked.rotation ? { rightAngle: -value } : {}),
+                })
+              }
+            />
+            <NumericField
+              label="Œil droit"
+              value={expression.rightAngle}
+              unit="°"
+              onActiveChange={active =>
+                updateHighlight(active ? (linked.rotation ? 'both' : 'right') : null)
+              }
+              onChange={value =>
+                updateImmediate({
+                  ...expression,
+                  rightAngle: value,
+                  ...(linked.rotation ? { leftAngle: -value } : {}),
+                })
+              }
+            />
+          </div>
+        </InspectorCard>
+      </ControlSection>
+      <ControlSection
+        title="Projection"
+        subtitle="Perspective et repères appliqués à la surface active."
+      >
+        <InspectorCard>
+          <PanelTitle level={3} title="Perspective" subtitle="Profondeur simulée du visage." />
+          <NumericField
+            label="Perspective"
+            value={expression.perspective}
+            step={0.01}
+            unit="×"
+            onChange={value => updateImmediate({ ...expression, perspective: value })}
+          />
+          <div className="switch">
+            <span>{t('Afficher le maillage')}</span>
+            <Switch
+              checked={showWire}
+              onCheckedChange={updateWireVisibility}
+              aria-label={t('Afficher le maillage')}
+            />
+          </div>
+        </InspectorCard>
+      </ControlSection>
+    </>
+  )
+}
 
 export function StudioInspector({ controller }: { controller: StudioController }) {
   const [runtimePreviewOpen, setRuntimePreviewOpen] = useState(false)
@@ -153,8 +455,11 @@ export function StudioInspector({ controller }: { controller: StudioController }
     linked,
     mode,
     openExpressionEditor,
+    openPhotoMode,
     openSequenceEditor,
     pauseState,
+    photoPanelSections,
+    photoTool,
     playbackStatus,
     playbackVisual,
     prepareStudioProjectImport,
@@ -166,8 +471,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     projectImportRef,
     reduceMotion,
     renameActiveAvatar,
-    renderedColors,
-    renderedScene,
     runtimeDefinitionResult,
     runtimeCopyStatus,
     runtimeExportErrors,
@@ -192,11 +495,14 @@ export function StudioInspector({ controller }: { controller: StudioController }
     setLinked,
     setLanguage,
     setMode,
+    setPhotoPanelSections,
+    setPhotoTool,
     setSelectedSequenceStepId,
     setSequenceEditing,
     setSnapshotBackground,
     setSnapshotColorFrom,
     setSnapshotColorTo,
+    setSnapshotComposition,
     setSnapshotFormat,
     setSnapshotSize,
     setSpringSpeed,
@@ -205,6 +511,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     snapshotBackground,
     snapshotColorFrom,
     snapshotColorTo,
+    snapshotComposition,
     snapshotFormat,
     snapshotSize,
     springSpeed,
@@ -216,6 +523,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     stopState,
     surface,
     t,
+    takePicture,
     toggleExportAnimation,
     toggleStatePlayback,
     transitionToExpression,
@@ -236,6 +544,8 @@ export function StudioInspector({ controller }: { controller: StudioController }
   const runtimePreviewAnimation = runtimeDefinitionResult.ok
     ? runtimeDefinitionResult.value.animationOrder[0]
     : undefined
+  const updateSnapshotComposition = (patch: Partial<typeof snapshotComposition>) =>
+    setSnapshotComposition(current => ({ ...current, ...patch }))
   const playbackFooterY = useMotionValue(0)
   const playbackHandleY = useMotionValue(0)
   const playbackHandleCounterY = useTransform(playbackHandleY, value => -value)
@@ -298,7 +608,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
   return (
     <Drawer>
       <main
-        className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen ? ' state-player-active' : ''}`}
+        className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen && mode !== 'photo' ? ' state-player-active' : ''}${mode === 'photo' ? ' photo-inspector-active' : ''}`}
       >
         <StudioIdentity
           className="inspector-identity"
@@ -428,7 +738,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             ? 'Expressions'
                             : mode === 'states'
                               ? 'Animations'
-                              : 'Exporter'
+                              : mode === 'photo'
+                                ? 'Mode photo'
+                                : 'Exporter'
                     )}
                   </h1>
                 </div>
@@ -441,6 +753,12 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     onClick={() => transitionToExpression({ ...defaultExpression })}
                   >
                     <RotateCcw />
+                  </Button>
+                )}
+                {mode === 'photo' && (
+                  <Button variant="outline" type="button" onClick={() => setMode('export')}>
+                    <ArrowLeft />
+                    {t('Quitter')}
                   </Button>
                 )}
               </header>
@@ -688,302 +1006,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </ControlSection>
                   </>
                 )}
-                {!bodyEditing && (
-                  <>
-                    <ControlSection
-                      title="Corps"
-                      subtitle="Orientation et apparence générale de la pose."
-                    >
-                      <InspectorCard className="color-panel">
-                        <PanelTitle
-                          level={3}
-                          title="Couleur du corps"
-                          subtitle="La pose peut remplacer temporairement la couleur de l’avatar."
-                        />
-                        <ColorField
-                          label="Corps"
-                          value={expression.bodyColor ?? activeAvatar.colors.body}
-                          onChange={bodyColor => updateImmediate({ ...expression, bodyColor })}
-                        />
-                        {expression.bodyColor && (
-                          <Button
-                            className="inherit-colors"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t('Reprendre la couleur de l’avatar')}
-                            onClick={() => {
-                              const next = { ...expression }
-                              delete next.bodyColor
-                              updateImmediate(next)
-                            }}
-                          >
-                            <RotateCcw />
-                          </Button>
-                        )}
-                      </InspectorCard>
-                      <InspectorCard>
-                        <PanelTitle
-                          level={3}
-                          title="Rotation de la tête"
-                          subtitle="Les libellés ↔ sont scrubbables, comme dans Figma."
-                        />
-                        <NumericField
-                          label="Rotation X"
-                          value={expression.headX}
-                          unit="°"
-                          onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                          onChange={value => updateImmediate({ ...expression, headX: value })}
-                        />
-                        <NumericField
-                          label="Rotation Y"
-                          value={expression.headY}
-                          unit="°"
-                          onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                          onChange={value => updateImmediate({ ...expression, headY: value })}
-                        />
-                        <NumericField
-                          label="Rotation Z"
-                          value={expression.headZ}
-                          unit="°"
-                          onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                          onChange={value => updateImmediate({ ...expression, headZ: value })}
-                        />
-                      </InspectorCard>
-                    </ControlSection>
-                    <ControlSection
-                      title="Yeux"
-                      subtitle="Forme, placement, orientation et couleur du regard."
-                    >
-                      <InspectorCard className="color-panel">
-                        <PanelTitle
-                          level={3}
-                          title="Couleur des yeux"
-                          subtitle="La pose peut remplacer temporairement la couleur de l’avatar."
-                        />
-                        <ColorField
-                          label="Yeux"
-                          value={expression.eyeColor ?? activeAvatar.colors.eyes}
-                          onChange={eyeColor => updateImmediate({ ...expression, eyeColor })}
-                        />
-                        {expression.eyeColor && (
-                          <Button
-                            className="inherit-colors"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t('Reprendre la couleur de l’avatar')}
-                            onClick={() => {
-                              const next = { ...expression }
-                              delete next.eyeColor
-                              updateImmediate(next)
-                            }}
-                          >
-                            <RotateCcw />
-                          </Button>
-                        )}
-                      </InspectorCard>
-                      {(['width', 'height', 'size'] as const).map(dimension => (
-                        <InspectorCard className="compact" key={dimension}>
-                          <div className="panel-inline-title">
-                            <h3>
-                              {t(
-                                {
-                                  width: 'Largeur',
-                                  height: 'Hauteur',
-                                  size: 'Taille proportionnelle',
-                                }[dimension]
-                              )}
-                            </h3>
-                            <LinkButton
-                              linked={linked[dimension]}
-                              label={`Lier ${dimension}`}
-                              onClick={() =>
-                                setLinked(current => ({
-                                  ...current,
-                                  [dimension]: !current[dimension],
-                                }))
-                              }
-                            />
-                          </div>
-                          <div className="eye-columns">
-                            {(['Left', 'Right'] as Side[]).map(side => {
-                              const width = expression[`width${side}`]
-                              const height = expression[`height${side}`]
-                              const value =
-                                dimension === 'width'
-                                  ? width
-                                  : dimension === 'height'
-                                    ? height
-                                    : Math.max(width, height)
-                              return (
-                                <NumericField
-                                  key={side}
-                                  label={side === 'Left' ? 'Œil gauche' : 'Œil droit'}
-                                  value={value}
-                                  min={10}
-                                  max={dimension === 'size' ? 110 : 100}
-                                  unit="u"
-                                  onActiveChange={active =>
-                                    updateHighlight(
-                                      active
-                                        ? linked[dimension]
-                                          ? 'both'
-                                          : side === 'Left'
-                                            ? 'left'
-                                            : 'right'
-                                        : null
-                                    )
-                                  }
-                                  onChange={next =>
-                                    dimension === 'size'
-                                      ? updateSize(side, next)
-                                      : updateDimension(side, dimension, next)
-                                  }
-                                />
-                              )
-                            })}
-                          </div>
-                        </InspectorCard>
-                      ))}
-                      <InspectorCard>
-                        <PanelTitle
-                          level={3}
-                          title="Position et espacement"
-                          subtitle="Coordonnées communes projetées sur la forme choisie."
-                        />
-                        <div className="eye-columns">
-                          <div className="eye-column">
-                            <h3>{t('Œil gauche')}</h3>
-                            <NumericField
-                              label="Horizontale"
-                              value={expression.positionXLeft}
-                              unit="u"
-                              onActiveChange={active => updateHighlight(active ? 'left' : null)}
-                              onChange={value =>
-                                updateImmediate({ ...expression, positionXLeft: value })
-                              }
-                            />
-                            <NumericField
-                              label="Verticale"
-                              value={expression.positionYLeft}
-                              unit="u"
-                              onActiveChange={active => updateHighlight(active ? 'left' : null)}
-                              onChange={value =>
-                                updateImmediate({ ...expression, positionYLeft: value })
-                              }
-                            />
-                          </div>
-                          <div className="eye-column">
-                            <h3>{t('Œil droit')}</h3>
-                            <NumericField
-                              label="Horizontale"
-                              value={expression.positionXRight}
-                              unit="u"
-                              onActiveChange={active => updateHighlight(active ? 'right' : null)}
-                              onChange={value =>
-                                updateImmediate({ ...expression, positionXRight: value })
-                              }
-                            />
-                            <NumericField
-                              label="Verticale"
-                              value={expression.positionYRight}
-                              unit="u"
-                              onActiveChange={active => updateHighlight(active ? 'right' : null)}
-                              onChange={value =>
-                                updateImmediate({ ...expression, positionYRight: value })
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div className="position-spacing">
-                          <NumericField
-                            label="Espacement"
-                            value={expression.spacing}
-                            min={0}
-                            max={150}
-                            unit="u"
-                            onActiveChange={active => updateHighlight(active ? 'both' : null)}
-                            onChange={updateSpacing}
-                          />
-                        </div>
-                      </InspectorCard>
-                      <InspectorCard>
-                        <div className="panel-inline-title">
-                          <PanelTitle
-                            level={3}
-                            title="Rotation locale"
-                            subtitle="Inclinaison propre à chaque œil."
-                          />
-                          <LinkButton
-                            linked={linked.rotation}
-                            label="Lier les rotations"
-                            onClick={() =>
-                              setLinked(current => ({ ...current, rotation: !current.rotation }))
-                            }
-                          />
-                        </div>
-                        <div className="eye-columns">
-                          <NumericField
-                            label="Œil gauche"
-                            value={expression.leftAngle}
-                            unit="°"
-                            onActiveChange={active =>
-                              updateHighlight(active ? (linked.rotation ? 'both' : 'left') : null)
-                            }
-                            onChange={value =>
-                              updateImmediate({
-                                ...expression,
-                                leftAngle: value,
-                                ...(linked.rotation ? { rightAngle: -value } : {}),
-                              })
-                            }
-                          />
-                          <NumericField
-                            label="Œil droit"
-                            value={expression.rightAngle}
-                            unit="°"
-                            onActiveChange={active =>
-                              updateHighlight(active ? (linked.rotation ? 'both' : 'right') : null)
-                            }
-                            onChange={value =>
-                              updateImmediate({
-                                ...expression,
-                                rightAngle: value,
-                                ...(linked.rotation ? { leftAngle: -value } : {}),
-                              })
-                            }
-                          />
-                        </div>
-                      </InspectorCard>
-                    </ControlSection>
-                    <ControlSection
-                      title="Projection"
-                      subtitle="Perspective et repères appliqués à la surface active."
-                    >
-                      <InspectorCard>
-                        <PanelTitle
-                          level={3}
-                          title="Perspective"
-                          subtitle="Profondeur simulée du visage."
-                        />
-                        <NumericField
-                          label="Perspective"
-                          value={expression.perspective}
-                          step={0.01}
-                          unit="×"
-                          onChange={value => updateImmediate({ ...expression, perspective: value })}
-                        />
-                        <div className="switch">
-                          <span>{t('Afficher le maillage')}</span>
-                          <Switch
-                            checked={showWire}
-                            onCheckedChange={updateWireVisibility}
-                            aria-label={t('Afficher le maillage')}
-                          />
-                        </div>
-                      </InspectorCard>
-                    </ControlSection>
-                  </>
-                )}
+                {!bodyEditing && <PoseControls controller={controller} />}
               </div>
             )}
             {!editorPageOpen && mode === 'avatars' && <AvatarPage controller={controller} />}
@@ -1267,6 +1290,266 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </div>
                   </div>
                 </InspectorCard>
+              </div>
+            )}
+
+            {!sequenceEditing && !editing && !bodyEditing && mode === 'photo' && (
+              <div className="panel-stack photo-panel-stack">
+                <Accordion
+                  className="photo-tool-accordion"
+                  multiple
+                  value={photoPanelSections}
+                  onValueChange={nextSections => {
+                    const sections = nextSections as typeof photoPanelSections
+                    const currentSections = new Set(photoPanelSections)
+                    const openedSection = sections.find(section => !currentSections.has(section))
+                    setPhotoPanelSections(sections)
+                    if (openedSection) setPhotoTool(openedSection)
+                  }}
+                >
+                  <AccordionItem
+                    className="photo-tool-accordion-item"
+                    value="pose"
+                    data-active-tool={photoTool === 'pose' || undefined}
+                  >
+                    <AccordionTrigger className="photo-tool-accordion-trigger">
+                      <span className="photo-tool-accordion-heading">
+                        <span className="photo-tool-accordion-icon" aria-hidden="true">
+                          <Move3D />
+                        </span>
+                        <span>
+                          <strong>{t('Pose')}</strong>
+                          <small>{t('Orientation, regard, couleurs et perspective.')}</small>
+                        </span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="photo-tool-accordion-content">
+                      <PoseControls controller={controller} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem
+                    className="photo-tool-accordion-item"
+                    value="frame"
+                    data-active-tool={photoTool === 'frame' || undefined}
+                  >
+                    <AccordionTrigger className="photo-tool-accordion-trigger">
+                      <span className="photo-tool-accordion-heading">
+                        <span className="photo-tool-accordion-icon" aria-hidden="true">
+                          <Scan />
+                        </span>
+                        <span>
+                          <strong>{t('Cadrage')}</strong>
+                          <small>{t('Position, zoom et coins du cadre photo.')}</small>
+                        </span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="photo-tool-accordion-content">
+                      <div className="photo-frame-settings">
+                        <div className="snapshot-composition-fields">
+                          <NumericField
+                            label="Position X"
+                            value={snapshotComposition.x}
+                            min={-180}
+                            max={180}
+                            step={1}
+                            onChange={x => updateSnapshotComposition({ x })}
+                          />
+                          <NumericField
+                            label="Position Y"
+                            value={snapshotComposition.y}
+                            min={-180}
+                            max={180}
+                            step={1}
+                            onChange={y => updateSnapshotComposition({ y })}
+                          />
+                          <NumericField
+                            label="Zoom"
+                            value={snapshotComposition.scale * 100}
+                            min={40}
+                            max={300}
+                            step={1}
+                            unit="%"
+                            onChange={zoom => updateSnapshotComposition({ scale: zoom / 100 })}
+                          />
+                          <NumericField
+                            label="Coins arrondis"
+                            value={snapshotComposition.cornerRadius}
+                            min={0}
+                            max={50}
+                            step={1}
+                            unit="%"
+                            onChange={cornerRadius => updateSnapshotComposition({ cornerRadius })}
+                          />
+                        </div>
+                        <Button
+                          className="photo-reset-frame"
+                          variant="outline"
+                          type="button"
+                          onClick={() =>
+                            setSnapshotComposition(current => ({
+                              ...current,
+                              x: 0,
+                              y: 0,
+                              scale: 1,
+                            }))
+                          }
+                        >
+                          <RotateCcw />
+                          {t('Recentrer le cadrage')}
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                <InspectorCard className="photo-expression-card">
+                  <PanelTitle
+                    title="Expression"
+                    subtitle="Choisis l’expression visible sur la photo."
+                  />
+                  <div className="expression-grid photo-expression-grid">
+                    {expressions.map((preset, index) => (
+                      <ExpressionCard
+                        key={preset.id}
+                        expression={preset}
+                        index={index}
+                        active={activeExpression === index}
+                        surface={surface}
+                        bodyNodes={bodyNodes}
+                        colors={activeAvatar.colors}
+                        avatarEyes={activeAvatarEyes}
+                        renderStyle={activeAvatar.renderStyle}
+                        previewId={`photo-${preset.id}`}
+                        onSelect={() => transitionToExpression(preset, index)}
+                        runtimeError={expressionSemanticKeyError(preset)}
+                      />
+                    ))}
+                  </div>
+                </InspectorCard>
+
+                <InspectorCard>
+                  <PanelTitle
+                    title="Arrière-plan"
+                    subtitle="Choisis un fond transparent, uni ou en dégradé."
+                  />
+                  <Field className="snapshot-background-field" orientation="horizontal">
+                    <FieldTitle>{t('Style')}</FieldTitle>
+                    <Select
+                      value={snapshotBackground}
+                      items={[
+                        { value: 'transparent', label: t('Transparent') },
+                        { value: 'solid', label: t('Uni') },
+                        { value: 'linear', label: t('Dégradé linéaire') },
+                        { value: 'radial', label: t('Dégradé radial') },
+                      ]}
+                      onValueChange={next =>
+                        next && setSnapshotBackground(next as SnapshotBackground)
+                      }
+                    >
+                      <SelectTrigger aria-label={t('Style d’arrière-plan')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="transparent">{t('Transparent')}</SelectItem>
+                        <SelectItem value="solid">{t('Uni')}</SelectItem>
+                        <SelectItem value="linear">{t('Dégradé linéaire')}</SelectItem>
+                        <SelectItem value="radial">{t('Dégradé radial')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      className="snapshot-random-button"
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      disabled={snapshotBackground === 'transparent'}
+                      onClick={() => {
+                        if (snapshotBackground === 'transparent') return
+                        const palette = randomSnapshotPalette(
+                          snapshotBackground,
+                          expression.bodyColor ?? activeAvatar.colors.body,
+                          { colorFrom: snapshotColorFrom, colorTo: snapshotColorTo }
+                        )
+                        setSnapshotColorFrom(palette.colorFrom)
+                        setSnapshotColorTo(palette.colorTo)
+                      }}
+                    >
+                      <Shuffle />
+                      {t('Aléatoire')}
+                    </Button>
+                  </Field>
+                  {snapshotBackground !== 'transparent' && (
+                    <div className="snapshot-colors">
+                      <ColorField
+                        label={snapshotBackground === 'solid' ? 'Couleur' : 'Départ'}
+                        value={snapshotColorFrom}
+                        onChange={setSnapshotColorFrom}
+                      />
+                      {(snapshotBackground === 'linear' || snapshotBackground === 'radial') && (
+                        <ColorField
+                          label="Arrivée"
+                          value={snapshotColorTo}
+                          onChange={setSnapshotColorTo}
+                        />
+                      )}
+                    </div>
+                  )}
+                </InspectorCard>
+
+                <InspectorCard>
+                  <Field className="snapshot-background-field" orientation="horizontal">
+                    <div>
+                      <FieldTitle>{t('Format d’export')}</FieldTitle>
+                      <small>{t('Choisis le type de fichier généré par le mode photo.')}</small>
+                    </div>
+                    <Select
+                      value={snapshotFormat}
+                      items={[
+                        { value: 'png', label: 'PNG' },
+                        { value: 'svg', label: 'SVG' },
+                      ]}
+                      onValueChange={next => next && setSnapshotFormat(next as SnapshotFormat)}
+                    >
+                      <SelectTrigger aria-label={t('Format d’export du mode photo')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="png">PNG</SelectItem>
+                        <SelectItem value="svg">SVG</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Separator className="snapshot-settings-separator" />
+                  <Field className="snapshot-background-field" orientation="horizontal">
+                    <div>
+                      <FieldTitle>{t('Définition')}</FieldTitle>
+                      <small>{t('Dimensions du fichier exporté.')}</small>
+                    </div>
+                    <Select
+                      value={snapshotSize}
+                      items={['512', '1024', '2048'].map(value => ({
+                        value,
+                        label: `${value} px`,
+                      }))}
+                      onValueChange={next => next && setSnapshotSize(next)}
+                    >
+                      <SelectTrigger aria-label={t('Définition du mode photo')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="512">512 px</SelectItem>
+                        <SelectItem value="1024">1024 px</SelectItem>
+                        <SelectItem value="2048">2048 px</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </InspectorCard>
+
+                <Button className="snapshot-export-button" type="button" onClick={takePicture}>
+                  <Camera />
+                  {t('Prendre une photo')}
+                  <span>{snapshotFormat.toUpperCase()}</span>
+                </Button>
               </div>
             )}
 
@@ -1569,121 +1852,24 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 <ExportSection
                   value="snapshot"
                   title="Mode photo"
-                  subtitle="Capture une image statique de l’avatar."
+                  subtitle="Prépare une image statique directement dans l’aperçu principal."
                 >
-                  <InspectorCard className="snapshot-preview-card">
-                    <SnapshotPreview
-                      scene={renderedScene}
-                      colors={renderedColors}
-                      background={snapshotBackground}
-                      colorFrom={snapshotColorFrom}
-                      colorTo={snapshotColorTo}
-                      renderStyle={activeAvatar.renderStyle}
-                    />
-                    <div>
-                      <small>{t('Aperçu du mode photo')}</small>
-                      <strong>{activeAvatar.name}</strong>
-                      <span>
-                        {snapshotSize} × {snapshotSize} px · {snapshotFormat.toUpperCase()}
-                      </span>
+                  <InspectorCard className="photo-mode-launch-card">
+                    <div className="photo-mode-launch-icon" aria-hidden="true">
+                      <Camera />
                     </div>
-                  </InspectorCard>
-
-                  <InspectorCard>
-                    <PanelTitle
-                      title="Arrière-plan"
-                      subtitle="Choisis un fond transparent, uni ou en dégradé."
-                    />
-                    <Field className="snapshot-background-field" orientation="horizontal">
-                      <FieldTitle>{t('Style')}</FieldTitle>
-                      <Select
-                        value={snapshotBackground}
-                        items={[
-                          { value: 'transparent', label: t('Transparent') },
-                          { value: 'solid', label: t('Uni') },
-                          { value: 'linear', label: t('Dégradé linéaire') },
-                          { value: 'radial', label: t('Dégradé radial') },
-                        ]}
-                        onValueChange={next =>
-                          next && setSnapshotBackground(next as SnapshotBackground)
-                        }
-                      >
-                        <SelectTrigger aria-label={t('Style d’arrière-plan')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="transparent">{t('Transparent')}</SelectItem>
-                          <SelectItem value="solid">{t('Uni')}</SelectItem>
-                          <SelectItem value="linear">{t('Dégradé linéaire')}</SelectItem>
-                          <SelectItem value="radial">{t('Dégradé radial')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    {snapshotBackground !== 'transparent' && (
-                      <div className="snapshot-colors">
-                        <ColorField
-                          label={snapshotBackground === 'solid' ? 'Couleur' : 'Départ'}
-                          value={snapshotColorFrom}
-                          onChange={setSnapshotColorFrom}
-                        />
-                        {(snapshotBackground === 'linear' || snapshotBackground === 'radial') && (
-                          <ColorField
-                            label="Arrivée"
-                            value={snapshotColorTo}
-                            onChange={setSnapshotColorTo}
-                          />
+                    <div>
+                      <strong>{t('Composer dans le live preview')}</strong>
+                      <p>
+                        {t(
+                          'Choisis une expression, ajuste la pose et cadre l’avatar dans un espace dédié.'
                         )}
-                      </div>
-                    )}
-                  </InspectorCard>
-
-                  <InspectorCard>
-                    <Field className="snapshot-background-field" orientation="horizontal">
-                      <div>
-                        <FieldTitle>{t('Format d’export')}</FieldTitle>
-                        <small>{t('Choisis le type de fichier généré par le mode photo.')}</small>
-                      </div>
-                      <Select
-                        value={snapshotFormat}
-                        items={[
-                          { value: 'png', label: 'PNG' },
-                          { value: 'svg', label: 'SVG' },
-                        ]}
-                        onValueChange={next => next && setSnapshotFormat(next as SnapshotFormat)}
-                      >
-                        <SelectTrigger aria-label={t('Format d’export du mode photo')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="png">PNG</SelectItem>
-                          <SelectItem value="svg">SVG</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Separator className="snapshot-settings-separator" />
-                    <Field className="snapshot-background-field" orientation="horizontal">
-                      <div>
-                        <FieldTitle>{t('Définition')}</FieldTitle>
-                        <small>{t('Dimensions du fichier exporté.')}</small>
-                      </div>
-                      <Select
-                        value={snapshotSize}
-                        items={['512', '1024', '2048'].map(value => ({
-                          value,
-                          label: `${value} px`,
-                        }))}
-                        onValueChange={next => next && setSnapshotSize(next)}
-                      >
-                        <SelectTrigger aria-label={t('Définition du mode photo')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="512">512 px</SelectItem>
-                          <SelectItem value="1024">1024 px</SelectItem>
-                          <SelectItem value="2048">2048 px</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
+                      </p>
+                    </div>
+                    <Button type="button" onClick={openPhotoMode}>
+                      {t('Ouvrir le mode photo')}
+                      <ArrowRight />
+                    </Button>
                   </InspectorCard>
                 </ExportSection>
 
@@ -1727,7 +1913,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
             )}
           </motion.div>
         </AnimatePresence>
-        {activeSequence && !editorPageOpen && (
+        {activeSequence && !editorPageOpen && mode !== 'photo' && (
           <motion.footer
             className={`state-playback-footer${statePlayerExpanded ? ' is-expanded' : ''}`}
             style={{ y: playbackFooterY }}
@@ -1876,7 +2062,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
             </motion.div>
           </motion.footer>
         )}
-        {!editorPageOpen && (
+        {!editorPageOpen && mode !== 'photo' && (
           <nav className="mobile-mode-tabs" aria-label={t('Mode d’édition')}>
             <Button
               className="mobile-mode-tab mobile-avatar-tab"

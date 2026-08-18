@@ -319,10 +319,42 @@ const english: Record<string, string> = {
   'Prêt à exporter': 'Ready to export',
   Snapshot: 'Snapshot',
   'Mode photo': 'Photo Mode',
+  Cadrage: 'Framing',
+  Quitter: 'Exit',
+  'Outils du mode photo': 'Photo Mode tools',
+  'Orientation, regard, couleurs et perspective.': 'Orientation, gaze, colors and perspective.',
+  'Position, zoom et coins du cadre photo.': 'Position, zoom and photo frame corners.',
+  'Ouvrir le mode photo': 'Open Photo Mode',
+  'Recentrer le cadrage': 'Reset framing',
+  'Réinitialiser la pose et le cadrage': 'Reset pose and framing',
+  'Choisis l’expression visible sur la photo.': 'Choose the expression shown in the picture.',
+  'Utilise l’outil Cadrage dans l’aperçu ou saisis des valeurs précises.':
+    'Use the Framing tool in the preview or enter precise values.',
+  'Prépare une image statique directement dans l’aperçu principal.':
+    'Prepare a static image directly in the main preview.',
+  'Composer dans le live preview': 'Compose in the live preview',
+  'Choisis une expression, ajuste la pose et cadre l’avatar dans un espace dédié.':
+    'Choose an expression, adjust the pose and frame the avatar in a dedicated workspace.',
+  'Utilise Pose pour orienter l’avatar et Cadrage pour le déplacer ou le zoomer.':
+    'Use Pose to orient the avatar and Framing to move or zoom it.',
+  'Ouvre le mode photo pour choisir une expression, cadrer puis exporter l’avatar.':
+    'Open Photo Mode to choose an expression, frame the avatar and export it.',
   'Capture une image statique de l’avatar.': 'Capture a static image of the avatar.',
   'Les options de capture seront configurées ici.': 'Snapshot options will be configured here.',
   'Aperçu du Snapshot': 'Snapshot preview',
   'Aperçu du mode photo': 'Photo Mode preview',
+  'Cadre du logo. Glisse pour déplacer l’avatar et utilise la molette pour zoomer.':
+    'Logo frame. Drag to move the avatar and use the wheel to zoom.',
+  'Glisse l’avatar pour le placer. La molette zoome sans faire défiler la page.':
+    'Drag the avatar to position it. The wheel zooms without scrolling the page.',
+  'Cadrage du logo': 'Logo framing',
+  'Place, agrandis et recadre l’avatar sans modifier sa géométrie.':
+    'Position, enlarge and crop the avatar without changing its geometry.',
+  'Position X': 'X position',
+  'Position Y': 'Y position',
+  Zoom: 'Zoom',
+  'Coins arrondis': 'Rounded corners',
+  'Exporter le logo': 'Export logo',
   'Arrière-plan': 'Background',
   'Choisis un fond transparent, uni ou en dégradé.':
     'Choose a transparent, solid or gradient background.',
@@ -332,6 +364,7 @@ const english: Record<string, string> = {
   'Dégradé linéaire': 'Linear gradient',
   'Dégradé radial': 'Radial gradient',
   'Style d’arrière-plan': 'Background style',
+  Aléatoire: 'Random',
   Couleur: 'Color',
   Départ: 'Start',
   Arrivée: 'End',
