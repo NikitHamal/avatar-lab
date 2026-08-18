@@ -327,8 +327,10 @@ export const chinese: Record<string, string> = {
   'Une forme principale porte les yeux. Les autres primitives se placent autour d’elle.':
     '主形状承载眼睛，其他基础形状围绕它放置。',
   'Forme principale': '主形状',
+  Principale: '主要',
   'porte les yeux': '承载眼睛',
   'Ajouter une forme': '添加形状',
+  'Réglages de la forme': '形状设置',
   Dupliquer: '复制',
   'Gizmo local': '局部控制器',
   'Déplacer dans le plan de la caméra': '在相机平面中移动',

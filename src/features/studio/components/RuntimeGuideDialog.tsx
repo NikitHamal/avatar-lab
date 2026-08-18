@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { HighlightedRuntimeCode } from '@/features/studio/components/HighlightedRuntimeCode'
 import { useStudioLanguage } from '@/i18n'
 
 const runtimeInstallExample = 'npm install @bible-strong/avatar-react react react-dom'
@@ -99,34 +100,12 @@ export function Controls() {
   </>
 }`
 
-const codeTokenPattern =
-  /(\/\/.*|'.*?'|".*?"|@[a-z0-9-/]+|<\/?[A-Z][A-Za-z]*|\b(?:npm|install|import|from|const|if|throw|new|export|function|return|onClick|ref|useRef)\b)/g
-
-const highlightedCode = (source: string) =>
-  source.split(codeTokenPattern).map((token, index) => {
-    if (!token) return null
-    const kind = token.startsWith('//')
-      ? 'comment'
-      : token.startsWith("'") || token.startsWith('"') || token.startsWith('@')
-        ? 'string'
-        : token.startsWith('<')
-          ? 'tag'
-          : /^(?:npm|install|import|from|const|if|throw|new|export|function|return|onClick|ref|useRef)$/.test(
-                token
-              )
-            ? 'keyword'
-            : 'plain'
-    return (
-      <span className={`runtime-token runtime-token-${kind}`} key={`${index}-${token}`}>
-        {token}
-      </span>
-    )
-  })
-
 function GuideCode({ children }: { children: string }) {
   return (
     <pre className="avatar-guide-code" tabIndex={0}>
-      <code>{highlightedCode(children)}</code>
+      <code>
+        <HighlightedRuntimeCode>{children}</HighlightedRuntimeCode>
+      </code>
     </pre>
   )
 }

@@ -55,12 +55,14 @@ import {
 export function RotationGizmo({
   expression,
   rendered,
+  onPreview,
   onChange,
   onActiveChange,
   onReset,
 }: {
   expression: Expression
   rendered: RenderedRotationGizmo
+  onPreview: (next: Expression) => void
   onChange: (next: Expression) => void
   onActiveChange: (active: boolean) => void
   onReset: () => void
@@ -77,6 +79,7 @@ export function RotationGizmo({
     | { type: 'view'; startAngle: number; expression: Expression }
     | null
   >(null)
+  const latestExpression = useRef(expression)
   const pose = poseFromExpression(expression)
   const rings = {
     x: rotationRing(pose, 'x'),
@@ -119,6 +122,7 @@ export function RotationGizmo({
       tangent: unitVector(previous, next),
       expression,
     }
+    latestExpression.current = expression
     event.currentTarget.setPointerCapture(event.pointerId)
   }
   const startView = (event: React.PointerEvent<SVGElement>) => {
@@ -126,6 +130,7 @@ export function RotationGizmo({
     onActiveChange(true)
     const point = toLocal(event)
     drag.current = { type: 'view', startAngle: Math.atan2(point[1], point[0]), expression }
+    latestExpression.current = expression
     event.currentTarget.setPointerCapture(event.pointerId)
   }
   const move = (event: React.PointerEvent<SVGElement>) => {
@@ -137,23 +142,34 @@ export function RotationGizmo({
         Math.sin(currentAngle - drag.current.startAngle),
         Math.cos(currentAngle - drag.current.startAngle)
       )
-      onChange(rotateExpressionAroundCamera(drag.current.expression, delta))
+      const next = rotateExpressionAroundCamera(drag.current.expression, delta)
+      latestExpression.current = next
+      onPreview(next)
       return
     }
     const signedDistance =
       (point[0] - drag.current.startPoint[0]) * drag.current.tangent[0] +
       (point[1] - drag.current.startPoint[1]) * drag.current.tangent[1]
-    onChange(
-      rotateExpressionAroundAxis(drag.current.expression, drag.current.axis, signedDistance * 1.5)
+    const next = rotateExpressionAroundAxis(
+      drag.current.expression,
+      drag.current.axis,
+      signedDistance * 1.5
     )
+    latestExpression.current = next
+    onPreview(next)
   }
   const stop = () => {
+    if (drag.current) onChange(latestExpression.current)
     drag.current = null
     onActiveChange(false)
   }
   const cancel = () => {
-    if (drag.current) onChange(drag.current.expression)
-    stop()
+    if (drag.current) {
+      onPreview(drag.current.expression)
+      onChange(drag.current.expression)
+    }
+    drag.current = null
+    onActiveChange(false)
   }
   useEscapeToCancel(cancel)
   return (
@@ -883,6 +899,7 @@ export function AvatarCanvas({
       <RotationGizmo
         expression={expression}
         rendered={rotationGizmo}
+        onPreview={next => onPreview(next, 'head')}
         onChange={onChange}
         onActiveChange={active => onHighlightChange(active ? 'head' : null)}
         onReset={() => onReset({ ...expression, headX: 0, headY: 0, headZ: 0 })}

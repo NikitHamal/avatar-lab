@@ -591,10 +591,10 @@ input {
   display: block;
   overflow-x: auto;
   padding: 10px 12px;
-  border: 1px solid #dfe3eb;
-  border-radius: 9px;
-  background: #f7f8fb;
-  color: #3159cb;
+  border: 1px solid #2d323b;
+  border-radius: 10px;
+  background: #17191d;
+  color: #d8dee9;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   line-height: 1.5;
@@ -1029,6 +1029,7 @@ input {
 
 .gizmo-cluster {
   position: absolute;
+  z-index: 4;
   top: 2%;
   right: 2%;
   display: flex;
@@ -2384,68 +2385,155 @@ p {
 }
 .body-tree {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
-.body-tree > button {
+.body-node-accordion-item {
+  overflow: hidden;
+  border: 1px solid #dde1e9;
+  border-radius: 13px;
+  background: #fff;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+.body-node-accordion-item[data-open] {
+  border-color: #7796ec;
+  box-shadow: 0 0 0 2px rgb(91 127 229 / 10%);
+}
+.body-node-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  height: auto;
-  min-height: 46px;
-  padding: 10px 12px;
+  min-height: 66px;
+  padding: 9px 12px;
   text-align: left;
   white-space: normal;
+  transition: background-color 160ms ease;
 }
-.body-tree > button[aria-pressed='true'] {
-  border-color: #7796ec;
+.body-node-trigger:hover,
+.body-node-trigger[aria-expanded='true'] {
   background: #edf1ff;
+}
+.body-node-trigger[aria-expanded='true'] {
   color: #3f63c6;
 }
-.body-tree > button span:last-child {
+.body-node-trigger > svg {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+  color: #7c8492;
+  transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+.body-node-trigger[aria-expanded='true'] > svg {
+  transform: rotate(180deg);
+}
+.body-node-summary {
   display: grid;
   min-width: 0;
+  flex: 1;
   gap: 2px;
 }
-.body-tree strong,
-.body-tree small {
+.body-node-summary strong,
+.body-node-summary small {
   line-height: 1.25;
 }
-.body-tree small {
+.body-node-summary small {
   color: #858a95;
   font-size: 9px;
 }
-.body-node-icon {
+.body-node-title-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.body-node-title-line [data-slot='badge'] {
+  padding: 2px 6px;
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.body-node-accordion-content > div {
+  padding: 0 12px 12px;
+}
+.body-node-accordion-content > div::before {
+  display: block;
+  height: 1px;
+  margin-bottom: 12px;
+  background: #e6e9f0;
+  content: '';
+}
+.body-structure-thumbnail {
   display: grid;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  flex: 0 0 48px;
   place-items: center;
-  color: #7c8492;
+  border-radius: 9px;
+  background: #f7f8fb;
+  outline: 1px solid rgb(0 0 0 / 10%);
 }
-.body-node-icon-primary {
-  width: 40px;
-  height: 40px;
-  flex-basis: 40px;
-}
-.body-node-icon svg {
+.body-structure-thumbnail svg {
   width: 100%;
   height: 100%;
+  padding: 2px;
 }
-.body-node-icon svg path {
-  fill: currentColor;
+.body-structure-thumbnail path {
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease,
+    opacity 160ms ease;
+}
+.body-structure-thumbnail path.is-active {
+  fill: #7c8492;
+  stroke: #646d7a;
+  stroke-width: 1.5;
+}
+.body-structure-thumbnail path.is-context {
+  fill: transparent;
+  stroke: #a8afbb;
+  stroke-width: 1.5;
+  opacity: 0.9;
 }
 .body-add {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #eceef2;
-  color: #858a95;
-  font-size: 10px;
-  font-weight: 750;
 }
-.body-add > div {
+.body-add-trigger {
+  width: 100%;
+  min-height: 42px;
+  border-style: dashed;
+  color: #5875cf;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 120ms ease;
+}
+.body-add-trigger:active {
+  transform: scale(0.96);
+}
+.body-add-trigger span {
+  flex: 1;
+  text-align: left;
+}
+.body-add-trigger small {
+  color: #858a95;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.body-add-trigger > svg:last-child {
+  transition: transform 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+.body-add-trigger[aria-expanded='true'] > svg:last-child {
+  transform: rotate(180deg);
+}
+.body-add-options {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
@@ -2465,11 +2553,7 @@ p {
   height: 30px;
 }
 .body-node-editor {
-  margin-top: 14px;
-  padding: 13px;
-  border: 1px solid #dde3f2;
-  border-radius: 13px;
-  background: #fafbff;
+  padding: 0;
 }
 .body-node-actions {
   display: flex;

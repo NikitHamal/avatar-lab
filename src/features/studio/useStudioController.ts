@@ -95,7 +95,9 @@ import {
   type SnapshotBackground,
 } from '@/features/export/snapshotExporter'
 import {
+  resetBodyEditorView,
   resolveCanvasPreviewExpression,
+  shouldSyncCanvasPreviewToReact,
   type CanvasPreviewTarget,
 } from '@/features/rendering/canvasPreview'
 import {
@@ -768,9 +770,13 @@ export function useStudioController() {
   const activateAvatar = (id: string, editBody = false, preserveMode = false) => {
     const avatar = avatarsRef.current.find(item => item.id === id)
     if (!avatar) return
-    const resumeActiveSequence = statePlaying
-    if (resumeActiveSequence) pauseState(false)
-    if (editBody) suspendStateForEditor()
+    const resumeActiveSequence = !editBody && statePlaying
+    if (editBody) {
+      suspendStateForEditor()
+      stopState(false)
+    } else if (resumeActiveSequence) {
+      pauseState(false)
+    }
     if (editBody && !avatarEditSnapshot.current) {
       avatarEditSnapshot.current = {
         avatars: avatarsRef.current,
@@ -795,9 +801,10 @@ export function useStudioController() {
     setExpressions(nextExpressions)
     setSequences(nextSequences)
     setExportAnimationIds(nextSequences.map(animation => animation.id))
-    const nextActiveSequence = activeState
-      ? (nextSequences.find(sequence => sequence.id === activeState) ?? null)
-      : null
+    const nextActiveSequence =
+      !editBody && activeState
+        ? (nextSequences.find(sequence => sequence.id === activeState) ?? null)
+        : null
     const nextSelectedState =
       nextActiveSequence?.id ??
       (nextSequences.some(sequence => sequence.id === 'idle')
@@ -811,15 +818,26 @@ export function useStudioController() {
     setActiveExpression(null)
     setEditing(null)
     setBodyEditing(editBody)
-    if (!preserveMode || editBody) setMode('manual')
-    const nextExpression = nextActiveSequence
+    if (!preserveMode || editBody) {
+      modeRef.current = 'manual'
+      setMode('manual')
+    }
+    const selectedExpression = nextActiveSequence
       ? currentStateExpression
       : { ...(nextExpressions[0] ?? defaultExpression) }
+    const nextExpression = editBody ? resetBodyEditorView(selectedExpression) : selectedExpression
     setExpression(nextExpression)
-    setDisplayColors(resolveColors(nextExpression, avatar.colors))
-    canonicalTarget.current = nextExpression
-    transitionTarget.current = nextExpression
-    paintPose(poseFromExpression(nextExpression))
+    if (editBody) {
+      transitionToExpression(nextExpression, null, {
+        transitionMs: 450,
+        transition: 'smooth',
+      })
+    } else {
+      setDisplayColors(resolveColors(nextExpression, avatar.colors))
+      canonicalTarget.current = nextExpression
+      transitionTarget.current = nextExpression
+      paintPose(poseFromExpression(nextExpression))
+    }
     if (nextActiveSequence && resumeActiveSequence) {
       pausedSequenceTransition.current = null
       launchSequence(nextActiveSequence, true, false)
@@ -1248,7 +1266,9 @@ export function useStudioController() {
 
   const previewCanvasExpression = (next: Expression, target: CanvasPreviewTarget) => {
     const now = performance.now()
-    const updateInspector = now - lastInspectorFrame.current >= INSPECTOR_FRAME_MS
+    const updateInspector =
+      shouldSyncCanvasPreviewToReact(bodyEditing, target) &&
+      now - lastInspectorFrame.current >= INSPECTOR_FRAME_MS
     if (updateInspector) {
       lastInspectorFrame.current = now
       if (editing) {

@@ -369,8 +369,10 @@ const english: Record<string, string> = {
   'Une forme principale porte les yeux. Les autres primitives se placent autour d’elle.':
     'One primary shape carries the eyes. Other primitives are placed around it.',
   'Forme principale': 'Primary shape',
+  Principale: 'Primary',
   'porte les yeux': 'carries the eyes',
   'Ajouter une forme': 'Add a shape',
+  'Réglages de la forme': 'Shape settings',
   Dupliquer: 'Duplicate',
   'Gizmo local': 'Local gizmo',
   'Déplacer dans le plan de la caméra': 'Move in camera plane',

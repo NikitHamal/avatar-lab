@@ -51,21 +51,20 @@ import {
   StatePlayer,
 } from '@/app/components/common'
 import { ColorField, LinkButton, NumericField } from '@/app/components/controls'
-import { formatSeconds, scaleSurface, type Side, type SnapshotFormat } from '@/app/studio-utils'
+import { formatSeconds, type Side, type SnapshotFormat } from '@/app/studio-utils'
 import { SequenceWorkspace } from '@/features/animation/components/SequenceWorkspace'
 import { findExpressionIndex, groupSequences } from '@/features/animation/sequences'
 import { defaultAvatarEyes } from '@/features/avatar/avatars'
-import { bodyPrimitiveTypes, MAX_BODY_NODES } from '@/features/avatar/body'
 import {
   ExpressionCard,
   ExpressionPreview,
   ExpressionWorkspace,
-  SurfaceThumbnail,
 } from '@/features/avatar/components/ExpressionWorkspace'
 import { defaultExpression } from '@/features/avatar/presets'
-import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
 import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
+import { BodyConstructionAccordion } from '@/features/studio/components/BodyConstructionAccordion'
+import { HighlightedRuntimeCode } from '@/features/studio/components/HighlightedRuntimeCode'
 import { RuntimeGuideDialog } from '@/features/studio/components/RuntimeGuideDialog'
 import { RuntimePreviewDialog } from '@/features/studio/components/RuntimePreviewDialog'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
@@ -107,7 +106,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     activeSequence,
     activeSequenceLabel,
     activeState,
-    addBodyNode,
     avatarDragOrigin,
     avatarDragPreview,
     avatars,
@@ -126,7 +124,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     commitStateMove,
     copyAvatarRuntimeDefinition,
     createNewAvatar,
-    deleteSelectedBodyNode,
     downloadAvatarExport,
     downloadAvatarRuntimeDefinition,
     downloadStudioProject,
@@ -138,7 +135,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     draggingStateId,
     duplicateAvatar,
     duplicateExpression,
-    duplicateSelectedBodyNode,
     duplicateSequenceEditing,
     duplicateState,
     editing,
@@ -178,9 +174,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
-    selectBodyNode,
-    selectedBodyNode,
-    selectedBodyNodeId,
     selectedExportAnimations,
     selectedSequenceStepId,
     selectedState,
@@ -234,8 +227,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     updateDimension,
     updateHighlight,
     updateImmediate,
-    updateNodeVector,
-    updateSelectedBodyNode,
     updateSize,
     updateSpacing,
     updateSurface,
@@ -463,366 +454,10 @@ export function StudioInspector({ controller }: { controller: StudioController }
                       title="Corps"
                       subtitle="Construction, forme et couleur de la tête de l’avatar."
                     >
-                      <InspectorCard className="body-panel">
-                        <PanelTitle
-                          level={3}
-                          title="Construction du corps"
-                          subtitle="Une forme principale porte les yeux. Les autres primitives se placent autour d’elle."
-                        />
-                        <div className="body-tree">
-                          <Button
-                            variant="outline"
-                            type="button"
-                            aria-pressed={selectedBodyNodeId === 'primary'}
-                            onClick={() => selectBodyNode('primary')}
-                          >
-                            <span className="body-node-icon body-node-icon-primary">
-                              <SurfaceThumbnail surface={surface} />
-                            </span>
-                            <span>
-                              <strong>{t('Forme principale')}</strong>
-                              <small>
-                                {t(surfaceLabels[surface.type])} · {t('porte les yeux')}
-                              </small>
-                            </span>
-                          </Button>
-                          {bodyNodes.map(node => (
-                            <Button
-                              variant="outline"
-                              type="button"
-                              key={node.id}
-                              aria-pressed={selectedBodyNodeId === node.id}
-                              onClick={() => selectBodyNode(node.id)}
-                            >
-                              <span className="body-node-icon">
-                                <SurfaceThumbnail surface={node.surface} />
-                              </span>
-                              <span>
-                                <strong>{t(node.name)}</strong>
-                                <small>{t(surfaceLabels[node.surface.type])}</small>
-                              </span>
-                            </Button>
-                          ))}
-                        </div>
-                        <div className="body-add">
-                          <span>
-                            {t('Ajouter une forme')} · {bodyNodes.length}/{MAX_BODY_NODES}
-                          </span>
-                          <div>
-                            {bodyPrimitiveTypes.map(type => (
-                              <Button
-                                className="surface-card body-add-card"
-                                variant="outline"
-                                type="button"
-                                key={type}
-                                disabled={bodyNodes.length >= MAX_BODY_NODES}
-                                onClick={() => addBodyNode(type)}
-                              >
-                                <SurfaceThumbnail surface={surfacePresets[type]} />
-                                <span>{t(surfaceLabels[type])}</span>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                        {selectedBodyNode && (
-                          <div className="body-node-editor">
-                            <div className="body-node-actions">
-                              <strong>{selectedBodyNode.name}</strong>
-                              <div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  type="button"
-                                  disabled={bodyNodes.length >= MAX_BODY_NODES}
-                                  onClick={duplicateSelectedBodyNode}
-                                >
-                                  {t('Dupliquer')}
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  type="button"
-                                  onClick={deleteSelectedBodyNode}
-                                >
-                                  {t('Supprimer')}
-                                </Button>
-                              </div>
-                            </div>
-                            <p className="body-gizmo-help">
-                              <Badge variant="outline">{t('Gizmo local')}</Badge>
-                              {t(
-                                'Glisse un axe pour déplacer la forme, ou un anneau pour la faire tourner.'
-                              )}
-                            </p>
-                            <div className="surface-fields">
-                              <NumericField
-                                label="Échelle"
-                                value={Math.max(
-                                  selectedBodyNode.surface.width,
-                                  selectedBodyNode.surface.height,
-                                  selectedBodyNode.surface.depth
-                                )}
-                                min={10}
-                                max={300}
-                                unit="u"
-                                onChange={size =>
-                                  updateSelectedBodyNode(node => ({
-                                    ...node,
-                                    surface: scaleSurface(node.surface, size, {
-                                      width: 10,
-                                      height: 10,
-                                      depth: 10,
-                                    }),
-                                  }))
-                                }
-                              />
-                              {(['width', 'height', 'depth'] as const).map(dimension => (
-                                <NumericField
-                                  key={dimension}
-                                  label={
-                                    { width: 'Largeur', height: 'Hauteur', depth: 'Profondeur' }[
-                                      dimension
-                                    ]
-                                  }
-                                  value={selectedBodyNode.surface[dimension]}
-                                  min={10}
-                                  max={300}
-                                  unit="u"
-                                  onChange={value =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      surface: { ...node.surface, [dimension]: value },
-                                    }))
-                                  }
-                                />
-                              ))}
-                              {(selectedBodyNode.surface.type === 'cube' ||
-                                selectedBodyNode.surface.type === 'diamond' ||
-                                selectedBodyNode.surface.type === 'cylinder') && (
-                                <NumericField
-                                  label="Rondeur"
-                                  value={selectedBodyNode.surface.roundness}
-                                  min={0}
-                                  max={2}
-                                  step={0.01}
-                                  onChange={roundness =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      surface: { ...node.surface, roundness },
-                                    }))
-                                  }
-                                />
-                              )}
-                              {(selectedBodyNode.surface.type === 'cylinder' ||
-                                selectedBodyNode.surface.type === 'cone') && (
-                                <NumericField
-                                  label="Rondeur globale"
-                                  value={selectedBodyNode.surface.morphRoundness ?? 0}
-                                  min={0}
-                                  max={2}
-                                  step={0.01}
-                                  onChange={morphRoundness =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      surface: { ...node.surface, morphRoundness },
-                                    }))
-                                  }
-                                />
-                              )}
-                              {selectedBodyNode.surface.type === 'cone' && (
-                                <>
-                                  <NumericField
-                                    label="Rondeur pointe"
-                                    value={selectedBodyNode.surface.tipRoundness ?? 0}
-                                    min={0}
-                                    max={2}
-                                    step={0.01}
-                                    onChange={tipRoundness =>
-                                      updateSelectedBodyNode(node => ({
-                                        ...node,
-                                        surface: { ...node.surface, tipRoundness },
-                                      }))
-                                    }
-                                  />
-                                  <NumericField
-                                    label="Rondeur base"
-                                    value={selectedBodyNode.surface.baseRoundness ?? 0}
-                                    min={0}
-                                    max={2}
-                                    step={0.01}
-                                    onChange={baseRoundness =>
-                                      updateSelectedBodyNode(node => ({
-                                        ...node,
-                                        surface: { ...node.surface, baseRoundness },
-                                      }))
-                                    }
-                                  />
-                                </>
-                              )}
-                            </div>
-                            <div className="body-transform-grid">
-                              <div>
-                                <h3>{t('Position locale')}</h3>
-                                {(['X', 'Y', 'Z'] as const).map((axis, index) => (
-                                  <NumericField
-                                    key={axis}
-                                    label={axis}
-                                    value={selectedBodyNode.position[index]}
-                                    unit="u"
-                                    onChange={value =>
-                                      updateNodeVector('position', index as 0 | 1 | 2, value)
-                                    }
-                                  />
-                                ))}
-                              </div>
-                              <div>
-                                <h3>{t('Rotation locale')}</h3>
-                                {(['X', 'Y', 'Z'] as const).map((axis, index) => (
-                                  <NumericField
-                                    key={axis}
-                                    label={axis}
-                                    value={selectedBodyNode.rotation[index]}
-                                    unit="°"
-                                    onChange={value =>
-                                      updateNodeVector('rotation', index as 0 | 1 | 2, value)
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </InspectorCard>
-                      <InspectorCard className="surface-panel">
-                        <PanelTitle
-                          level={3}
-                          title="Forme principale"
-                          subtitle="Cette surface est la référence du visage et porte les yeux."
-                        />
-                        <div className="surface-grid">
-                          {bodyPrimitiveTypes.map(type => {
-                            const previewSurface =
-                              type === surface.type ? surface : surfacePresets[type]
-                            return (
-                              <Button
-                                className="surface-card"
-                                variant="outline"
-                                type="button"
-                                key={type}
-                                aria-pressed={surface.type === type}
-                                onClick={() => {
-                                  selectBodyNode('primary')
-                                  if (type !== surface.type) {
-                                    updateSurface({ ...surfacePresets[type] })
-                                  }
-                                }}
-                              >
-                                <SurfaceThumbnail surface={previewSurface} />
-                                <span>{t(surfaceLabels[type])}</span>
-                              </Button>
-                            )
-                          })}
-                        </div>
-                        <div className="surface-fields">
-                          <NumericField
-                            label="Échelle"
-                            value={Math.max(surface.width, surface.height, surface.depth)}
-                            min={120}
-                            max={300}
-                            unit="u"
-                            onChange={size =>
-                              updateSurface(
-                                scaleSurface(surface, size, { width: 120, height: 120, depth: 100 })
-                              )
-                            }
-                          />
-                          <NumericField
-                            label="Largeur"
-                            value={surface.width}
-                            min={120}
-                            max={300}
-                            unit="u"
-                            onChange={width => updateSurface({ ...surface, width })}
-                          />
-                          <NumericField
-                            label="Hauteur"
-                            value={surface.height}
-                            min={120}
-                            max={300}
-                            unit="u"
-                            onChange={height => updateSurface({ ...surface, height })}
-                          />
-                          <NumericField
-                            label="Profondeur"
-                            value={surface.depth}
-                            min={100}
-                            max={300}
-                            unit="u"
-                            onChange={depth => updateSurface({ ...surface, depth })}
-                          />
-                          {(surface.type === 'cube' || surface.type === 'diamond') && (
-                            <NumericField
-                              label="Rondeur"
-                              value={surface.roundness}
-                              min={0}
-                              max={2}
-                              step={0.01}
-                              onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                              onChange={roundness => updateSurface({ ...surface, roundness })}
-                            />
-                          )}
-                          {surface.type === 'cylinder' && (
-                            <NumericField
-                              label="Rondeur des arêtes"
-                              value={surface.roundness}
-                              min={0}
-                              max={2}
-                              step={0.01}
-                              onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                              onChange={roundness => updateSurface({ ...surface, roundness })}
-                            />
-                          )}
-                          {(surface.type === 'cylinder' || surface.type === 'cone') && (
-                            <NumericField
-                              label="Rondeur globale"
-                              value={surface.morphRoundness ?? 0}
-                              min={0}
-                              max={2}
-                              step={0.01}
-                              onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                              onChange={morphRoundness =>
-                                updateSurface({ ...surface, morphRoundness })
-                              }
-                            />
-                          )}
-                          {surface.type === 'cone' && (
-                            <>
-                              <NumericField
-                                label="Rondeur pointe"
-                                value={surface.tipRoundness ?? 0}
-                                min={0}
-                                max={2}
-                                step={0.01}
-                                onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                                onChange={tipRoundness =>
-                                  updateSurface({ ...surface, tipRoundness })
-                                }
-                              />
-                              <NumericField
-                                label="Rondeur base"
-                                value={surface.baseRoundness ?? 0}
-                                min={0}
-                                max={2}
-                                step={0.01}
-                                onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                                onChange={baseRoundness =>
-                                  updateSurface({ ...surface, baseRoundness })
-                                }
-                              />
-                            </>
-                          )}
-                        </div>
-                      </InspectorCard>
+                      <BodyConstructionAccordion
+                        controller={controller}
+                        reduceMotion={Boolean(reduceMotion)}
+                      />
                       <InspectorCard className="color-panel">
                         <PanelTitle
                           level={3}
@@ -1818,7 +1453,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     <div className="runtime-quick-start-step">
                       <span>{t('Installation')}</span>
                       <code>
-                        {exportFormat === 'react' ? reactQuickStartInstall : webQuickStartInstall}
+                        <HighlightedRuntimeCode>
+                          {exportFormat === 'react' ? reactQuickStartInstall : webQuickStartInstall}
+                        </HighlightedRuntimeCode>
                       </code>
                     </div>
 
@@ -1826,9 +1463,11 @@ export function StudioInspector({ controller }: { controller: StudioController }
                       <span>{t('Utilisation minimale')}</span>
                       <pre tabIndex={0}>
                         <code>
-                          {exportFormat === 'react'
-                            ? reactQuickStartExample(runtimePreviewAnimation)
-                            : webQuickStartExample(runtimePreviewAnimation)}
+                          <HighlightedRuntimeCode>
+                            {exportFormat === 'react'
+                              ? reactQuickStartExample(runtimePreviewAnimation)
+                              : webQuickStartExample(runtimePreviewAnimation)}
+                          </HighlightedRuntimeCode>
                         </code>
                       </pre>
                     </div>
