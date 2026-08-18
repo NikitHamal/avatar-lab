@@ -693,6 +693,14 @@ input {
 .export-panel {
   width: 100%;
   min-width: 0;
+  user-select: text;
+}
+.export-panel * {
+  user-select: auto;
+}
+.export-panel button,
+.export-panel button * {
+  user-select: none;
 }
 .export-accordion-snapshot {
   order: -1;
@@ -1771,6 +1779,12 @@ p {
   position: absolute;
   top: 18px;
   right: 18px;
+}
+.avatar-guide-dialog {
+  user-select: text;
+}
+.avatar-guide-dialog * {
+  user-select: auto;
 }
 .runtime-preview-dialog {
   width: min(1080px, calc(100vw - 32px));
