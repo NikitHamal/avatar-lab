@@ -59,7 +59,7 @@
     "hexColor": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
     "boundedNumber": { "type": "number", "minimum": -10000, "maximum": 10000 },
     "dimension": { "type": "number", "minimum": 0.001, "maximum": 10000 },
-    "roundness": { "type": "number", "minimum": 0, "maximum": 1 },
+    "roundness": { "type": "number", "minimum": 0, "maximum": 2 },
     "surface": {
       "type": "object",
       "additionalProperties": false,

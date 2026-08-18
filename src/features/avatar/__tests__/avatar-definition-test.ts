@@ -186,7 +186,7 @@ describe('avatar definition validation', () => {
     ],
     [
       'roundness maximum',
-      (value: AvatarDefinition) => (value.body.primary.roundness = 1.1),
+      (value: AvatarDefinition) => (value.body.primary.roundness = 2.1),
       'maximum',
     ],
     [
@@ -285,7 +285,13 @@ describe('avatar definition validation', () => {
     definition.body.primary.width = 0.001
     definition.body.primary.height = 10000
     definition.body.primary.roundness = 0
-    definition.body.primary.morphRoundness = 1
+    definition.body.primary.morphRoundness = 2
+    definition.body.primary.tipRoundness = 2
+    definition.body.primary.baseRoundness = 2
+    definition.body.nodes[0].surface.roundness = 2
+    definition.body.nodes[0].surface.morphRoundness = 2
+    definition.body.nodes[0].surface.tipRoundness = 2
+    definition.body.nodes[0].surface.baseRoundness = 2
     definition.body.nodes[0].position = [-10000, 0, 10000]
     definition.body.nodes[0].rotation = [-360, 0, 360]
     definition.expressions.neutral.head = { x: -10000, y: 0, z: 10000 }
