@@ -401,9 +401,9 @@ export const sampleAnimationFrames = (
           field !== 'leftAngle' &&
           field !== 'rightAngle'
         ) {
-          const fromVal = from[field as ExpressionNumericField]
-          const toVal = to[field as ExpressionNumericField]
-          blended[field as ExpressionNumericField] = fromVal + (toVal - fromVal) * progress
+          const fromVal = (from[field as ExpressionNumericField] as number) ?? 0
+          const toVal = (to[field as ExpressionNumericField] as number) ?? 0
+          blended[field as ExpressionNumericField] = (fromVal + (toVal - fromVal) * progress) as any
         }
       }
 

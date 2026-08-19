@@ -16,6 +16,7 @@ import {
   type ExportFormat,
   type Highlight,
   type Mode,
+  type PhotoTool,
   type PlaybackStatus,
   type Side,
   type SnapshotFormat,
@@ -46,8 +47,15 @@ import {
   hasAmbientMotion,
 } from '@/features/avatar/ambientMotion'
 import {
+  avatarDefinitionFileName,
+  createAvatarDefinition,
+  getSemanticKeyIssue,
+  type SemanticKeyIssueCode,
+} from '@/features/avatar/avatarDefinition'
+import {
   cloneAvatarBehavior,
   createAvatar,
+  createUnkeyedExpressionCopy,
   defaultAvatarEyes,
   resolveAvatarBehavior,
   type AvatarBehaviorLibrary,
@@ -74,18 +82,19 @@ import {
   renderAvatar,
   type AvatarPose,
   type Expression,
+  type ExpressionNumericField,
 } from '@/features/avatar/geometry'
 import { createAvatarRemix } from '@/features/avatar/avatarRemix'
 import { defaultExpression } from '@/features/avatar/presets'
 import { type SurfaceConfig } from '@/features/avatar/surfaces'
 import {
-  avatarExportFileName,
-  createAvatarExportPayload,
-  generateJavaScriptAvatarPackage,
-  generateReactAvatarPackage,
+  avatarDemoFileName,
+  generateJavaScriptEsmPackage,
+  generateReactVitePackage,
 } from '@/features/export/exporter'
 import {
   serializeAvatarSnapshot,
+  serializePixelSnapshot,
   snapshotFileName,
   type SnapshotBackground,
 } from '@/features/export/snapshotExporter'
@@ -97,7 +106,13 @@ import {
   type AnimationMediaOptions,
 } from '@/features/export/animationMediaExporter'
 import {
+  defaultSnapshotComposition,
+  normalizeSnapshotComposition,
+} from '@/features/export/snapshotComposition'
+import {
+  resetBodyEditorView,
   resolveCanvasPreviewExpression,
+  shouldSyncCanvasPreviewToReact,
   type CanvasPreviewTarget,
 } from '@/features/rendering/canvasPreview'
 import {
@@ -111,6 +126,7 @@ import {
   paintRenderedOffset,
   paintRenderedScene,
 } from '@/features/rendering/renderedScene'
+import { paintPixelAvatar } from '@/features/rendering/pixelRenderer'
 import {
   createStudioDocumentStore,
   loadStudioDocument,
@@ -170,7 +186,17 @@ export function useStudioController() {
     percent: number
     label: string
   } | null>(null)
+  const [snapshotComposition, setSnapshotComposition] = useState(() => ({
+    ...defaultSnapshotComposition,
+    cornerRadius: 18,
+  }))
+  const [photoTool, setPhotoTool] = useState<PhotoTool>('frame')
+  const [photoPanelSections, setPhotoPanelSections] = useState<PhotoTool[]>([])
   const [photoFlash, setPhotoFlash] = useState(0)
+  const [runtimeCopyFeedback, setRuntimeCopyFeedback] = useState<{
+    status: 'idle' | 'success' | 'error'
+    source?: readonly unknown[]
+  }>({ status: 'idle' })
   const initialStatePlayback = initialDocument.playback
   const updateStudioLibrary = (library: typeof initialDocument.library) =>
     documentStore.update({ library })
@@ -504,6 +530,13 @@ export function useStudioController() {
     return renderedExpression
   }
 
+  const openPhotoMode = () => {
+    freezeLivePreviewForManipulation()
+    setPhotoTool('frame')
+    setPhotoPanelSections([])
+    setMode('photo')
+  }
+
   const updateImmediate = (next: Expression, preservePlayback = false) => {
     if (!preservePlayback && statePlaying) pauseState()
     stopTransition(true)
@@ -595,7 +628,9 @@ export function useStudioController() {
           effect: next.effect,
         }
         expressionFields.forEach(field => {
-          animated[field] = from[field] + (resolvedTarget[field] - from[field]) * eased
+          const fromVal = ((from as any)[field] as number) ?? 0
+          const toVal = ((resolvedTarget as any)[field] as number) ?? 0
+          ;(animated as any)[field] = fromVal + (toVal - fromVal) * eased
         })
         activeSequenceTransition.current = {
           target: next,
@@ -651,10 +686,11 @@ export function useStudioController() {
     }
     transitionTarget.current = resolvedTarget
     lastAmbientStrength.current = 0
-    const initialTransitionDistance = expressionFields.reduce(
-      (total, field) => total + Math.abs(resolvedTarget[field] - current[field]),
-      0
-    )
+    const initialTransitionDistance = expressionFields.reduce((total, field) => {
+      const targetVal = ((resolvedTarget as any)[field] as number) ?? 0
+      const currVal = ((current as any)[field] as number) ?? 0
+      return total + Math.abs(targetVal - currVal)
+    }, 0)
     let transitionProgress = 0
     const tick = (time: number) => {
       const previousTime = lastTransitionTime.current ?? time
@@ -674,9 +710,9 @@ export function useStudioController() {
           linearProgress ** 3 * (linearProgress * (linearProgress * 6 - 15) + 10)
         const blendedTarget = { ...retargetTo.current }
         expressionFields.forEach(field => {
-          blendedTarget[field] =
-            retargetFrom.current![field] +
-            (retargetTo.current![field] - retargetFrom.current![field]) * smoothProgress
+          const rFrom = (((retargetFrom.current as any) || {})[field] as number) ?? 0
+          const rTo = (((retargetTo.current as any) || {})[field] as number) ?? 0
+          ;(blendedTarget as any)[field] = rFrom + (rTo - rFrom) * smoothProgress
         })
         transitionTarget.current = blendedTarget
         if (linearProgress === 1) {
@@ -687,10 +723,11 @@ export function useStudioController() {
         }
       }
       const target = transitionTarget.current
-      const remainingTransitionDistance = expressionFields.reduce(
-        (total, field) => total + Math.abs(target[field] - currentExpression[field]),
-        0
-      )
+      const remainingTransitionDistance = expressionFields.reduce((total, field) => {
+        const targetVal = ((target as any)[field] as number) ?? 0
+        const currVal = ((currentExpression as any)[field] as number) ?? 0
+        return total + Math.abs(targetVal - currVal)
+      }, 0)
       const geometricProgress =
         initialTransitionDistance <= 0
           ? 1
@@ -711,12 +748,14 @@ export function useStudioController() {
       animated.effect = target.effect
 
       expressionFields.forEach(field => {
-        const displacement = target[field] - currentExpression[field]
+        const targetVal = ((target as any)[field] as number) ?? 0
+        const currVal = ((currentExpression as any)[field] as number) ?? 0
+        const displacement = targetVal - currVal
         const acceleration = (stiffness * displacement - damping * transitionVelocity[field]) / mass
         const velocity = transitionVelocity[field] + acceleration * deltaTime
-        const value = currentExpression[field] + velocity * deltaTime
+        const value = currVal + velocity * deltaTime
         transitionVelocity[field] = velocity
-        animated[field] = value
+        ;(animated as any)[field] = value
         const tolerance = field === 'perspective' ? 0.0001 : 0.005
         if (Math.abs(displacement) > tolerance || Math.abs(velocity) > tolerance) settled = false
       })
@@ -836,9 +875,13 @@ export function useStudioController() {
   const activateAvatar = (id: string, editBody = false, preserveMode = false) => {
     const avatar = avatarsRef.current.find(item => item.id === id)
     if (!avatar) return
-    const resumeActiveSequence = statePlaying
-    if (resumeActiveSequence) pauseState(false)
-    if (editBody) suspendStateForEditor()
+    const resumeActiveSequence = !editBody && statePlaying
+    if (editBody) {
+      suspendStateForEditor()
+      stopState(false)
+    } else if (resumeActiveSequence) {
+      pauseState(false)
+    }
     if (editBody && !avatarEditSnapshot.current) {
       avatarEditSnapshot.current = {
         avatars: avatarsRef.current,
@@ -863,9 +906,10 @@ export function useStudioController() {
     setExpressions(nextExpressions)
     setSequences(nextSequences)
     setExportAnimationIds(nextSequences.map(animation => animation.id))
-    const nextActiveSequence = activeState
-      ? (nextSequences.find(sequence => sequence.id === activeState) ?? null)
-      : null
+    const nextActiveSequence =
+      !editBody && activeState
+        ? (nextSequences.find(sequence => sequence.id === activeState) ?? null)
+        : null
     const nextSelectedState =
       nextActiveSequence?.id ??
       (nextSequences.some(sequence => sequence.id === 'idle')
@@ -879,13 +923,26 @@ export function useStudioController() {
     setActiveExpression(null)
     setEditing(null)
     setBodyEditing(editBody)
-    if (!preserveMode || editBody) setMode('manual')
-    const nextExpression = nextActiveSequence ? currentStateExpression : { ...defaultExpression }
+    if (!preserveMode || editBody) {
+      modeRef.current = 'manual'
+      setMode('manual')
+    }
+    const selectedExpression = nextActiveSequence
+      ? currentStateExpression
+      : { ...(nextExpressions[0] ?? defaultExpression) }
+    const nextExpression = editBody ? resetBodyEditorView(selectedExpression) : selectedExpression
     setExpression(nextExpression)
-    setDisplayColors(resolveColors(nextExpression, avatar.colors))
-    canonicalTarget.current = nextExpression
-    transitionTarget.current = nextExpression
-    paintPose(poseFromExpression(nextExpression))
+    if (editBody) {
+      transitionToExpression(nextExpression, null, {
+        transitionMs: 450,
+        transition: 'smooth',
+      })
+    } else {
+      setDisplayColors(resolveColors(nextExpression, avatar.colors))
+      canonicalTarget.current = nextExpression
+      transitionTarget.current = nextExpression
+      paintPose(poseFromExpression(nextExpression))
+    }
     if (nextActiveSequence && resumeActiveSequence) {
       pausedSequenceTransition.current = null
       launchSequence(nextActiveSequence, true, false)
@@ -1273,7 +1330,7 @@ export function useStudioController() {
   }
 
   const duplicateExpression = (_index: number | null, draft: Expression, editDuplicate = false) => {
-    const duplicate = { ...draft, id: createExpressionId() }
+    const duplicate = createUnkeyedExpressionCopy(draft, createExpressionId())
     const next = [...expressions, duplicate]
     const duplicateIndex = next.length - 1
     setExpressions(next)
@@ -1324,7 +1381,9 @@ export function useStudioController() {
 
   const previewCanvasExpression = (next: Expression, target: CanvasPreviewTarget) => {
     const now = performance.now()
-    const updateInspector = now - lastInspectorFrame.current >= INSPECTOR_FRAME_MS
+    const updateInspector =
+      shouldSyncCanvasPreviewToReact(bodyEditing, target) &&
+      now - lastInspectorFrame.current >= INSPECTOR_FRAME_MS
     if (updateInspector) {
       lastInspectorFrame.current = now
       if (editing) {
@@ -1362,7 +1421,8 @@ export function useStudioController() {
     setMode('expressions')
     setEditing({
       index,
-      draft: { ...draft, id: index === null ? createExpressionId() : draft.id },
+      draft:
+        index === null ? createUnkeyedExpressionCopy(draft, createExpressionId()) : { ...draft },
     })
     const avatar = avatarsRef.current.find(item => item.id === activeAvatarIdRef.current)
     if (avatar) setDisplayColors(resolveColors(draft, avatar.colors))
@@ -1551,6 +1611,12 @@ export function useStudioController() {
     })
   }
   const activeAvatar = avatars.find(avatar => avatar.id === activeAvatarId) ?? avatars[0]
+  const runtimeCopySource = [activeAvatar, exportAnimationIds, expressions, sequences] as const
+  const runtimeCopyStatus =
+    runtimeCopyFeedback.source?.length === runtimeCopySource.length &&
+    runtimeCopyFeedback.source.every((value, index) => value === runtimeCopySource[index])
+      ? runtimeCopyFeedback.status
+      : 'idle'
   const activeAvatarEyes = activeAvatar.eyes ?? defaultAvatarEyes
   const activeSequence = sequences.find(sequence => sequence.id === activeState) ?? null
   const activeSequenceLabel = activeSequence
@@ -1559,10 +1625,81 @@ export function useStudioController() {
       : activeSequence.name
     : null
   const expressionById = new Map(expressions.map(item => [item.id, item]))
+  const semanticKeyIssueMessage = (issue: SemanticKeyIssueCode | 'duplicate_semantic_key') =>
+    t(
+      issue === 'missing_semantic_key'
+        ? 'Ajoute une clé pour inclure cet élément dans l’export runtime.'
+        : issue === 'invalid_semantic_key'
+          ? 'Utilise des lettres minuscules, des chiffres et des tirets, par exemple happy-smile.'
+          : issue === 'reserved_semantic_key'
+            ? 'neutral est réservé à l’apparence neutre de l’avatar.'
+            : 'Cette clé est déjà utilisée dans cette bibliothèque.'
+    )
+  const expressionSemanticKeyError = (draft: Expression) => {
+    const issue = getSemanticKeyIssue(draft.semanticKey, 'expression')
+    if (issue) return semanticKeyIssueMessage(issue)
+    if (
+      expressions.some(
+        expression => expression.id !== draft.id && expression.semanticKey === draft.semanticKey
+      )
+    ) {
+      return semanticKeyIssueMessage('duplicate_semantic_key')
+    }
+    return null
+  }
+  const animationSemanticKeyError = (draft: AvatarSequence) => {
+    const issue = getSemanticKeyIssue(draft.semanticKey, 'animation')
+    if (issue) return semanticKeyIssueMessage(issue)
+    if (
+      sequences.some(
+        sequence => sequence.id !== draft.id && sequence.semanticKey === draft.semanticKey
+      )
+    ) {
+      return semanticKeyIssueMessage('duplicate_semantic_key')
+    }
+    return null
+  }
   const exportAnimationIdSet = new Set(exportAnimationIds)
   const selectedExportAnimations = sequences.filter(animation =>
     exportAnimationIdSet.has(animation.id)
   )
+  const runtimeDefinitionResult = createAvatarDefinition({
+    avatar: activeAvatar,
+    behavior: { expressions, sequences: selectedExportAnimations },
+  })
+  const runtimeExportErrors = runtimeDefinitionResult.ok
+    ? []
+    : (() => {
+        const messages = new Set<string>()
+        const hasExpressionErrors = runtimeDefinitionResult.errors.some(error =>
+          error.path.startsWith('/studio/expressions/')
+        )
+        runtimeDefinitionResult.errors.forEach(error => {
+          if (error.code === 'unresolved_expression_reference' && hasExpressionErrors) return
+          const expressionMatch = error.path.match(/^\/studio\/expressions\/(\d+)/)
+          if (expressionMatch) {
+            const index = Number(expressionMatch[1])
+            const item = expressions[index]
+            messages.add(
+              `${t('Expression')} ${item?.semanticKey || String(index).padStart(2, '0')}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
+            )
+            return
+          }
+          const animationMatch = error.path.match(/^\/studio\/animations\/(\d+)/)
+          if (animationMatch) {
+            const index = Number(animationMatch[1])
+            const item = selectedExportAnimations[index]
+            messages.add(
+              error.code === 'unresolved_expression_reference'
+                ? `${t('Animation')} ${item?.name ?? index}: ${t('Une étape référence une expression qui ne peut pas être exportée.')}`
+                : `${t('Animation')} ${item?.semanticKey || item?.name || index}: ${semanticKeyIssueMessage(error.code as SemanticKeyIssueCode | 'duplicate_semantic_key')}`
+            )
+            return
+          }
+          messages.add(`${t('Valeur incompatible avec le format runtime')} (${error.path || '/'})`)
+        })
+        return [...messages]
+      })()
   const toggleExportAnimation = (animationId: string) => {
     setExportAnimationIds(current =>
       current.includes(animationId)
@@ -1571,14 +1708,35 @@ export function useStudioController() {
     )
   }
   const downloadAvatarExport = () => {
-    if (!selectedExportAnimations.length) return
-    const payload = createAvatarExportPayload(activeAvatar, expressions, selectedExportAnimations)
-    const isReact = exportFormat === 'react'
-    const extension = 'zip'
-    const blob = isReact
-      ? generateReactAvatarPackage(payload)
-      : generateJavaScriptAvatarPackage(payload, language)
-    downloadBlob(blob, avatarExportFileName(activeAvatar.name, extension))
+    if (!runtimeDefinitionResult.ok) return
+    downloadBlob(
+      exportFormat === 'javascript'
+        ? generateJavaScriptEsmPackage(runtimeDefinitionResult.value, activeAvatar.name)
+        : generateReactVitePackage(runtimeDefinitionResult.value, activeAvatar.name),
+      avatarDemoFileName(activeAvatar.name, exportFormat)
+    )
+  }
+  const downloadAvatarRuntimeDefinition = () => {
+    if (!runtimeDefinitionResult.ok) return
+    downloadBlob(
+      new Blob([JSON.stringify(runtimeDefinitionResult.value, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      }),
+      avatarDefinitionFileName(activeAvatar.name)
+    )
+  }
+  const copyAvatarRuntimeDefinition = async () => {
+    if (!runtimeDefinitionResult.ok) return
+    if (!navigator.clipboard) {
+      setRuntimeCopyFeedback({ status: 'error', source: runtimeCopySource })
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(runtimeDefinitionResult.value, null, 2))
+      setRuntimeCopyFeedback({ status: 'success', source: runtimeCopySource })
+    } catch {
+      setRuntimeCopyFeedback({ status: 'error', source: runtimeCopySource })
+    }
   }
   const currentStudioDocument = (): StudioDocument => ({
     version: 2,
@@ -1610,6 +1768,7 @@ export function useStudioController() {
         colorFrom: snapshotColorFrom,
         colorTo: snapshotColorTo,
         size: Number(snapshotSize),
+        composition: snapshotComposition,
       },
       activeAvatar.eyeRenderer,
       {
@@ -1619,13 +1778,103 @@ export function useStudioController() {
       }
     )
 
+  const createPixelSnapshotCanvas = () => {
+    const renderStyle = activeAvatar.renderStyle
+    if (renderStyle.type !== 'pixel') return null
+    const size = Number(snapshotSize)
+    const canvas = document.createElement('canvas')
+    canvas.width = size
+    canvas.height = size
+    const context = canvas.getContext('2d')
+    if (!context) return null
+    const composition = normalizeSnapshotComposition(snapshotComposition)
+    context.save()
+    context.beginPath()
+    context.roundRect(0, 0, size, size, (size * composition.cornerRadius) / 100)
+    context.clip()
+    if (snapshotBackground === 'solid') {
+      context.fillStyle = snapshotColorFrom
+      context.fillRect(0, 0, size, size)
+    } else if (snapshotBackground === 'linear') {
+      const gradient = context.createLinearGradient(0, 0, size, size)
+      gradient.addColorStop(0, snapshotColorFrom)
+      gradient.addColorStop(1, snapshotColorTo)
+      context.fillStyle = gradient
+      context.fillRect(0, 0, size, size)
+    } else if (snapshotBackground === 'radial') {
+      const gradient = context.createRadialGradient(
+        size * 0.5,
+        size * 0.42,
+        0,
+        size * 0.5,
+        size * 0.42,
+        size * 0.7
+      )
+      gradient.addColorStop(0, snapshotColorFrom)
+      gradient.addColorStop(1, snapshotColorTo)
+      context.fillStyle = gradient
+      context.fillRect(0, 0, size, size)
+    }
+    const avatarCanvas = document.createElement('canvas')
+    avatarCanvas.width = renderStyle.resolution
+    avatarCanvas.height = renderStyle.resolution
+    const avatarContext = avatarCanvas.getContext('2d', { willReadFrequently: true })
+    if (!avatarContext) return null
+    paintPixelAvatar(
+      avatarContext,
+      {
+        headPath: renderedScene.headPath.get(),
+        backPaths: renderedScene.backPaths.flatMap(item => {
+          const value = item.get()
+          return value ? [value] : []
+        }),
+        frontPaths: renderedScene.frontPaths.flatMap(item => {
+          const value = item.get()
+          return value ? [value] : []
+        }),
+        leftPath: renderedScene.leftPath.get(),
+        rightPath: renderedScene.rightPath.get(),
+        leftOpacity: renderedScene.leftOpacity.get(),
+        rightOpacity: renderedScene.rightOpacity.get(),
+        offsetX: renderedScene.offsetX.get(),
+        offsetY: renderedScene.offsetY.get(),
+        bodyColor: renderedColors.body.get(),
+        eyeColor: renderedColors.eyes.get(),
+      },
+      renderStyle
+    )
+    context.imageSmoothingEnabled = false
+    context.translate(
+      size / 2 + (composition.x / 300) * size,
+      size / 2 + (composition.y / 300) * size
+    )
+    context.scale(composition.scale, composition.scale)
+    context.drawImage(avatarCanvas, -size / 2, -size / 2, size, size)
+    context.restore()
+    return canvas
+  }
   const downloadSnapshotSvg = () => {
+    const pixelCanvas = createPixelSnapshotCanvas()
+    const source = pixelCanvas
+      ? serializePixelSnapshot(
+          activeAvatar.name,
+          pixelCanvas.toDataURL('image/png'),
+          Number(snapshotSize)
+        )
+      : currentSnapshotSvg()
     downloadBlob(
-      new Blob([currentSnapshotSvg()], { type: 'image/svg+xml;charset=utf-8' }),
+      new Blob([source], { type: 'image/svg+xml;charset=utf-8' }),
       snapshotFileName(activeAvatar.name)
     )
   }
   const downloadSnapshotPng = () => {
+    const pixelCanvas = createPixelSnapshotCanvas()
+    if (pixelCanvas) {
+      pixelCanvas.toBlob(blob => {
+        if (blob) downloadBlob(blob, snapshotFileName(activeAvatar.name, 'png'))
+      }, 'image/png')
+      return
+    }
     const size = Number(snapshotSize)
     const source = new Blob([currentSnapshotSvg()], { type: 'image/svg+xml;charset=utf-8' })
     const sourceUrl = URL.createObjectURL(source)
@@ -1842,6 +2091,7 @@ export function useStudioController() {
     commitExpressionMove,
     commitStateMove,
     confirmStudioProjectImport,
+    copyAvatarRuntimeDefinition,
     createNewAvatar,
     deleteActiveAvatar,
     deleteAvatarOpen,
@@ -1851,6 +2101,7 @@ export function useStudioController() {
     deleteSequenceEditing,
     deleteSequenceOpen,
     downloadAvatarExport,
+    downloadAvatarRuntimeDefinition,
     downloadStudioProject,
     draggedAvatarId,
     draggedExpressionId,
@@ -1869,6 +2120,7 @@ export function useStudioController() {
     exportFormat,
     expression,
     expressionById,
+    expressionSemanticKeyError,
     expressionDragOrigin,
     expressionDragPreview,
     expressions,
@@ -1880,11 +2132,14 @@ export function useStudioController() {
     linked,
     mode,
     openExpressionEditor,
+    openPhotoMode,
     openSequenceEditor,
     pauseState,
     pendingProjectImport,
     persistEditedEyeExpression,
     photoFlash,
+    photoPanelSections,
+    photoTool,
     playbackStatus,
     playbackVisual,
     prepareStudioProjectImport,
@@ -1903,6 +2158,9 @@ export function useStudioController() {
     renderedEffect,
     renderedRotationGizmo,
     renderedScene,
+    runtimeDefinitionResult,
+    runtimeCopyStatus,
+    runtimeExportErrors,
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
@@ -1914,6 +2172,7 @@ export function useStudioController() {
     selectedSequenceStepId,
     selectedState,
     sequenceEditing,
+    animationSemanticKeyError,
     sequences,
     setDeleteAvatarOpen,
     setDeleteExpressionOpen,
@@ -1933,12 +2192,15 @@ export function useStudioController() {
     setMode,
     setPendingProjectImport,
     setSequences,
+    setPhotoPanelSections,
+    setPhotoTool,
     setSelectedEyeSide,
     setSelectedSequenceStepId,
     setSequenceEditing,
     setSnapshotBackground,
     setSnapshotColorFrom,
     setSnapshotColorTo,
+    setSnapshotComposition,
     setSnapshotFormat,
     setSnapshotSize,
     animationExportSequenceId,
@@ -1970,6 +2232,7 @@ export function useStudioController() {
     snapshotBackground,
     snapshotColorFrom,
     snapshotColorTo,
+    snapshotComposition,
     snapshotFormat,
     snapshotSize,
     springSpeed,

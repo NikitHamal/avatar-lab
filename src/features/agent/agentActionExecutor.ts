@@ -150,7 +150,8 @@ export function executeAgentAction(
             Number.isInteger(payload.creaturePaletteIndex)
               ? Math.min(99, Math.max(0, payload.creaturePaletteIndex))
               : defaultCreaturePaletteIndex,
-          mouthEnabled: payload.mouthEnabled === true,
+          mouthEnabled: Boolean(payload.mouthEnabled),
+          renderStyle: (payload as any).renderStyle || { type: 'vector' },
         }
 
         const nextAvatars = [...controller.avatars, newAvatar]

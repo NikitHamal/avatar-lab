@@ -8,6 +8,12 @@ import {
   resolveNodeOpacity,
   serializeNodePaintDefinitions,
 } from '../rendering/nodePaint'
+import {
+  defaultSnapshotComposition,
+  normalizeSnapshotComposition,
+  snapshotCornerRadius,
+  type SnapshotComposition,
+} from './snapshotComposition'
 
 export type SnapshotBackground = 'transparent' | 'solid' | 'linear' | 'radial'
 
@@ -16,6 +22,7 @@ export type SnapshotOptions = {
   colorFrom: string
   colorTo: string
   size: number
+  composition?: SnapshotComposition
 }
 
 export type SnapshotRenderOptions = {
@@ -25,12 +32,13 @@ export type SnapshotRenderOptions = {
 }
 
 const escapeXml = (value: string) =>
-  value.replace(/[&<>"]/g, character => {
+  value.replace(/[&<>"']/g, character => {
     const entities: Record<string, string> = {
       '&': '&amp;',
       '<': '&lt;',
       '>': '&gt;',
       '"': '&quot;',
+      "'": '&#39;',
     }
     return entities[character]
   })
@@ -69,6 +77,9 @@ export const serializeAvatarSnapshot = (
   eyeRenderer: AvatarEyeRenderer = 'classic',
   renderOptions: SnapshotRenderOptions = {}
 ) => {
+  const composition = normalizeSnapshotComposition(
+    options.composition ?? defaultSnapshotComposition
+  )
   const headPath = scene.headPath.get()
   const backPaths = scene.backPaths
     .map((item, index) => {
@@ -175,11 +186,19 @@ export const serializeAvatarSnapshot = (
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-150 -150 300 300" width="${options.size}" height="${options.size}" role="img" aria-label="${escapeXml(name)}">
-  <defs>${gradientMarkup(options)}${nodePaintDefs}${orbitalDefs}<clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath><clipPath id="snapshot-left-eye-clip"><path d="${escapeXml(scene.leftPath.get())}"/></clipPath><clipPath id="snapshot-right-eye-clip"><path d="${escapeXml(scene.rightPath.get())}"/></clipPath>${creatureClipDefinition}</defs>
-  ${backgroundMarkup(options)}
-  <g transform="translate(${offsetX} ${offsetY})">${body}</g>${effectMarkup}
+  <defs>${gradientMarkup(options)}${nodePaintDefs}${orbitalDefs}<clipPath id="snapshot-frame-clip"><rect x="-150" y="-150" width="300" height="300" rx="${snapshotCornerRadius(composition.cornerRadius)}"/></clipPath><clipPath id="snapshot-head-clip"><path d="${escapeXml(headPath)}"/></clipPath><clipPath id="snapshot-left-eye-clip"><path d="${escapeXml(scene.leftPath.get())}"/></clipPath><clipPath id="snapshot-right-eye-clip"><path d="${escapeXml(scene.rightPath.get())}"/></clipPath>${creatureClipDefinition}</defs>
+  <g clip-path="url(#snapshot-frame-clip)">
+    ${backgroundMarkup(options)}
+    <g transform="translate(${composition.x} ${composition.y}) scale(${composition.scale})"><g transform="translate(${offsetX} ${offsetY})">${body}</g></g>${effectMarkup}
+  </g>
 </svg>`
 }
+
+export const serializePixelSnapshot = (name: string, imageDataUrl: string, size: number) =>
+  `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${escapeXml(name)}">
+  <image href="${escapeXml(imageDataUrl)}" width="${size}" height="${size}" image-rendering="pixelated"/>
+</svg>`
 
 export const snapshotFileName = (name: string, extension: 'svg' | 'png' = 'svg') => {
   const slug =

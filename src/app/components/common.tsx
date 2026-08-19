@@ -1,6 +1,6 @@
 import { Pause, Play, Square } from 'lucide-react'
-import { motion } from 'motion/react'
-import { useId } from 'react'
+import { motion, useMotionValue, useMotionValueEvent, useTransform } from 'motion/react'
+import { useEffect, useEffectEvent, useId, useRef } from 'react'
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,14 @@ import { Separator } from '@/components/ui/separator'
 import { useStudioLanguage } from '@/i18n'
 
 import { type PlaybackStatus } from '@/app/studio-utils'
+import type { AvatarRenderStyle } from '@/features/avatar/avatars'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
+import {
+  normalizeSnapshotComposition,
+  snapshotCornerRadius,
+  type SnapshotComposition,
+} from '@/features/export/snapshotComposition'
+import { LivePixelAvatarCanvas } from '@/features/rendering/components/PixelAvatarCanvas'
 import { type RenderedColors, type RenderedScene } from '@/features/rendering/renderedScene'
 export function ControlSection({
   title,
@@ -41,57 +48,244 @@ export function SnapshotPreview({
   background,
   colorFrom,
   colorTo,
+  renderStyle,
+  composition,
+  onCompositionChange,
 }: {
   scene: RenderedScene
   colors: RenderedColors
   background: SnapshotBackground
   colorFrom: string
   colorTo: string
+  renderStyle: AvatarRenderStyle
+  composition: SnapshotComposition
+  onCompositionChange: (composition: SnapshotComposition) => void
 }) {
+  const { t } = useStudioLanguage()
   const id = useId().replace(/:/g, '')
   const clipId = `${id}-clip`
+  const frameClipId = `${id}-frame-clip`
   const linearId = `${id}-linear`
   const radialId = `${id}-radial`
+  const positionX = useMotionValue(composition.x)
+  const positionY = useMotionValue(composition.y)
+  const scale = useMotionValue(composition.scale)
+  const pixelPositionX = useTransform(positionX, value => `${value / 3}%`)
+  const pixelPositionY = useTransform(positionY, value => `${value / 3}%`)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const compositionGroupRef = useRef<SVGGElement>(null)
+  const dragRef = useRef<{
+    clientX: number
+    clientY: number
+    x: number
+    y: number
+  } | null>(null)
+  const wheelCommitRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const backgroundFill =
     background === 'solid'
       ? colorFrom
       : background === 'linear'
         ? `url(#${linearId})`
         : `url(#${radialId})`
+  const pixelBackground =
+    background === 'solid'
+      ? colorFrom
+      : background === 'linear'
+        ? `linear-gradient(135deg, ${colorFrom}, ${colorTo})`
+        : background === 'radial'
+          ? `radial-gradient(circle at 50% 42%, ${colorFrom}, ${colorTo})`
+          : undefined
+
+  const paintVectorTransform = () => {
+    compositionGroupRef.current?.setAttribute(
+      'transform',
+      `translate(${positionX.get()} ${positionY.get()}) scale(${scale.get()})`
+    )
+  }
+
+  useMotionValueEvent(positionX, 'change', paintVectorTransform)
+  useMotionValueEvent(positionY, 'change', paintVectorTransform)
+  useMotionValueEvent(scale, 'change', paintVectorTransform)
+
+  useEffect(() => {
+    positionX.set(composition.x)
+    positionY.set(composition.y)
+    scale.set(composition.scale)
+    compositionGroupRef.current?.setAttribute(
+      'transform',
+      `translate(${composition.x} ${composition.y}) scale(${composition.scale})`
+    )
+  }, [composition.x, composition.y, composition.scale, positionX, positionY, scale])
+
+  const commitComposition = () =>
+    onCompositionChange(
+      normalizeSnapshotComposition({
+        ...composition,
+        x: positionX.get(),
+        y: positionY.get(),
+        scale: scale.get(),
+      })
+    )
+
+  const zoomFrame = useEffectEvent((event: WheelEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (dragRef.current) return
+    scale.set(
+      normalizeSnapshotComposition({
+        ...composition,
+        scale: scale.get() * Math.exp(-event.deltaY * 0.0015),
+      }).scale
+    )
+    if (wheelCommitRef.current) clearTimeout(wheelCommitRef.current)
+    wheelCommitRef.current = setTimeout(commitComposition, 120)
+  })
+
+  useEffect(() => {
+    const frame = frameRef.current
+    if (!frame) return
+    frame.addEventListener('wheel', zoomFrame, { passive: false })
+    return () => {
+      frame.removeEventListener('wheel', zoomFrame)
+      if (wheelCommitRef.current) clearTimeout(wheelCommitRef.current)
+    }
+  }, [])
+
+  const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    if (wheelCommitRef.current) clearTimeout(wheelCommitRef.current)
+    dragRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      x: positionX.get(),
+      y: positionY.get(),
+    }
+    event.currentTarget.dataset.dragging = 'true'
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const drag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current || !event.currentTarget.hasPointerCapture(event.pointerId)) return
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const viewBoxPerPixel = 300 / Math.max(bounds.width, 1)
+    positionX.set(
+      normalizeSnapshotComposition({
+        ...composition,
+        x: dragRef.current.x + (event.clientX - dragRef.current.clientX) * viewBoxPerPixel,
+      }).x
+    )
+    positionY.set(
+      normalizeSnapshotComposition({
+        ...composition,
+        y: dragRef.current.y + (event.clientY - dragRef.current.clientY) * viewBoxPerPixel,
+      }).y
+    )
+  }
+
+  const stopDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return
+    dragRef.current = null
+    delete event.currentTarget.dataset.dragging
+    commitComposition()
+  }
+
+  const nudge = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const distance = event.shiftKey ? 10 : 2
+    if (event.key === 'ArrowLeft') positionX.set(positionX.get() - distance)
+    else if (event.key === 'ArrowRight') positionX.set(positionX.get() + distance)
+    else if (event.key === 'ArrowUp') positionY.set(positionY.get() - distance)
+    else if (event.key === 'ArrowDown') positionY.set(positionY.get() + distance)
+    else if (event.key === '+' || event.key === '=') scale.set(scale.get() + 0.05)
+    else if (event.key === '-') scale.set(scale.get() - 0.05)
+    else return
+    event.preventDefault()
+    commitComposition()
+  }
 
   return (
-    <div className={`snapshot-preview ${background === 'transparent' ? 'is-transparent' : ''}`}>
-      <svg viewBox="-150 -150 300 300" aria-hidden="true">
-        <defs>
-          <clipPath id={clipId}>
-            <motion.path d={scene.headPath} />
-          </clipPath>
-          <linearGradient id={linearId} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor={colorFrom} />
-            <stop offset="1" stopColor={colorTo} />
-          </linearGradient>
-          <radialGradient id={radialId} cx="50%" cy="42%" r="70%">
-            <stop offset="0" stopColor={colorFrom} />
-            <stop offset="1" stopColor={colorTo} />
-          </radialGradient>
-        </defs>
-        {background !== 'transparent' && (
-          <rect x="-150" y="-150" width="300" height="300" fill={backgroundFill} />
-        )}
-        <motion.g style={{ x: scene.offsetX, y: scene.offsetY }}>
-          {scene.backPaths.map((pathValue, index) => (
-            <motion.path d={pathValue} fill={colors.body} key={`back-${index}`} />
-          ))}
-          <motion.path d={scene.headPath} fill={colors.body} />
-          <g clipPath={`url(#${clipId})`}>
-            <motion.path d={scene.leftPath} fill={colors.eyes} opacity={scene.leftOpacity} />
-            <motion.path d={scene.rightPath} fill={colors.eyes} opacity={scene.rightOpacity} />
+    <div
+      ref={frameRef}
+      className={`snapshot-preview ${background === 'transparent' ? 'is-transparent' : ''}`}
+      style={
+        {
+          '--snapshot-corner-radius': `${composition.cornerRadius}%`,
+          ...(renderStyle.type === 'pixel' ? { background: pixelBackground } : {}),
+        } as React.CSSProperties
+      }
+      role="application"
+      tabIndex={0}
+      aria-label={t(
+        'Cadre du logo. Glisse pour déplacer l’avatar et utilise la molette pour zoomer.'
+      )}
+      onPointerDown={startDrag}
+      onPointerMove={drag}
+      onPointerUp={stopDrag}
+      onPointerCancel={stopDrag}
+      onKeyDown={nudge}
+    >
+      {renderStyle.type === 'pixel' ? (
+        <motion.div
+          className="snapshot-pixel-transform"
+          style={{ x: pixelPositionX, y: pixelPositionY, scale }}
+        >
+          <LivePixelAvatarCanvas
+            scene={scene}
+            colors={colors}
+            style={renderStyle}
+            className="avatar-preview"
+          />
+        </motion.div>
+      ) : (
+        <svg className="avatar-preview" viewBox="-150 -150 300 300" aria-hidden="true">
+          <defs>
+            <clipPath id={frameClipId}>
+              <rect
+                x="-150"
+                y="-150"
+                width="300"
+                height="300"
+                rx={snapshotCornerRadius(composition.cornerRadius)}
+              />
+            </clipPath>
+            <clipPath id={clipId}>
+              <motion.path d={scene.headPath} />
+            </clipPath>
+            <linearGradient id={linearId} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor={colorFrom} />
+              <stop offset="1" stopColor={colorTo} />
+            </linearGradient>
+            <radialGradient id={radialId} cx="50%" cy="42%" r="70%">
+              <stop offset="0" stopColor={colorFrom} />
+              <stop offset="1" stopColor={colorTo} />
+            </radialGradient>
+          </defs>
+          <g clipPath={`url(#${frameClipId})`}>
+            {background !== 'transparent' && (
+              <rect x="-150" y="-150" width="300" height="300" fill={backgroundFill} />
+            )}
+            <g ref={compositionGroupRef}>
+              <motion.g style={{ x: scene.offsetX, y: scene.offsetY }}>
+                {scene.backPaths.map((pathValue, index) => (
+                  <motion.path d={pathValue} fill={colors.body} key={`back-${index}`} />
+                ))}
+                <motion.path d={scene.headPath} fill={colors.body} />
+                <g clipPath={`url(#${clipId})`}>
+                  <motion.path d={scene.leftPath} fill={colors.eyes} opacity={scene.leftOpacity} />
+                  <motion.path
+                    d={scene.rightPath}
+                    fill={colors.eyes}
+                    opacity={scene.rightOpacity}
+                  />
+                </g>
+                {scene.frontPaths.map((pathValue, index) => (
+                  <motion.path d={pathValue} fill={colors.body} key={`front-${index}`} />
+                ))}
+              </motion.g>
+            </g>
           </g>
-          {scene.frontPaths.map((pathValue, index) => (
-            <motion.path d={pathValue} fill={colors.body} key={`front-${index}`} />
-          ))}
-        </motion.g>
-      </svg>
+        </svg>
+      )}
     </div>
   )
 }
@@ -100,11 +294,13 @@ export function ExportSection({
   value,
   title,
   subtitle,
+  badge,
   children,
 }: {
   value: string
   title: string
   subtitle: string
+  badge?: string
   children: React.ReactNode
 }) {
   const { t } = useStudioLanguage()
@@ -112,7 +308,10 @@ export function ExportSection({
     <AccordionItem value={value} className={`export-accordion-item export-accordion-${value}`}>
       <AccordionTrigger className="export-accordion-trigger">
         <span>
-          <strong>{t(title)}</strong>
+          <span className="export-accordion-title">
+            <strong>{t(title)}</strong>
+            {badge && <b className="export-menu-badge">{t(badge)}</b>}
+          </span>
           <small>{t(subtitle)}</small>
         </span>
       </AccordionTrigger>

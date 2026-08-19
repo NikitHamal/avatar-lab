@@ -80,6 +80,7 @@ export type Expression = {
   mouthCurve?: number
   mouthStrokeWidth?: number
   effect?: AvatarVisualEffect
+  semanticKey?: string
 }
 
 export type ExpressionNumericField = Exclude<
@@ -714,9 +715,10 @@ export const poseFromExpression = (expression: Expression): AvatarPose => ({
 
 export const interpolatePose = (from: AvatarPose, to: AvatarPose, progress: number): AvatarPose => {
   const expression: Expression = { ...from.expression }
-  expressionFields.forEach(field => {
-    expression[field] =
-      from.expression[field] + (to.expression[field] - from.expression[field]) * progress
+  expressionFields.forEach((field: ExpressionNumericField) => {
+    const fromVal = ((from.expression as any)[field] as number) ?? 0
+    const toVal = ((to.expression as any)[field] as number) ?? 0
+    ;(expression as any)[field] = fromVal + (toVal - fromVal) * progress
   })
   return {
     expression,

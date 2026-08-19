@@ -48,6 +48,11 @@ const viteBundle = async build => {
   const result = await build({
     configFile: false,
     logLevel: 'silent',
+    resolve: {
+      alias: {
+        '@bible-strong/avatar-core': path.join(root, 'packages/avatar-core/src/index.ts'),
+      },
+    },
     build: {
       write: false,
       minify: true,

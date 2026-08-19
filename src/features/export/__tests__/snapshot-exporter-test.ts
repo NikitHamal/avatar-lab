@@ -1,7 +1,11 @@
 import { poseFromExpression, renderAvatar } from '@/features/avatar/geometry'
 import { defaultExpression } from '@/features/avatar/presets'
 import { createRenderedScene, paintRenderedOffset } from '@/features/rendering/renderedScene'
-import { serializeAvatarSnapshot, snapshotFileName } from '@/features/export/snapshotExporter'
+import {
+  serializeAvatarSnapshot,
+  serializePixelSnapshot,
+  snapshotFileName,
+} from '@/features/export/snapshotExporter'
 import { surfacePresets } from '@/features/avatar/surfaces'
 
 describe('avatar snapshot export', () => {
@@ -22,7 +26,23 @@ describe('avatar snapshot export', () => {
     expect(svg).toContain('transform="translate(3 -2)"')
     expect(svg).toContain(`d="${geometry.headPath}" fill="#5b7fe5"`)
     expect(svg).toContain('fill="#111316"')
-    expect(svg).not.toContain('<rect')
+    expect(svg).not.toContain('width="300" height="300" fill=')
+  })
+
+  it('applies logo framing without changing the rendered avatar scene', () => {
+    const svg = serializeAvatarSnapshot('Strobi', scene, colors, {
+      background: 'solid',
+      colorFrom: '#818181',
+      colorTo: '#818181',
+      size: 1024,
+      composition: { x: 55, y: 65, scale: 1.3, cornerRadius: 18 },
+    })
+
+    expect(svg).toContain('<clipPath id="snapshot-frame-clip">')
+    expect(svg).toContain('rx="54"')
+    expect(svg).toContain('clip-path="url(#snapshot-frame-clip)"')
+    expect(svg).toContain('transform="translate(55 65) scale(1.3)"')
+    expect(svg).toContain('fill="#818181"')
   })
 
   it('uses the live Creature eye paths for expressive-eye snapshots', () => {
@@ -86,5 +106,14 @@ describe('avatar snapshot export', () => {
     expect(svg).toContain('fill="url(#snapshot-radial)"')
     expect(snapshotFileName('Étoile du soir')).toBe('etoile-du-soir-snapshot.svg')
     expect(snapshotFileName('Étoile du soir', 'png')).toBe('etoile-du-soir-snapshot.png')
+  })
+
+  it('embeds a pixel snapshot as a self-contained raster SVG', () => {
+    const svg = serializePixelSnapshot('Pixel & Co', 'data:image/png;base64,AAAA', 256)
+
+    expect(svg).toContain('viewBox="0 0 256 256"')
+    expect(svg).toContain('image-rendering="pixelated"')
+    expect(svg).toContain('data:image/png;base64,AAAA')
+    expect(svg).toContain('aria-label="Pixel &amp; Co"')
   })
 })

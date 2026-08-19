@@ -17,6 +17,7 @@ import {
   applyAvatarEyeDefaults,
   type AvatarEyeDefaults,
   type AvatarEyeRenderer,
+  type AvatarRenderStyle,
 } from '@/features/avatar/avatars'
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
@@ -31,6 +32,7 @@ import {
   rotationRing,
   translateBodyNodeAlongLocalAxis,
   translateBodyNodeInCameraPlane,
+  type AvatarNodeStyle,
   type AvatarPose,
   type AvatarVisualEffect,
   type Expression,
@@ -53,6 +55,7 @@ import {
   evaluatePlayArcs,
   type RenderedOrbitalArc,
 } from '@/features/avatar/orbitalRings'
+import { LivePixelAvatarCanvas } from '@/features/rendering/components/PixelAvatarCanvas'
 import { type RenderedRotationGizmo } from '@/features/rendering/renderedRotationGizmo'
 import {
   findBodyNodePath,
@@ -70,12 +73,14 @@ import {
 export function RotationGizmo({
   expression,
   rendered,
+  onPreview,
   onChange,
   onActiveChange,
   onReset,
 }: {
   expression: Expression
   rendered: RenderedRotationGizmo
+  onPreview: (next: Expression) => void
   onChange: (next: Expression) => void
   onActiveChange: (active: boolean) => void
   onReset: () => void
@@ -92,6 +97,7 @@ export function RotationGizmo({
     | { type: 'view'; startAngle: number; expression: Expression }
     | null
   >(null)
+  const latestExpression = useRef(expression)
   const pose = poseFromExpression(expression)
   const rings = {
     x: rotationRing(pose, 'x'),
@@ -134,6 +140,7 @@ export function RotationGizmo({
       tangent: unitVector(previous, next),
       expression,
     }
+    latestExpression.current = expression
     event.currentTarget.setPointerCapture(event.pointerId)
   }
   const startView = (event: React.PointerEvent<SVGElement>) => {
@@ -141,6 +148,7 @@ export function RotationGizmo({
     onActiveChange(true)
     const point = toLocal(event)
     drag.current = { type: 'view', startAngle: Math.atan2(point[1], point[0]), expression }
+    latestExpression.current = expression
     event.currentTarget.setPointerCapture(event.pointerId)
   }
   const move = (event: React.PointerEvent<SVGElement>) => {
@@ -152,23 +160,34 @@ export function RotationGizmo({
         Math.sin(currentAngle - drag.current.startAngle),
         Math.cos(currentAngle - drag.current.startAngle)
       )
-      onChange(rotateExpressionAroundCamera(drag.current.expression, delta))
+      const next = rotateExpressionAroundCamera(drag.current.expression, delta)
+      latestExpression.current = next
+      onPreview(next)
       return
     }
     const signedDistance =
       (point[0] - drag.current.startPoint[0]) * drag.current.tangent[0] +
       (point[1] - drag.current.startPoint[1]) * drag.current.tangent[1]
-    onChange(
-      rotateExpressionAroundAxis(drag.current.expression, drag.current.axis, signedDistance * 1.5)
+    const next = rotateExpressionAroundAxis(
+      drag.current.expression,
+      drag.current.axis,
+      signedDistance * 1.5
     )
+    latestExpression.current = next
+    onPreview(next)
   }
   const stop = () => {
+    if (drag.current) onChange(latestExpression.current)
     drag.current = null
     onActiveChange(false)
   }
   const cancel = () => {
-    if (drag.current) onChange(drag.current.expression)
-    stop()
+    if (drag.current) {
+      onPreview(drag.current.expression)
+      onChange(drag.current.expression)
+    }
+    drag.current = null
+    onActiveChange(false)
   }
   useEscapeToCancel(cancel)
   return (
@@ -599,6 +618,8 @@ export function AvatarCanvas({
   creaturePaletteIndex,
   surface,
   scene,
+  colors,
+  renderStyle,
   rotationGizmo,
   showWire,
   bodyEditing,
@@ -626,7 +647,9 @@ export function AvatarCanvas({
   eyeRenderer: AvatarEyeRenderer
   creaturePaletteIndex: number
   surface: SurfaceConfig
+  colors: RenderedColors
   scene: RenderedScene
+  renderStyle: AvatarRenderStyle
   renderedColors?: RenderedColors
   visualEffect?: AvatarVisualEffect
   rotationGizmo: RenderedRotationGizmo
@@ -896,7 +919,7 @@ export function AvatarCanvas({
   }
   useEscapeToCancel(cancelDrag)
   return (
-    <div className="avatar-wrap">
+    <div className={`avatar-wrap${renderStyle.type === 'pixel' ? ' is-pixel-rendered' : ''}`}>
       {playback && (
         <motion.div
           className="stage-playback-status"
@@ -906,6 +929,14 @@ export function AvatarCanvas({
         >
           <PlaybackIdentity name={playback.name} status={playback.status} />
         </motion.div>
+      )}
+      {renderStyle.type === 'pixel' && (
+        <LivePixelAvatarCanvas
+          scene={scene}
+          colors={colors}
+          style={renderStyle}
+          className="avatar-pixel-canvas"
+        />
       )}
       <svg
         ref={svgRef}
@@ -955,7 +986,7 @@ export function AvatarCanvas({
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          {Object.entries(nodeStyles.current).map(([nodeId, style]) => {
+          {Object.entries(nodeStyles.current).map(([nodeId, style]: [string, AvatarNodeStyle]) => {
             if (!nodeUsesGradient(style)) return null
             const gradientId = nodeGradientId('stage-node', nodeId)
             const from = style.color || 'var(--avatar-body-color, #5b7fe5)'
@@ -985,7 +1016,7 @@ export function AvatarCanvas({
               </linearGradient>
             )
           })}
-          {Object.entries(nodeStyles.current).map(([nodeId, style]) =>
+          {Object.entries(nodeStyles.current).map(([nodeId, style]: [string, AvatarNodeStyle]) =>
             nodeShouldGlow(style) ? (
               <filter
                 key={nodeFilterId('stage-node', nodeId)}
@@ -1007,7 +1038,7 @@ export function AvatarCanvas({
         </defs>
         <motion.g style={{ x: offsetX, y: offsetY }}>
           <OrbitalArcsCanvasLayer effect={activeEffect} scale={surface.width * 0.52} layer="back" />
-          {backPaths.map((pathValue, index) => {
+          {backPaths.map((pathValue: any, index: number) => {
             const nodeId = backNodeIds.current[index]
             const style = nodeId ? nodeStyles.current[nodeId] : undefined
             const fill = resolveNodeFill(style, undefined, 'stage-node', nodeId)
@@ -1039,7 +1070,7 @@ export function AvatarCanvas({
             }}
           />
           <g clipPath="url(#avatar-head-clip)">
-            {decalPaths.map((pathValue, index) => {
+            {decalPaths.map((pathValue: any, index: number) => {
               const fill = decalFills.current[index]
               if (!fill) return null
               return (
@@ -1054,7 +1085,7 @@ export function AvatarCanvas({
               )
             })}
             {(showWire || highlight === 'head') &&
-              wirePaths.map((pathValue, index) => (
+              wirePaths.map((pathValue: any, index: number) => (
                 <motion.path className="wire" d={pathValue} key={index} />
               ))}
             {(!creatureEyesActive || !creatureEyesReady) && (
@@ -1139,7 +1170,7 @@ export function AvatarCanvas({
               fill="none"
             />
           </g>
-          {frontPaths.map((pathValue, index) => {
+          {frontPaths.map((pathValue: any, index: number) => {
             const nodeId = frontNodeIds.current[index]
             const style = nodeId ? nodeStyles.current[nodeId] : undefined
             const fill = resolveNodeFill(style, undefined, 'stage-node', nodeId)
@@ -1216,6 +1247,7 @@ export function AvatarCanvas({
       <RotationGizmo
         expression={expression}
         rendered={rotationGizmo}
+        onPreview={next => onPreview(next, 'head')}
         onChange={onChange}
         onActiveChange={active => onHighlightChange(active ? 'head' : null)}
         onReset={() => onReset({ ...expression, headX: 0, headY: 0, headZ: 0 })}

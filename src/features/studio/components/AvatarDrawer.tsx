@@ -129,6 +129,7 @@ export function AvatarPage({ controller }: { controller: StudioController }) {
                         avatarEyes={avatar.eyes ?? defaultAvatarEyes}
                         eyeRenderer={avatar.eyeRenderer}
                         creaturePaletteIndex={avatar.creaturePaletteIndex}
+                        renderStyle={avatar.renderStyle}
                         id={`avatar-${avatar.id}`}
                       />
                       <span>{avatar.name}</span>

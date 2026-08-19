@@ -28,10 +28,17 @@ export type StudioAvatar = {
   eyeRenderer: AvatarEyeRenderer
   creaturePaletteIndex: number
   mouthEnabled: boolean
+  renderStyle: AvatarRenderStyle
   behavior?: AvatarBehaviorLibrary
 }
 
 export type AvatarColors = { body: string; eyes: string; pupil?: string }
+export const PIXEL_RENDERING_ENABLED = false
+export type PixelRenderStyle = {
+  type: 'pixel'
+  resolution: number
+}
+export type AvatarRenderStyle = { type: 'vector' } | PixelRenderStyle
 export type AvatarEyeDefaults = Pick<
   Expression,
   | 'widthLeft'
@@ -49,6 +56,11 @@ export type AvatarEyeDefaults = Pick<
   eyeStyle?: EyeStyle
 }
 export const defaultAvatarColors: AvatarColors = { body: '#5b7fe5', eyes: '#111316' }
+export const defaultAvatarRenderStyle: AvatarRenderStyle = { type: 'vector' }
+export const defaultPixelRenderStyle: PixelRenderStyle = {
+  type: 'pixel',
+  resolution: 64,
+}
 export const defaultAvatarEyes: AvatarEyeDefaults = {
   widthLeft: defaultExpression.widthLeft,
   widthRight: defaultExpression.widthRight,
@@ -122,10 +134,27 @@ const inferLegacyCreaturePaletteIndex = (colors: AvatarColors): number | undefin
 const isEyeStyle = (value: unknown): value is EyeStyle =>
   value === 'dot' || value === 'circle' || value === 'cat' || value === 'acorn'
 
+const finiteBounded = (value: unknown, fallback: number, min: number, max: number) =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, value))
+    : fallback
+
+export const parseAvatarRenderStyle = (value: unknown): AvatarRenderStyle => {
+  const candidate = value as Partial<PixelRenderStyle> | null
+  if (!PIXEL_RENDERING_ENABLED || candidate?.type !== 'pixel') {
+    return { ...defaultAvatarRenderStyle }
+  }
+  return {
+    type: 'pixel',
+    resolution: Math.round(
+      finiteBounded(candidate.resolution, defaultPixelRenderStyle.resolution, 8, 192)
+    ),
+  }
+}
+
 const eyeDefaultFields = Object.keys(defaultAvatarEyes).filter(
   key => key !== 'eyeStyle'
 ) as (keyof Omit<AvatarEyeDefaults, 'eyeStyle'>)[]
-
 export const parseAvatarEyeDefaults = (value: unknown): AvatarEyeDefaults => {
   const candidate = value as Partial<AvatarEyeDefaults> | null
   const parsed = { ...defaultAvatarEyes }
@@ -156,6 +185,12 @@ export const applyAvatarEyeDefaults = (
   }
   return result
 }
+
+export const createUnkeyedExpressionCopy = (source: Expression, id: string): Expression => ({
+  ...source,
+  id,
+  semanticKey: undefined,
+})
 
 export type AvatarLibrary = {
   activeAvatarId: string
@@ -191,6 +226,7 @@ export const parseExpressions = (value: unknown): Expression[] => {
     if (typeof candidate.eyeColor === 'string' && hexColor.test(candidate.eyeColor))
       parsed.eyeColor = candidate.eyeColor
     if (isEyeStyle(candidate.eyeStyle)) parsed.eyeStyle = candidate.eyeStyle
+    if (typeof candidate.semanticKey === 'string') parsed.semanticKey = candidate.semanticKey
     parsed.eyeMotion = isEyeMotion(storedEyeMotion) ? storedEyeMotion : defaultExpression.eyeMotion
     parsed.bodyMotion = isBodyMotion(storedBodyMotion)
       ? storedBodyMotion
@@ -272,6 +308,41 @@ export const cloneAvatarBehavior = (behavior: AvatarBehaviorLibrary): AvatarBeha
   sequences: cloneSequences(behavior.sequences),
 })
 
+export const restoreLegacyBehaviorSemanticKeys = (
+  behavior: AvatarBehaviorLibrary,
+  reference: AvatarBehaviorLibrary
+): AvatarBehaviorLibrary => {
+  const expressionKeys = new Map(
+    reference.expressions.flatMap(expression =>
+      expression.semanticKey ? [[expression.id, expression.semanticKey] as const] : []
+    )
+  )
+  const sequenceKeys = new Map(
+    reference.sequences.flatMap(sequence =>
+      sequence.semanticKey ? [[sequence.id, sequence.semanticKey] as const] : []
+    )
+  )
+  const restoreExpressions = behavior.expressions.every(
+    expression => expression.semanticKey === undefined
+  )
+  const restoreSequences = behavior.sequences.every(sequence => sequence.semanticKey === undefined)
+
+  return {
+    expressions: restoreExpressions
+      ? behavior.expressions.map(expression => {
+          const semanticKey = expressionKeys.get(expression.id)
+          return semanticKey ? { ...expression, semanticKey } : expression
+        })
+      : behavior.expressions,
+    sequences: restoreSequences
+      ? behavior.sequences.map(sequence => {
+          const semanticKey = sequenceKeys.get(sequence.id)
+          return semanticKey ? { ...sequence, semanticKey } : sequence
+        })
+      : behavior.sequences,
+  }
+}
+
 export const resolveAvatarBehavior = (
   avatar: StudioAvatar,
   base: AvatarBehaviorLibrary
@@ -285,13 +356,18 @@ const parseAvatarBehavior = (
   const candidate = value as Partial<AvatarBehaviorLibrary>
   if (!Array.isArray(candidate.expressions) || !candidate.expressions.length) return undefined
   const expressions = parseExpressions(candidate.expressions)
-  const sequences = normalizeSequencesForExpressions(
-    Array.isArray(candidate.sequences)
-      ? parseSequences(candidate.sequences)
-      : cloneSequences(base.sequences),
-    expressions
+  return restoreLegacyBehaviorSemanticKeys(
+    {
+      expressions,
+      sequences: normalizeSequencesForExpressions(
+        Array.isArray(candidate.sequences)
+          ? parseSequences(candidate.sequences)
+          : cloneSequences(base.sequences),
+        expressions
+      ),
+    },
+    base
   )
-  return { expressions, sequences }
 }
 
 export const createAvatar = (name: string): StudioAvatar => ({
@@ -303,6 +379,7 @@ export const createAvatar = (name: string): StudioAvatar => ({
   eyeRenderer: 'classic',
   creaturePaletteIndex: defaultCreaturePaletteIndex,
   mouthEnabled: false,
+  renderStyle: { ...defaultAvatarRenderStyle },
 })
 
 export const parseAvatarLibrary = (
@@ -349,6 +426,7 @@ export const parseAvatarLibrary = (
             ? parseCreaturePaletteIndex(avatar.creaturePaletteIndex)
             : (legacyCreaturePaletteIndex ?? defaultCreaturePaletteIndex),
           mouthEnabled: avatar.mouthEnabled === true,
+          renderStyle: parseAvatarRenderStyle(avatar.renderStyle),
           ...(behavior ? { behavior } : {}),
         }
       })

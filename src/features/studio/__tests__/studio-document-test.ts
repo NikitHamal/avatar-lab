@@ -1,9 +1,12 @@
 import { createAvatar } from '@/features/avatar/avatars'
 import { createInitialSequences } from '@/features/animation/sequences'
 import { initialExpressions } from '@/features/avatar/presets'
+import { createAvatarDefinition } from '@/features/avatar/avatarDefinition'
 import {
+  clearPersistedStudioDocument,
   createStudioDocumentStore,
   loadStudioDocument,
+  parseStudioDocument,
   parseImportedStudioDocument,
   serializeStudioDocument,
   type StudioDocument,
@@ -118,10 +121,64 @@ describe('Studio document', () => {
     ).toBe(true)
   })
 
+  it('clears only the persisted Studio project', () => {
+    const removeItem = vi.fn()
+
+    expect(clearPersistedStudioDocument({ removeItem })).toBe(true)
+    expect(removeItem).toHaveBeenCalledExactlyOnceWith('bible-strong-avatar-studio-v2')
+  })
+
   it('keeps a locally saved project authoritative over the bundled snapshot', () => {
     const localDocument = documentFixture()
 
     expect(loadStudioDocument(storage(JSON.stringify(localDocument)))).toEqual(localDocument)
+  })
+
+  it('restores bundled semantic keys in a legacy local project', () => {
+    const fallback = loadStudioDocument(storage())
+    const legacy = structuredClone(fallback)
+    legacy.expressions.forEach(expression => delete expression.semanticKey)
+    legacy.sequences.forEach(sequence => delete sequence.semanticKey)
+
+    const document = parseStudioDocument(legacy, fallback)
+
+    expect(document.expressions.map(expression => expression.semanticKey)).toEqual(
+      fallback.expressions.map(expression => expression.semanticKey)
+    )
+    expect(document.sequences.map(sequence => sequence.semanticKey)).toEqual(
+      fallback.sequences.map(sequence => sequence.semanticKey)
+    )
+    expect(
+      createAvatarDefinition({
+        avatar: document.library.avatars[0],
+        behavior: { expressions: document.expressions, sequences: document.sequences },
+      }).ok
+    ).toBe(true)
+  })
+
+  it('restores bundled keys in legacy avatar-owned behavior without naming custom items', () => {
+    const fallback = loadStudioDocument(storage())
+    const legacy = structuredClone(fallback)
+    const avatar = legacy.library.avatars[0]
+    avatar.behavior = {
+      expressions: legacy.expressions.map(expression => ({
+        ...expression,
+        semanticKey: undefined,
+      })),
+      sequences: legacy.sequences.map(sequence => ({ ...sequence, semanticKey: undefined })),
+    }
+    avatar.behavior.expressions.push({
+      ...avatar.behavior.expressions[0],
+      id: 'expression-custom',
+      semanticKey: undefined,
+    })
+
+    const document = parseStudioDocument(legacy, fallback)
+    const behavior = document.library.avatars[0].behavior!
+
+    expect(behavior.expressions[0].semanticKey).toBe(fallback.expressions[0].semanticKey)
+    expect(behavior.sequences[0].semanticKey).toBe(fallback.sequences[0].semanticKey)
+    expect(behavior.expressions.at(-1)?.semanticKey).toBeUndefined()
   })
 
   it('persists one coherent document after a mutation', () => {
@@ -152,9 +209,10 @@ describe('Studio document', () => {
 
   it('round-trips a complete project document as portable JSON', () => {
     const document = documentFixture()
-    const expression = { ...initialExpressions[0], widthLeft: 42 }
+    const expression = { ...initialExpressions[0], semanticKey: 'happy-smile', widthLeft: 42 }
     const sequence = {
       ...createInitialSequences()[0],
+      semanticKey: 'happy',
       steps: createInitialSequences()[0].steps.map(step => ({
         ...step,
         expressionId: expression.id,
@@ -169,6 +227,26 @@ describe('Studio document', () => {
 
     expect(imported).toEqual(document)
     expect(imported.library.avatars[0].behavior?.expressions[0].widthLeft).toBe(42)
+    expect(imported.expressions[0].semanticKey).toBe(initialExpressions[0].semanticKey)
+    expect(imported.library.avatars[0].behavior?.expressions[0].semanticKey).toBe('happy-smile')
+    expect(imported.library.avatars[0].behavior?.sequences[0].semanticKey).toBe('happy')
+  })
+
+  it('preserves semantic keys in the base behavior parser', () => {
+    const document = documentFixture()
+    document.expressions = document.expressions.map((expression, index) => ({
+      ...expression,
+      ...(index === 0 ? { semanticKey: 'attentive' } : {}),
+    }))
+    document.sequences = document.sequences.map((sequence, index) => ({
+      ...sequence,
+      ...(index === 0 ? { semanticKey: 'sleeping' } : {}),
+    }))
+
+    const imported = parseImportedStudioDocument(serializeStudioDocument(document), document)
+
+    expect(imported.expressions[0].semanticKey).toBe('attentive')
+    expect(imported.sequences[0].semanticKey).toBe('sleeping')
   })
 
   it('keeps the base library unchanged when an avatar owns customized behavior', () => {

@@ -3,6 +3,8 @@ import { useState, type RefObject } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -20,6 +22,7 @@ import {
   type AvatarColors,
   type AvatarEyeDefaults,
   type AvatarEyeRenderer,
+  type AvatarRenderStyle,
 } from '@/features/avatar/avatars'
 import { type BodyNode } from '@/features/avatar/body'
 import { scaleEye, updateEyeDimension } from '@/features/avatar/expressionEditing'
@@ -39,6 +42,8 @@ import {
   resolveNodeFill,
   resolveNodeOpacity,
 } from '@/features/rendering/nodePaint'
+import { StaticPixelAvatarCanvas } from '@/features/rendering/components/PixelAvatarCanvas'
+
 type PreviewPoint = readonly [number, number]
 
 const smoothPreviewPath = (points: PreviewPoint[]) => {
@@ -136,6 +141,7 @@ export function ExpressionPreview({
   avatarEyes,
   eyeRenderer = 'classic',
   creaturePaletteIndex = 52,
+  renderStyle = { type: 'vector' },
   id,
 }: {
   expression: Expression
@@ -145,10 +151,34 @@ export function ExpressionPreview({
   avatarEyes: AvatarEyeDefaults
   eyeRenderer?: AvatarEyeRenderer
   creaturePaletteIndex?: number
+  renderStyle?: AvatarRenderStyle
   id: string
 }) {
   const geometry = getPreviewGeometry(expression, surface, bodyNodes, avatarEyes)
   const resolvedColors = resolveColors(expression, colors)
+
+  if (renderStyle?.type === 'pixel') {
+    return (
+      <StaticPixelAvatarCanvas
+        className="avatar-preview"
+        style={renderStyle}
+        frame={{
+          headPath: geometry.headPath,
+          backPaths: geometry.backPaths,
+          frontPaths: geometry.frontPaths,
+          leftPath: geometry.leftPath,
+          rightPath: geometry.rightPath,
+          leftOpacity: geometry.leftVisible ? 1 : 0,
+          rightOpacity: geometry.rightVisible ? 1 : 0,
+          offsetX: 0,
+          offsetY: 0,
+          bodyColor: resolvedColors.body,
+          eyeColor: resolvedColors.eyes,
+        }}
+      />
+    )
+  }
+
   const creatureColorway =
     CREATURE_COLORWAYS[creaturePaletteIndex] ?? CREATURE_COLORWAYS[52] ?? CREATURE_COLORWAYS[0]
   const creatureFrame = geometry.creatureEyeFrame
@@ -171,7 +201,7 @@ export function ExpressionPreview({
       : ''
   const clipId = `preview-${id}`
   return (
-    <svg viewBox="-150 -150 300 300" aria-hidden="true">
+    <svg className="avatar-preview" viewBox="-150 -150 300 300" aria-hidden="true">
       <defs>
         <clipPath id={clipId}>
           <path d={geometry.headPath} />
@@ -376,6 +406,7 @@ export function ExpressionCard({
   avatarEyes,
   eyeRenderer = 'classic',
   creaturePaletteIndex = 52,
+  renderStyle,
   previewId,
   onSelect,
   onEdit,
@@ -387,6 +418,7 @@ export function ExpressionCard({
   onDragOver,
   onDrop,
   onDragEnd,
+  runtimeError,
 }: {
   expression: Expression
   index: number
@@ -397,6 +429,7 @@ export function ExpressionCard({
   avatarEyes: AvatarEyeDefaults
   eyeRenderer?: AvatarEyeRenderer
   creaturePaletteIndex?: number
+  renderStyle: AvatarRenderStyle
   previewId: string
   onSelect: () => void
   onEdit?: () => void
@@ -408,6 +441,7 @@ export function ExpressionCard({
   onDragOver?: (event: React.DragEvent<HTMLButtonElement>) => void
   onDrop?: (event: React.DragEvent<HTMLButtonElement>) => void
   onDragEnd?: () => void
+  runtimeError: string | null
 }) {
   const { t } = useStudioLanguage()
   const card = (
@@ -433,8 +467,19 @@ export function ExpressionCard({
         avatarEyes={avatarEyes}
         eyeRenderer={eyeRenderer}
         creaturePaletteIndex={creaturePaletteIndex}
+        renderStyle={renderStyle}
         id={previewId}
       />
+      {runtimeError && (
+        <i
+          className="runtime-key-missing"
+          role="img"
+          aria-label={runtimeError}
+          title={runtimeError}
+        >
+          !
+        </i>
+      )}
       <span title={expression.id}>{t(getExpressionDisplayName(expression, index))}</span>
     </Button>
   )
@@ -475,6 +520,7 @@ export function ExpressionWorkspace({
   onSave,
   onDuplicate,
   onDelete,
+  semanticKeyError,
 }: {
   editing: { index: number | null; draft: Expression }
   avatarColors: AvatarColors
@@ -486,6 +532,7 @@ export function ExpressionWorkspace({
   onSave: () => void
   onDuplicate: () => void
   onDelete: () => void
+  semanticKeyError: string | null
 }) {
   const { t } = useStudioLanguage()
   const [linked, setLinked] = useState({
@@ -545,6 +592,43 @@ export function ExpressionWorkspace({
       </header>
       <div className="workspace-scroll">
         <div className="dialog-fields">
+          <ControlSection
+            title="Identité runtime"
+            subtitle="Nom public stable utilisé par les applications qui chargent cet avatar."
+            compact
+          >
+            <Card className="dialog-group semantic-key-card">
+              <Field>
+                <label
+                  className="semantic-key-label"
+                  htmlFor={`expression-key-${editing.draft.id}`}
+                >
+                  {t('Clé sémantique')}
+                </label>
+                <Input
+                  id={`expression-key-${editing.draft.id}`}
+                  value={editing.draft.semanticKey ?? ''}
+                  maxLength={64}
+                  spellCheck={false}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  aria-invalid={Boolean(semanticKeyError)}
+                  aria-describedby={`expression-key-help-${editing.draft.id}`}
+                  onChange={event =>
+                    update({ semanticKey: event.currentTarget.value || undefined })
+                  }
+                />
+                <p
+                  id={`expression-key-help-${editing.draft.id}`}
+                  className={semanticKeyError ? 'semantic-key-error' : 'field-help'}
+                  role={semanticKeyError ? 'alert' : undefined}
+                >
+                  {semanticKeyError ??
+                    t('Clé publique stable utilisée par l’API runtime, par exemple happy-smile.')}
+                </p>
+              </Field>
+            </Card>
+          </ControlSection>
           <ControlSection
             title="Corps"
             subtitle="Apparence et orientation générale de l’avatar."

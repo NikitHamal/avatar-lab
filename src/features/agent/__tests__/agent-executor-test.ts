@@ -82,6 +82,7 @@ describe('agent action execution and reversion', () => {
       eyeRenderer: 'classic',
       creaturePaletteIndex: 52,
       mouthEnabled: false,
+      renderStyle: { type: 'vector' },
     }
     const avatars = [avatar]
     const avatarsRef = { current: avatars }

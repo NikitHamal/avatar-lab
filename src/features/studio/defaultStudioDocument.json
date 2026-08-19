@@ -2407,7 +2407,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "upward-side-glance"
     },
     {
       "id": "expression-01",
@@ -2435,7 +2436,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "downward-gaze"
     },
     {
       "id": "expression-02",
@@ -2463,7 +2465,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "joyful-down-right"
     },
     {
       "id": "expression-03",
@@ -2491,7 +2494,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "surprised-left"
     },
     {
       "id": "expression-04",
@@ -2519,7 +2523,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "sleepy-squint"
     },
     {
       "id": "expression-05",
@@ -2547,7 +2552,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "skeptical-right"
     },
     {
       "id": "expression-06",
@@ -2575,7 +2581,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "small-attentive"
     },
     {
       "id": "expression-07",
@@ -2603,7 +2610,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "angry-right"
     },
     {
       "id": "expression-08",
@@ -2631,7 +2639,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "curious-left"
     },
     {
       "id": "expression-09",
@@ -2659,7 +2668,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "asymmetric-down-right"
     },
     {
       "id": "expression-10",
@@ -2687,7 +2697,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "attentive-left"
     },
     {
       "id": "expression-11",
@@ -2715,7 +2726,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "joyful-wide"
     },
     {
       "id": "expression-12",
@@ -2743,7 +2755,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "wide-downward-gaze"
     },
     {
       "id": "expression-13",
@@ -2771,7 +2784,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "eyes-closed"
     },
     {
       "id": "expression-14",
@@ -2799,7 +2813,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "skeptical-left"
     },
     {
       "id": "expression-15",
@@ -2827,7 +2842,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "far-right-glance"
     },
     {
       "id": "expression-16",
@@ -2855,7 +2871,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "angry-left"
     },
     {
       "id": "expression-17",
@@ -2883,7 +2900,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "playful-right"
     },
     {
       "id": "expression-18",
@@ -2911,7 +2929,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "asymmetric-up-left"
     },
     {
       "id": "expression-19",
@@ -2939,7 +2958,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "gentle-downward-gaze"
     },
     {
       "id": "expression-20",
@@ -2967,7 +2987,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "wide-down-left"
     },
     {
       "id": "expression-21",
@@ -2995,7 +3016,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "surprised-wide-left"
     },
     {
       "id": "expression-22",
@@ -3023,7 +3045,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "drowsy-closed"
     },
     {
       "id": "expression-23",
@@ -3051,7 +3074,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "suspicious-right"
     },
     {
       "id": "expression-24",
@@ -3079,7 +3103,8 @@
       "mouthWidth": 1,
       "mouthCurve": 1,
       "mouthStrokeWidth": 3.2,
-      "effect": "none"
+      "effect": "none",
+      "semanticKey": "shy-downward"
     },
     {
       "id": "joy",
@@ -4321,6 +4346,7 @@
   "sequences": [
     {
       "id": "intro-neby",
+      "semanticKey": "intro-neby",
       "name": "Neby — Cinematic Reveal",
       "group": "Intros",
       "description": "Intro cinématique Neby : silence, regard qui s’ouvre, verrouillage caméra et signature lumineuse.",
@@ -4373,6 +4399,7 @@
     },
     {
       "id": "intro-cinematic",
+      "semanticKey": "intro-cinematic",
       "name": "Cinematic Character Reveal",
       "group": "Intros",
       "description": "Révélation courte et premium, conçue pour présenter un personnage dans une app ou une vidéo.",
@@ -4425,6 +4452,7 @@
     },
     {
       "id": "intro-pop",
+      "semanticKey": "intro-pop",
       "name": "Playful Pop Intro",
       "group": "Intros",
       "description": "Entrée vive et ludique avec anticipation, pop visuel et regard souriant.",
@@ -4470,6 +4498,7 @@
     },
     {
       "id": "intro-scan",
+      "semanticKey": "intro-scan",
       "name": "Tech Scan Intro",
       "group": "Intros",
       "description": "Intro technologique : balayage du regard, focus puis pose de signature.",
@@ -4522,6 +4551,7 @@
     },
     {
       "id": "sleeping",
+      "semanticKey": "sleeping",
       "name": "sleeping",
       "group": "Cycle de vie",
       "description": "Yeux presque fermés, respiration lente et expression de sommeil.",
@@ -4560,6 +4590,7 @@
     },
     {
       "id": "waking",
+      "semanticKey": "waking",
       "name": "waking",
       "group": "Cycle de vie",
       "description": "Animation courte de réveil avant retour vers une expression neutre.",
@@ -4598,6 +4629,7 @@
     },
     {
       "id": "idle",
+      "semanticKey": "idle",
       "name": "idle",
       "group": "Cycle de vie",
       "description": "Regard frontal au repos, puis brèves œillades latérales avec respiration légère.",
@@ -4643,6 +4675,7 @@
     },
     {
       "id": "listening",
+      "semanticKey": "listening",
       "name": "listening",
       "group": "Cycle de vie",
       "description": "Regard frontal attentif, légère inclinaison et micro-ajustements sans dépendre d’une bouche.",
@@ -4681,6 +4714,7 @@
     },
     {
       "id": "thinking",
+      "semanticKey": "thinking",
       "name": "thinking",
       "group": "Cycle de vie",
       "description": "Regard haut et latéral, expressions asymétriques et changements fréquents.",
@@ -4726,6 +4760,7 @@
     },
     {
       "id": "searching",
+      "semanticKey": "searching",
       "name": "searching",
       "group": "Cycle de vie",
       "description": "Balayage rapide et changements très fréquents.",
@@ -4764,6 +4799,7 @@
     },
     {
       "id": "working",
+      "semanticKey": "working",
       "name": "working",
       "group": "Cycle de vie",
       "description": "Rythme régulier et expressions concentrées.",
@@ -4809,6 +4845,7 @@
     },
     {
       "id": "speaking",
+      "semanticKey": "speaking",
       "name": "speaking",
       "group": "Cycle de vie",
       "description": "Cycle de jeu oculaire A/B/C et micro-saccades pour parler visuellement même bouche désactivée.",
@@ -4854,6 +4891,7 @@
     },
     {
       "id": "presenting",
+      "semanticKey": "presenting",
       "name": "presenting",
       "group": "Cycle de vie",
       "description": "Gestuelle calme, regard engagé et sourire léger.",
@@ -4899,6 +4937,7 @@
     },
     {
       "id": "scanning",
+      "semanticKey": "scanning",
       "name": "scanning",
       "group": "Cycle de vie",
       "description": "Balayage latéral du regard pour les agents en recherche.",
@@ -4937,6 +4976,7 @@
     },
     {
       "id": "excited",
+      "semanticKey": "excited",
       "name": "excited",
       "group": "Réactions",
       "description": "Grandes expressions et transitions rapides.",
@@ -4982,6 +5022,7 @@
     },
     {
       "id": "surprised",
+      "semanticKey": "surprised",
       "name": "surprised",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5020,6 +5061,7 @@
     },
     {
       "id": "suspicious",
+      "semanticKey": "suspicious",
       "name": "suspicious",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5058,6 +5100,7 @@
     },
     {
       "id": "angry",
+      "semanticKey": "angry",
       "name": "angry",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5096,6 +5139,7 @@
     },
     {
       "id": "drowsy",
+      "semanticKey": "drowsy",
       "name": "drowsy",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5134,6 +5178,7 @@
     },
     {
       "id": "happy",
+      "semanticKey": "happy",
       "name": "happy",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5172,6 +5217,7 @@
     },
     {
       "id": "curious",
+      "semanticKey": "curious",
       "name": "curious",
       "group": "Réactions",
       "description": "Inclinaisons et forte asymétrie.",
@@ -5210,6 +5256,7 @@
     },
     {
       "id": "confused",
+      "semanticKey": "confused",
       "name": "confused",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5248,6 +5295,7 @@
     },
     {
       "id": "bored",
+      "semanticKey": "bored",
       "name": "bored",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5286,6 +5334,7 @@
     },
     {
       "id": "proud",
+      "semanticKey": "proud",
       "name": "proud",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5324,6 +5373,7 @@
     },
     {
       "id": "shy",
+      "semanticKey": "shy",
       "name": "shy",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5362,6 +5412,7 @@
     },
     {
       "id": "sad",
+      "semanticKey": "sad",
       "name": "sad",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5400,6 +5451,7 @@
     },
     {
       "id": "laughing",
+      "semanticKey": "laughing",
       "name": "laughing",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5438,6 +5490,7 @@
     },
     {
       "id": "scared",
+      "semanticKey": "scared",
       "name": "scared",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5476,6 +5529,7 @@
     },
     {
       "id": "playful",
+      "semanticKey": "playful",
       "name": "playful",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5521,6 +5575,7 @@
     },
     {
       "id": "celebrate",
+      "semanticKey": "celebrate",
       "name": "Celebrate + Confetti",
       "group": "Réactions",
       "description": "Célébration avec vrais confettis procéduraux, yeux pétillants et rebond bref.",
@@ -5566,6 +5621,7 @@
     },
     {
       "id": "greeting",
+      "semanticKey": "greeting",
       "name": "greeting",
       "group": "Réactions",
       "description": "Accueil chaleureux avec clin d’œil et rebond subtil.",
@@ -5611,6 +5667,7 @@
     },
     {
       "id": "agree",
+      "semanticKey": "agree",
       "name": "agree",
       "group": "Réactions",
       "description": "Réaction positive courte pour confirmer une action.",
@@ -5649,6 +5706,7 @@
     },
     {
       "id": "disagree",
+      "semanticKey": "disagree",
       "name": "disagree",
       "group": "Réactions",
       "description": "Réaction négative lisible sans agressivité excessive.",
@@ -5687,6 +5745,7 @@
     },
     {
       "id": "wink",
+      "semanticKey": "wink",
       "name": "wink",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5725,6 +5784,7 @@
     },
     {
       "id": "love",
+      "semanticKey": "love",
       "name": "love",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5763,6 +5823,7 @@
     },
     {
       "id": "success",
+      "semanticKey": "success",
       "name": "success",
       "group": "Réactions",
       "description": "Réussite courte avec anticipation, burst visuel et retour propre vers le regard frontal.",
@@ -5808,6 +5869,7 @@
     },
     {
       "id": "error",
+      "semanticKey": "error",
       "name": "error",
       "group": "Réactions",
       "description": "Signal d’erreur expressif avec tremblement bref.",
@@ -5846,6 +5908,7 @@
     },
     {
       "id": "notification",
+      "semanticKey": "notification",
       "name": "Notification Attention",
       "group": "Réactions",
       "description": "Accroche visuelle rapide : snap du regard, alerte, puis recentrage sans pause morte.",
@@ -5884,6 +5947,7 @@
     },
     {
       "id": "dizzy",
+      "semanticKey": "dizzy",
       "name": "dizzy",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -5922,6 +5986,7 @@
     },
     {
       "id": "dance",
+      "semanticKey": "dance",
       "name": "dance",
       "group": "Réactions",
       "description": "Boucle ludique plus rythmée, sans longs temps morts, pilotée surtout par les yeux.",
@@ -5967,6 +6032,7 @@
     },
     {
       "id": "kiss",
+      "semanticKey": "kiss",
       "name": "kiss",
       "group": "Réactions",
       "description": "Cette animation enchaîne un pool de presets et des clignements.",
@@ -6012,6 +6078,7 @@
     },
     {
       "id": "orbit",
+      "semanticKey": "orbit",
       "name": "orbit",
       "group": "Réactions",
       "description": "Orbite 3D : anneaux arc-en-ciel en rotation orbitale autour de l’avatar et regard dynamique.",
@@ -6036,6 +6103,7 @@
     },
     {
       "id": "play",
+      "semanticKey": "play",
       "name": "play",
       "group": "Réactions",
       "description": "Lecture : bouquet d’arcs lumineux chromatiques balayant le corps avec pose dynamique.",

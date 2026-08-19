@@ -1,5 +1,9 @@
 import {
   ArrowLeft,
+  ArrowRight,
+  Camera,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Download,
   FileCode2,
@@ -10,15 +14,23 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Scan,
+  Shuffle,
   Smile,
   Trash2,
+  TriangleAlert,
   Upload,
   Video,
 } from 'lucide-react'
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'motion/react'
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react'
 
-import { Accordion } from '@/components/ui/accordion'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -46,7 +58,6 @@ import {
   ExportSection,
   InspectorCard,
   PanelTitle,
-  SnapshotPreview,
   StatePlayer,
 } from '@/app/components/common'
 import { AmbientMotionField, ColorField, LinkButton, NumericField } from '@/app/components/controls'
@@ -61,18 +72,341 @@ import {
   ExpressionCard,
   ExpressionPreview,
   ExpressionWorkspace,
-  SurfaceThumbnail,
 } from '@/features/avatar/components/ExpressionWorkspace'
 import type { Expression } from '@/features/avatar/geometry'
 import { defaultExpression } from '@/features/avatar/presets'
-import { surfaceLabels, surfacePresets } from '@/features/avatar/surfaces'
+import { randomSnapshotPalette } from '@/features/export/snapshotPalette'
 import { type SnapshotBackground } from '@/features/export/snapshotExporter'
 import { type AnimationMediaFormat } from '@/features/export/animationMediaExporter'
 import { AvatarPage } from '@/features/studio/components/AvatarDrawer'
+import { BodyConstructionAccordion } from '@/features/studio/components/BodyConstructionAccordion'
+import { HighlightedRuntimeCode } from '@/features/studio/components/HighlightedRuntimeCode'
+import { RuntimeGuideDialog } from '@/features/studio/components/RuntimeGuideDialog'
+import { RuntimePreviewDialog } from '@/features/studio/components/RuntimePreviewDialog'
 import { StudioIdentity } from '@/features/studio/components/StudioIdentity'
 import type { StudioController } from '@/features/studio/useStudioController'
 
+const reactQuickStartInstall = 'npm install @bible-strong/avatar-react react react-dom'
+const webQuickStartInstall = 'npm install @bible-strong/avatar-web'
+
+const reactQuickStartExample = (animationKey: string | undefined) =>
+  `import { createAvatar } from '@bible-strong/avatar-react'
+import '@bible-strong/avatar-react/styles.css'
+import definition from './avatar.avatar.json'
+
+const Avatar = createAvatar(definition)
+
+export function App() {
+  return <Avatar ${animationKey ? `defaultAnimation="${animationKey}"` : 'defaultExpression="neutral"'} />
+}`
+
+const webQuickStartExample = (animationKey: string | undefined) =>
+  `import { createAvatar } from '@bible-strong/avatar-web'
+import definition from './avatar.avatar.json'
+
+const avatar = createAvatar('#avatar', {
+  definition,
+  ${animationKey ? `defaultAnimation: '${animationKey}',` : `defaultExpression: 'neutral',`}
+})`
+
+function PoseControls({ controller }: { controller: StudioController }) {
+  const {
+    activeAvatar,
+    expression,
+    linked,
+    setLinked,
+    showWire,
+    t,
+    updateDimension,
+    updateHighlight,
+    updateImmediate,
+    updateSize,
+    updateSpacing,
+    updateWireVisibility,
+  } = controller
+
+  return (
+    <>
+      <ControlSection title="Corps" subtitle="Orientation et apparence générale de la pose.">
+        <InspectorCard className="color-panel">
+          <PanelTitle
+            level={3}
+            title="Couleur du corps"
+            subtitle="La pose peut remplacer temporairement la couleur de l’avatar."
+          />
+          <ColorField
+            label="Corps"
+            value={expression.bodyColor ?? activeAvatar.colors.body}
+            onChange={bodyColor => updateImmediate({ ...expression, bodyColor })}
+          />
+          {expression.bodyColor && (
+            <Button
+              className="inherit-colors"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('Reprendre la couleur de l’avatar')}
+              onClick={() => {
+                const next = { ...expression }
+                delete next.bodyColor
+                updateImmediate(next)
+              }}
+            >
+              <RotateCcw />
+            </Button>
+          )}
+        </InspectorCard>
+        <InspectorCard>
+          <PanelTitle
+            level={3}
+            title="Rotation de la tête"
+            subtitle="Les libellés ↔ sont scrubbables, comme dans Figma."
+          />
+          <NumericField
+            label="Rotation X"
+            value={expression.headX}
+            unit="°"
+            onActiveChange={active => updateHighlight(active ? 'head' : null)}
+            onChange={value => updateImmediate({ ...expression, headX: value })}
+          />
+          <NumericField
+            label="Rotation Y"
+            value={expression.headY}
+            unit="°"
+            onActiveChange={active => updateHighlight(active ? 'head' : null)}
+            onChange={value => updateImmediate({ ...expression, headY: value })}
+          />
+          <NumericField
+            label="Rotation Z"
+            value={expression.headZ}
+            unit="°"
+            onActiveChange={active => updateHighlight(active ? 'head' : null)}
+            onChange={value => updateImmediate({ ...expression, headZ: value })}
+          />
+        </InspectorCard>
+      </ControlSection>
+      <ControlSection title="Yeux" subtitle="Forme, placement, orientation et couleur du regard.">
+        <InspectorCard className="color-panel">
+          <PanelTitle
+            level={3}
+            title="Couleur des yeux"
+            subtitle="La pose peut remplacer temporairement la couleur de l’avatar."
+          />
+          <ColorField
+            label="Yeux"
+            value={expression.eyeColor ?? activeAvatar.colors.eyes}
+            onChange={eyeColor => updateImmediate({ ...expression, eyeColor })}
+          />
+          {expression.eyeColor && (
+            <Button
+              className="inherit-colors"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('Reprendre la couleur de l’avatar')}
+              onClick={() => {
+                const next = { ...expression }
+                delete next.eyeColor
+                updateImmediate(next)
+              }}
+            >
+              <RotateCcw />
+            </Button>
+          )}
+        </InspectorCard>
+        {(['width', 'height', 'size'] as const).map(dimension => (
+          <InspectorCard className="compact" key={dimension}>
+            <div className="panel-inline-title">
+              <h3>
+                {t(
+                  {
+                    width: 'Largeur',
+                    height: 'Hauteur',
+                    size: 'Taille proportionnelle',
+                  }[dimension]
+                )}
+              </h3>
+              <LinkButton
+                linked={linked[dimension]}
+                label={`Lier ${dimension}`}
+                onClick={() =>
+                  setLinked(current => ({
+                    ...current,
+                    [dimension]: !current[dimension],
+                  }))
+                }
+              />
+            </div>
+            <div className="eye-columns">
+              {(['Left', 'Right'] as Side[]).map(side => {
+                const width = expression[`width${side}`]
+                const height = expression[`height${side}`]
+                const value =
+                  dimension === 'width'
+                    ? width
+                    : dimension === 'height'
+                      ? height
+                      : Math.max(width, height)
+                return (
+                  <NumericField
+                    key={side}
+                    label={side === 'Left' ? 'Œil gauche' : 'Œil droit'}
+                    value={value}
+                    min={10}
+                    max={dimension === 'size' ? 110 : 100}
+                    unit="u"
+                    onActiveChange={active =>
+                      updateHighlight(
+                        active
+                          ? linked[dimension]
+                            ? 'both'
+                            : side === 'Left'
+                              ? 'left'
+                              : 'right'
+                          : null
+                      )
+                    }
+                    onChange={next =>
+                      dimension === 'size'
+                        ? updateSize(side, next)
+                        : updateDimension(side, dimension, next)
+                    }
+                  />
+                )
+              })}
+            </div>
+          </InspectorCard>
+        ))}
+        <InspectorCard>
+          <PanelTitle
+            level={3}
+            title="Position et espacement"
+            subtitle="Coordonnées communes projetées sur la forme choisie."
+          />
+          <div className="eye-columns">
+            <div className="eye-column">
+              <h3>{t('Œil gauche')}</h3>
+              <NumericField
+                label="Horizontale"
+                value={expression.positionXLeft}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'left' : null)}
+                onChange={value => updateImmediate({ ...expression, positionXLeft: value })}
+              />
+              <NumericField
+                label="Verticale"
+                value={expression.positionYLeft}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'left' : null)}
+                onChange={value => updateImmediate({ ...expression, positionYLeft: value })}
+              />
+            </div>
+            <div className="eye-column">
+              <h3>{t('Œil droit')}</h3>
+              <NumericField
+                label="Horizontale"
+                value={expression.positionXRight}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'right' : null)}
+                onChange={value => updateImmediate({ ...expression, positionXRight: value })}
+              />
+              <NumericField
+                label="Verticale"
+                value={expression.positionYRight}
+                unit="u"
+                onActiveChange={active => updateHighlight(active ? 'right' : null)}
+                onChange={value => updateImmediate({ ...expression, positionYRight: value })}
+              />
+            </div>
+          </div>
+          <div className="position-spacing">
+            <NumericField
+              label="Espacement"
+              value={expression.spacing}
+              min={0}
+              max={150}
+              unit="u"
+              onActiveChange={active => updateHighlight(active ? 'both' : null)}
+              onChange={updateSpacing}
+            />
+          </div>
+        </InspectorCard>
+        <InspectorCard>
+          <div className="panel-inline-title">
+            <PanelTitle
+              level={3}
+              title="Rotation locale"
+              subtitle="Inclinaison propre à chaque œil."
+            />
+            <LinkButton
+              linked={linked.rotation}
+              label="Lier les rotations"
+              onClick={() => setLinked(current => ({ ...current, rotation: !current.rotation }))}
+            />
+          </div>
+          <div className="eye-columns">
+            <NumericField
+              label="Œil gauche"
+              value={expression.leftAngle}
+              unit="°"
+              onActiveChange={active =>
+                updateHighlight(active ? (linked.rotation ? 'both' : 'left') : null)
+              }
+              onChange={value =>
+                updateImmediate({
+                  ...expression,
+                  leftAngle: value,
+                  ...(linked.rotation ? { rightAngle: -value } : {}),
+                })
+              }
+            />
+            <NumericField
+              label="Œil droit"
+              value={expression.rightAngle}
+              unit="°"
+              onActiveChange={active =>
+                updateHighlight(active ? (linked.rotation ? 'both' : 'right') : null)
+              }
+              onChange={value =>
+                updateImmediate({
+                  ...expression,
+                  rightAngle: value,
+                  ...(linked.rotation ? { leftAngle: -value } : {}),
+                })
+              }
+            />
+          </div>
+        </InspectorCard>
+      </ControlSection>
+      <ControlSection
+        title="Projection"
+        subtitle="Perspective et repères appliqués à la surface active."
+      >
+        <InspectorCard>
+          <PanelTitle level={3} title="Perspective" subtitle="Profondeur simulée du visage." />
+          <NumericField
+            label="Perspective"
+            value={expression.perspective}
+            step={0.01}
+            unit="×"
+            onChange={value => updateImmediate({ ...expression, perspective: value })}
+          />
+          <div className="switch">
+            <span>{t('Afficher le maillage')}</span>
+            <Switch
+              checked={showWire}
+              onCheckedChange={updateWireVisibility}
+              aria-label={t('Afficher le maillage')}
+            />
+          </div>
+        </InspectorCard>
+      </ControlSection>
+    </>
+  )
+}
+
 export function StudioInspector({ controller }: { controller: StudioController }) {
+  const [runtimePreviewOpen, setRuntimePreviewOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [exportAnimationsOpen, setExportAnimationsOpen] = useState(false)
   const {
     activateAvatar,
     activeAvatar,
@@ -110,9 +444,10 @@ export function StudioInspector({ controller }: { controller: StudioController }
     commitAvatarMove,
     commitExpressionMove,
     commitStateMove,
+    copyAvatarRuntimeDefinition,
     createNewAvatar,
-    deleteSelectedBodyNode,
     downloadAvatarExport,
+    downloadAvatarRuntimeDefinition,
     downloadStudioProject,
     draggedAvatarId,
     draggedExpressionId,
@@ -122,7 +457,6 @@ export function StudioInspector({ controller }: { controller: StudioController }
     draggingStateId,
     duplicateAvatar,
     duplicateExpression,
-    duplicateSelectedBodyNode,
     duplicateSequenceEditing,
     duplicateState,
     editing,
@@ -132,6 +466,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     exportFormat,
     expression,
     expressionById,
+    expressionSemanticKeyError,
     expressionDragOrigin,
     expressionDragPreview,
     expressions,
@@ -142,8 +477,11 @@ export function StudioInspector({ controller }: { controller: StudioController }
     linked,
     mode,
     openExpressionEditor,
+    openPhotoMode,
     openSequenceEditor,
     pauseState,
+    photoPanelSections,
+    photoTool,
     playbackStatus,
     playbackVisual,
     prepareStudioProjectImport,
@@ -155,18 +493,17 @@ export function StudioInspector({ controller }: { controller: StudioController }
     projectImportRef,
     reduceMotion,
     renameActiveAvatar,
-    renderedColors,
-    renderedScene,
+    runtimeDefinitionResult,
+    runtimeCopyStatus,
+    runtimeExportErrors,
     saveAvatarEditing,
     saveEditing,
     saveSequenceEditing,
-    selectBodyNode,
-    selectedBodyNode,
-    selectedBodyNodeId,
     selectedExportAnimations,
     selectedSequenceStepId,
     selectedState,
     sequenceEditing,
+    animationSemanticKeyError,
     sequences,
     setDeleteAvatarOpen,
     setDeleteExpressionOpen,
@@ -194,11 +531,14 @@ export function StudioInspector({ controller }: { controller: StudioController }
     setPendingProjectImport,
     setSequences,
     setSelectedEyeSide,
+    setPhotoPanelSections,
+    setPhotoTool,
     setSelectedSequenceStepId,
     setSequenceEditing,
     setSnapshotBackground,
     setSnapshotColorFrom,
     setSnapshotColorTo,
+    setSnapshotComposition,
     setSnapshotFormat,
     setSnapshotSize,
     setSpringSpeed,
@@ -207,6 +547,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     snapshotBackground,
     snapshotColorFrom,
     snapshotColorTo,
+    snapshotComposition,
     snapshotFormat,
     snapshotSize,
     springSpeed,
@@ -218,6 +559,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
     stopState,
     surface,
     t,
+    takePicture,
     toggleExportAnimation,
     toggleStatePlayback,
     transitionToExpression,
@@ -232,14 +574,17 @@ export function StudioInspector({ controller }: { controller: StudioController }
     updateDimension,
     updateHighlight,
     updateImmediate,
-    updateNodeVector,
-    updateSelectedBodyNode,
     updateSize,
     updateSpacing,
     updateSurface,
     updateWireVisibility,
     workspaceBackButtonRef,
   } = controller
+  const runtimePreviewAnimation = runtimeDefinitionResult.ok
+    ? runtimeDefinitionResult.value.animationOrder[0]
+    : undefined
+  const updateSnapshotComposition = (patch: Partial<typeof snapshotComposition>) =>
+    setSnapshotComposition(current => ({ ...current, ...patch }))
   const playbackFooterY = useMotionValue(0)
   const playbackHandleY = useMotionValue(0)
   const playbackHandleCounterY = useTransform(playbackHandleY, value => -value)
@@ -297,11 +642,10 @@ export function StudioInspector({ controller }: { controller: StudioController }
       duration: reduceMotion ? 0 : undefined,
     })
   }
-
   return (
     <Drawer>
       <main
-        className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen ? ' state-player-active' : ''}`}
+        className={`inspector ${editing ? 'expression-workspace-active' : sequenceEditing ? 'sequence-workspace-active' : bodyEditing ? 'body-workspace' : 'studio-workspace'}${activeSequence && !editorPageOpen && mode !== 'photo' ? ' state-player-active' : ''}${mode === 'photo' ? ' photo-inspector-active' : ''}`}
       >
         <StudioIdentity className="inspector-identity" />
         {sequenceEditing && !editing && (
@@ -321,6 +665,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               avatarEyes={activeAvatarEyes}
               eyeRenderer={activeAvatar.eyeRenderer}
               creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
+              renderStyle={activeAvatar.renderStyle}
               selectedStepId={selectedSequenceStepId}
               backButtonRef={workspaceBackButtonRef}
               reduceMotion={Boolean(reduceMotion)}
@@ -343,6 +688,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               onSave={saveSequenceEditing}
               onDuplicate={duplicateSequenceEditing}
               onDelete={() => setDeleteSequenceOpen(true)}
+              semanticKeyError={animationSemanticKeyError(sequenceEditing.draft)}
             />
           </motion.div>
         )}
@@ -365,6 +711,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
               onSave={saveEditing}
               onDuplicate={() => duplicateExpression(editing.index, editing.draft, true)}
               onDelete={() => setDeleteExpressionOpen(true)}
+              semanticKeyError={expressionSemanticKeyError(editing.draft)}
             />
           </motion.div>
         )}
@@ -427,7 +774,9 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             ? 'Expressions'
                             : mode === 'states'
                               ? 'Animations'
-                              : 'Exporter'
+                              : mode === 'photo'
+                                ? 'Mode photo'
+                                : 'Exporter'
                     )}
                   </h1>
                 </div>
@@ -442,6 +791,12 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     <RotateCcw />
                   </Button>
                 )}
+                {mode === 'photo' && (
+                  <Button variant="outline" type="button" onClick={() => setMode('export')}>
+                    <ArrowLeft />
+                    {t('Quitter')}
+                  </Button>
+                )}
               </header>
             )}
 
@@ -453,515 +808,10 @@ export function StudioInspector({ controller }: { controller: StudioController }
                       title="Corps"
                       subtitle="Construction, forme et couleur de la tête de l’avatar."
                     >
-                      <InspectorCard className="body-panel">
-                        <PanelTitle
-                          level={3}
-                          title="Construction du corps"
-                          subtitle="Une forme principale porte les yeux. Les autres primitives se placent autour d’elle."
-                        />
-                        <div className="body-tree">
-                          <Button
-                            variant="outline"
-                            type="button"
-                            aria-pressed={selectedBodyNodeId === 'primary'}
-                            onClick={() => selectBodyNode('primary')}
-                          >
-                            <span className="body-node-icon body-node-icon-primary">
-                              <SurfaceThumbnail surface={surface} />
-                            </span>
-                            <span>
-                              <strong>{t('Forme principale')}</strong>
-                              <small>
-                                {t(surfaceLabels[surface.type])} · {t('porte les yeux')}
-                              </small>
-                            </span>
-                          </Button>
-                          {bodyNodes.map(node => (
-                            <Button
-                              variant="outline"
-                              type="button"
-                              key={node.id}
-                              aria-pressed={selectedBodyNodeId === node.id}
-                              onClick={() => selectBodyNode(node.id)}
-                            >
-                              <span className="body-node-icon">
-                                <SurfaceThumbnail surface={node.surface} />
-                              </span>
-                              <span>
-                                <strong>{t(node.name)}</strong>
-                                <small>{t(surfaceLabels[node.surface.type])}</small>
-                              </span>
-                            </Button>
-                          ))}
-                        </div>
-                        <div className="body-add">
-                          <span>
-                            {t('Ajouter une forme')} · {bodyNodes.length}/{MAX_BODY_NODES}
-                          </span>
-                          <div>
-                            {bodyPrimitiveTypes.map(type => (
-                              <Button
-                                className="surface-card body-add-card"
-                                variant="outline"
-                                type="button"
-                                key={type}
-                                disabled={bodyNodes.length >= MAX_BODY_NODES}
-                                onClick={() => addBodyNode(type)}
-                              >
-                                <SurfaceThumbnail surface={surfacePresets[type]} />
-                                <span>{t(surfaceLabels[type])}</span>
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                        {selectedBodyNode && (
-                          <div className="body-node-editor">
-                            <div className="body-node-actions">
-                              <strong>{selectedBodyNode.name}</strong>
-                              <div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  type="button"
-                                  disabled={bodyNodes.length >= MAX_BODY_NODES}
-                                  onClick={duplicateSelectedBodyNode}
-                                >
-                                  {t('Dupliquer')}
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  type="button"
-                                  onClick={deleteSelectedBodyNode}
-                                >
-                                  {t('Supprimer')}
-                                </Button>
-                              </div>
-                            </div>
-                            <p className="body-gizmo-help">
-                              <Badge variant="outline">{t('Gizmo local')}</Badge>
-                              {t(
-                                'Glisse un axe pour déplacer la forme, ou un anneau pour la faire tourner.'
-                              )}
-                            </p>
-                            <div className="surface-fields">
-                              <NumericField
-                                label="Échelle"
-                                value={Math.max(
-                                  selectedBodyNode.surface.width,
-                                  selectedBodyNode.surface.height,
-                                  selectedBodyNode.surface.depth
-                                )}
-                                min={10}
-                                max={300}
-                                unit="u"
-                                onChange={size =>
-                                  updateSelectedBodyNode(node => ({
-                                    ...node,
-                                    surface: scaleSurface(node.surface, size, {
-                                      width: 10,
-                                      height: 10,
-                                      depth: 10,
-                                    }),
-                                  }))
-                                }
-                              />
-                              {(['width', 'height', 'depth'] as const).map(dimension => (
-                                <NumericField
-                                  key={dimension}
-                                  label={
-                                    { width: 'Largeur', height: 'Hauteur', depth: 'Profondeur' }[
-                                      dimension
-                                    ]
-                                  }
-                                  value={selectedBodyNode.surface[dimension]}
-                                  min={10}
-                                  max={300}
-                                  unit="u"
-                                  onChange={value =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      surface: { ...node.surface, [dimension]: value },
-                                    }))
-                                  }
-                                />
-                              ))}
-                              {(selectedBodyNode.surface.type === 'cube' ||
-                                selectedBodyNode.surface.type === 'diamond' ||
-                                selectedBodyNode.surface.type === 'cylinder') && (
-                                <NumericField
-                                  label="Rondeur"
-                                  value={selectedBodyNode.surface.roundness}
-                                  min={0}
-                                  max={2}
-                                  step={0.01}
-                                  onChange={roundness =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      surface: { ...node.surface, roundness },
-                                    }))
-                                  }
-                                />
-                              )}
-                              {(selectedBodyNode.surface.type === 'cylinder' ||
-                                selectedBodyNode.surface.type === 'cone') && (
-                                <NumericField
-                                  label="Rondeur globale"
-                                  value={selectedBodyNode.surface.morphRoundness ?? 0}
-                                  min={0}
-                                  max={2}
-                                  step={0.01}
-                                  onChange={morphRoundness =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      surface: { ...node.surface, morphRoundness },
-                                    }))
-                                  }
-                                />
-                              )}
-                              {selectedBodyNode.surface.type === 'cone' && (
-                                <>
-                                  <NumericField
-                                    label="Rondeur pointe"
-                                    value={selectedBodyNode.surface.tipRoundness ?? 0}
-                                    min={0}
-                                    max={2}
-                                    step={0.01}
-                                    onChange={tipRoundness =>
-                                      updateSelectedBodyNode(node => ({
-                                        ...node,
-                                        surface: { ...node.surface, tipRoundness },
-                                      }))
-                                    }
-                                  />
-                                  <NumericField
-                                    label="Rondeur base"
-                                    value={selectedBodyNode.surface.baseRoundness ?? 0}
-                                    min={0}
-                                    max={2}
-                                    step={0.01}
-                                    onChange={baseRoundness =>
-                                      updateSelectedBodyNode(node => ({
-                                        ...node,
-                                        surface: { ...node.surface, baseRoundness },
-                                      }))
-                                    }
-                                  />
-                                </>
-                              )}
-                            </div>
-                            <div className="body-transform-grid">
-                              <div>
-                                <h3>{t('Position locale')}</h3>
-                                {(['X', 'Y', 'Z'] as const).map((axis, index) => (
-                                  <NumericField
-                                    key={axis}
-                                    label={axis}
-                                    value={selectedBodyNode.position[index]}
-                                    unit="u"
-                                    onChange={value =>
-                                      updateNodeVector('position', index as 0 | 1 | 2, value)
-                                    }
-                                  />
-                                ))}
-                              </div>
-                              <div>
-                                <h3>{t('Rotation locale')}</h3>
-                                {(['X', 'Y', 'Z'] as const).map((axis, index) => (
-                                  <NumericField
-                                    key={axis}
-                                    label={axis}
-                                    value={selectedBodyNode.rotation[index]}
-                                    unit="°"
-                                    onChange={value =>
-                                      updateNodeVector('rotation', index as 0 | 1 | 2, value)
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <div
-                              className="node-material-section"
-                              style={{
-                                marginTop: '14px',
-                                paddingTop: '12px',
-                                borderTop: '1px solid var(--border)',
-                              }}
-                            >
-                              <h3
-                                style={{
-                                  fontSize: '0.85rem',
-                                  fontWeight: 600,
-                                  marginBottom: '8px',
-                                }}
-                              >
-                                {t('Couleur & Matériau')}
-                              </h3>
-                              <div
-                                style={{
-                                  display: 'grid',
-                                  gridTemplateColumns: '1fr 1fr',
-                                  gap: '8px',
-                                }}
-                              >
-                                <ColorField
-                                  label="Couleur"
-                                  value={
-                                    selectedBodyNode.color ||
-                                    renderedColors?.body.get() ||
-                                    '#3b82f6'
-                                  }
-                                  onChange={color =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      color,
-                                    }))
-                                  }
-                                />
-                                <ColorField
-                                  label="Couleur secondaire"
-                                  value={
-                                    selectedBodyNode.colorTo ||
-                                    selectedBodyNode.color ||
-                                    renderedColors?.body.get() ||
-                                    '#8b5cf6'
-                                  }
-                                  onChange={colorTo =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      colorTo,
-                                      gradientType:
-                                        node.gradientType && node.gradientType !== 'none'
-                                          ? node.gradientType
-                                          : 'linear',
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div style={{ marginTop: '8px' }}>
-                                <NumericField
-                                  label="Opacité"
-                                  value={selectedBodyNode.opacity ?? 1}
-                                  min={0.1}
-                                  max={1}
-                                  step={0.05}
-                                  onChange={opacity =>
-                                    updateSelectedBodyNode(node => ({
-                                      ...node,
-                                      opacity,
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div style={{ marginTop: '8px', display: 'flex', gap: '6px' }}>
-                                {(
-                                  [
-                                    { id: 'solid', label: 'Matte' },
-                                    { id: 'glass', label: 'Verre liquide' },
-                                    { id: 'glow', label: 'Lueur' },
-                                    { id: 'metallic', label: 'Métal' },
-                                  ] as const
-                                ).map(item => (
-                                  <Button
-                                    key={item.id}
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                      (selectedBodyNode.material || 'solid') === item.id
-                                        ? 'default'
-                                        : 'outline'
-                                    }
-                                    style={{ flex: 1, fontSize: '0.75rem', padding: '4px' }}
-                                    onClick={() =>
-                                      updateSelectedBodyNode(node => ({
-                                        ...node,
-                                        material: item.id,
-                                      }))
-                                    }
-                                  >
-                                    {t(item.label)}
-                                  </Button>
-                                ))}
-                              </div>
-                              <div style={{ marginTop: '8px' }}>
-                                <div
-                                  style={{
-                                    fontSize: '0.72rem',
-                                    color: 'var(--muted-foreground)',
-                                    marginBottom: '5px',
-                                  }}
-                                >
-                                  {t('Dégradé')}
-                                </div>
-                                <div style={{ display: 'flex', gap: '6px' }}>
-                                  {(
-                                    [
-                                      { id: 'none', label: 'Aucun' },
-                                      { id: 'linear', label: 'Linéaire' },
-                                      { id: 'radial', label: 'Radial' },
-                                      { id: 'glow', label: 'Halo' },
-                                    ] as const
-                                  ).map(item => (
-                                    <Button
-                                      key={item.id}
-                                      type="button"
-                                      size="sm"
-                                      variant={
-                                        (selectedBodyNode.gradientType || 'none') === item.id
-                                          ? 'default'
-                                          : 'outline'
-                                      }
-                                      style={{ flex: 1, fontSize: '0.72rem', padding: '4px' }}
-                                      onClick={() =>
-                                        updateSelectedBodyNode(node => ({
-                                          ...node,
-                                          gradientType: item.id,
-                                          colorTo:
-                                            item.id === 'none'
-                                              ? node.colorTo
-                                              : node.colorTo || node.color || '#8b5cf6',
-                                        }))
-                                      }
-                                    >
-                                      {t(item.label)}
-                                    </Button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </InspectorCard>
-                      <InspectorCard className="surface-panel">
-                        <PanelTitle
-                          level={3}
-                          title="Forme principale"
-                          subtitle="Cette surface est la référence du visage et porte les yeux."
-                        />
-                        <div className="surface-grid">
-                          {bodyPrimitiveTypes.map(type => {
-                            const previewSurface =
-                              type === surface.type ? surface : surfacePresets[type]
-                            return (
-                              <Button
-                                className="surface-card"
-                                variant="outline"
-                                type="button"
-                                key={type}
-                                aria-pressed={surface.type === type}
-                                onClick={() => {
-                                  selectBodyNode('primary')
-                                  if (type !== surface.type) {
-                                    updateSurface({ ...surfacePresets[type] })
-                                  }
-                                }}
-                              >
-                                <SurfaceThumbnail surface={previewSurface} />
-                                <span>{t(surfaceLabels[type])}</span>
-                              </Button>
-                            )
-                          })}
-                        </div>
-                        <div className="surface-fields">
-                          <NumericField
-                            label="Échelle"
-                            value={Math.max(surface.width, surface.height, surface.depth)}
-                            min={120}
-                            max={300}
-                            unit="u"
-                            onChange={size =>
-                              updateSurface(
-                                scaleSurface(surface, size, { width: 120, height: 120, depth: 100 })
-                              )
-                            }
-                          />
-                          <NumericField
-                            label="Largeur"
-                            value={surface.width}
-                            min={120}
-                            max={300}
-                            unit="u"
-                            onChange={width => updateSurface({ ...surface, width })}
-                          />
-                          <NumericField
-                            label="Hauteur"
-                            value={surface.height}
-                            min={120}
-                            max={300}
-                            unit="u"
-                            onChange={height => updateSurface({ ...surface, height })}
-                          />
-                          <NumericField
-                            label="Profondeur"
-                            value={surface.depth}
-                            min={100}
-                            max={300}
-                            unit="u"
-                            onChange={depth => updateSurface({ ...surface, depth })}
-                          />
-                          {(surface.type === 'cube' || surface.type === 'diamond') && (
-                            <NumericField
-                              label="Rondeur"
-                              value={surface.roundness}
-                              min={0}
-                              max={2}
-                              step={0.01}
-                              onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                              onChange={roundness => updateSurface({ ...surface, roundness })}
-                            />
-                          )}
-                          {surface.type === 'cylinder' && (
-                            <NumericField
-                              label="Rondeur des arêtes"
-                              value={surface.roundness}
-                              min={0}
-                              max={2}
-                              step={0.01}
-                              onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                              onChange={roundness => updateSurface({ ...surface, roundness })}
-                            />
-                          )}
-                          {(surface.type === 'cylinder' || surface.type === 'cone') && (
-                            <NumericField
-                              label="Rondeur globale"
-                              value={surface.morphRoundness ?? 0}
-                              min={0}
-                              max={2}
-                              step={0.01}
-                              onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                              onChange={morphRoundness =>
-                                updateSurface({ ...surface, morphRoundness })
-                              }
-                            />
-                          )}
-                          {surface.type === 'cone' && (
-                            <>
-                              <NumericField
-                                label="Rondeur pointe"
-                                value={surface.tipRoundness ?? 0}
-                                min={0}
-                                max={2}
-                                step={0.01}
-                                onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                                onChange={tipRoundness =>
-                                  updateSurface({ ...surface, tipRoundness })
-                                }
-                              />
-                              <NumericField
-                                label="Rondeur base"
-                                value={surface.baseRoundness ?? 0}
-                                min={0}
-                                max={2}
-                                step={0.01}
-                                onActiveChange={active => updateHighlight(active ? 'head' : null)}
-                                onChange={baseRoundness =>
-                                  updateSurface({ ...surface, baseRoundness })
-                                }
-                              />
-                            </>
-                          )}
-                        </div>
-                      </InspectorCard>
+                      <BodyConstructionAccordion
+                        controller={controller}
+                        reduceMotion={Boolean(reduceMotion)}
+                      />
                       <InspectorCard className="color-panel">
                         <PanelTitle
                           level={3}
@@ -973,6 +823,21 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           value={activeAvatar.colors.body}
                           onChange={body => updateAvatarColors({ body })}
                         />
+                      </InspectorCard>
+                    </ControlSection>
+                    <ControlSection
+                      title="Rendu"
+                      subtitle="Le rendu Pixel est temporairement désactivé."
+                    >
+                      <InspectorCard className="render-style-panel render-style-disabled">
+                        <PanelTitle
+                          level={3}
+                          title="Type de rendu"
+                          subtitle="Le mode Vectoriel est utilisé pour l’instant."
+                        />
+                        <div className="render-style-status">
+                          <Badge variant="secondary">{t('Vectoriel')}</Badge>
+                        </div>
                       </InspectorCard>
                     </ControlSection>
                     <ControlSection
@@ -1833,6 +1698,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                           avatarEyes={activeAvatarEyes}
                           eyeRenderer={activeAvatar.eyeRenderer}
                           creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
+                          renderStyle={activeAvatar.renderStyle}
                           previewId={String(index)}
                           onSelect={() => transitionToExpression(preset, index)}
                           onEdit={() => openExpressionEditor(index, preset)}
@@ -1841,6 +1707,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                             openExpressionEditor(index, preset)
                             setDeleteExpressionOpen(true)
                           }}
+                          runtimeError={expressionSemanticKeyError(preset)}
                           draggable
                           onDragStart={event => {
                             expressionDragOrigin.current = expressions
@@ -1981,8 +1848,19 @@ export function StudioInspector({ controller }: { controller: StudioController }
                                   avatarEyes={activeAvatarEyes}
                                   eyeRenderer={activeAvatar.eyeRenderer}
                                   creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
+                                  renderStyle={activeAvatar.renderStyle}
                                   id={`state-card-${sequence.id}`}
                                 />
+                                {animationSemanticKeyError(sequence) && (
+                                  <i
+                                    className="runtime-key-missing"
+                                    role="img"
+                                    aria-label={animationSemanticKeyError(sequence) ?? undefined}
+                                    title={animationSemanticKeyError(sequence) ?? undefined}
+                                  >
+                                    !
+                                  </i>
+                                )}
                                 <span>{sequence.builtIn ? t(sequence.name) : sequence.name}</span>
                               </Button>
                             )
@@ -2074,12 +1952,272 @@ export function StudioInspector({ controller }: { controller: StudioController }
               </div>
             )}
 
+            {!sequenceEditing && !editing && !bodyEditing && mode === 'photo' && (
+              <div className="panel-stack photo-panel-stack">
+                <Accordion
+                  className="photo-tool-accordion"
+                  multiple
+                  value={photoPanelSections}
+                  onValueChange={nextSections => {
+                    const sections = nextSections as typeof photoPanelSections
+                    const currentSections = new Set(photoPanelSections)
+                    const openedSection = sections.find(section => !currentSections.has(section))
+                    setPhotoPanelSections(sections)
+                    if (openedSection) setPhotoTool(openedSection)
+                  }}
+                >
+                  <AccordionItem
+                    className="photo-tool-accordion-item"
+                    value="pose"
+                    data-active-tool={photoTool === 'pose' || undefined}
+                  >
+                    <AccordionTrigger className="photo-tool-accordion-trigger">
+                      <span className="photo-tool-accordion-heading">
+                        <span className="photo-tool-accordion-icon" aria-hidden="true">
+                          <Move3D />
+                        </span>
+                        <span>
+                          <strong>{t('Pose')}</strong>
+                          <small>{t('Orientation, regard, couleurs et perspective.')}</small>
+                        </span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="photo-tool-accordion-content">
+                      <PoseControls controller={controller} />
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem
+                    className="photo-tool-accordion-item"
+                    value="frame"
+                    data-active-tool={photoTool === 'frame' || undefined}
+                  >
+                    <AccordionTrigger className="photo-tool-accordion-trigger">
+                      <span className="photo-tool-accordion-heading">
+                        <span className="photo-tool-accordion-icon" aria-hidden="true">
+                          <Scan />
+                        </span>
+                        <span>
+                          <strong>{t('Cadrage')}</strong>
+                          <small>{t('Position, zoom et coins du cadre photo.')}</small>
+                        </span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="photo-tool-accordion-content">
+                      <div className="photo-frame-settings">
+                        <div className="snapshot-composition-fields">
+                          <NumericField
+                            label="Position X"
+                            value={snapshotComposition.x}
+                            min={-180}
+                            max={180}
+                            step={1}
+                            onChange={x => updateSnapshotComposition({ x })}
+                          />
+                          <NumericField
+                            label="Position Y"
+                            value={snapshotComposition.y}
+                            min={-180}
+                            max={180}
+                            step={1}
+                            onChange={y => updateSnapshotComposition({ y })}
+                          />
+                          <NumericField
+                            label="Zoom"
+                            value={snapshotComposition.scale * 100}
+                            min={40}
+                            max={300}
+                            step={1}
+                            unit="%"
+                            onChange={zoom => updateSnapshotComposition({ scale: zoom / 100 })}
+                          />
+                          <NumericField
+                            label="Coins arrondis"
+                            value={snapshotComposition.cornerRadius}
+                            min={0}
+                            max={50}
+                            step={1}
+                            unit="%"
+                            onChange={cornerRadius => updateSnapshotComposition({ cornerRadius })}
+                          />
+                        </div>
+                        <Button
+                          className="photo-reset-frame"
+                          variant="outline"
+                          type="button"
+                          onClick={() =>
+                            setSnapshotComposition(current => ({
+                              ...current,
+                              x: 0,
+                              y: 0,
+                              scale: 1,
+                            }))
+                          }
+                        >
+                          <RotateCcw />
+                          {t('Recentrer le cadrage')}
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                <InspectorCard className="photo-expression-card">
+                  <PanelTitle
+                    title="Expression"
+                    subtitle="Choisis l’expression visible sur la photo."
+                  />
+                  <div className="expression-grid photo-expression-grid">
+                    {expressions.map((preset, index) => (
+                      <ExpressionCard
+                        key={preset.id}
+                        expression={preset}
+                        index={index}
+                        active={activeExpression === index}
+                        surface={surface}
+                        bodyNodes={bodyNodes}
+                        colors={activeAvatar.colors}
+                        avatarEyes={activeAvatarEyes}
+                        renderStyle={activeAvatar.renderStyle}
+                        previewId={`photo-${preset.id}`}
+                        onSelect={() => transitionToExpression(preset, index)}
+                        runtimeError={expressionSemanticKeyError(preset)}
+                      />
+                    ))}
+                  </div>
+                </InspectorCard>
+
+                <InspectorCard>
+                  <PanelTitle
+                    title="Arrière-plan"
+                    subtitle="Choisis un fond transparent, uni ou en dégradé."
+                  />
+                  <Field className="snapshot-background-field" orientation="horizontal">
+                    <FieldTitle>{t('Style')}</FieldTitle>
+                    <Select
+                      value={snapshotBackground}
+                      items={[
+                        { value: 'transparent', label: t('Transparent') },
+                        { value: 'solid', label: t('Uni') },
+                        { value: 'linear', label: t('Dégradé linéaire') },
+                        { value: 'radial', label: t('Dégradé radial') },
+                      ]}
+                      onValueChange={next =>
+                        next && setSnapshotBackground(next as SnapshotBackground)
+                      }
+                    >
+                      <SelectTrigger aria-label={t('Style d’arrière-plan')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="transparent">{t('Transparent')}</SelectItem>
+                        <SelectItem value="solid">{t('Uni')}</SelectItem>
+                        <SelectItem value="linear">{t('Dégradé linéaire')}</SelectItem>
+                        <SelectItem value="radial">{t('Dégradé radial')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      className="snapshot-random-button"
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      disabled={snapshotBackground === 'transparent'}
+                      onClick={() => {
+                        if (snapshotBackground === 'transparent') return
+                        const palette = randomSnapshotPalette(
+                          snapshotBackground,
+                          expression.bodyColor ?? activeAvatar.colors.body,
+                          { colorFrom: snapshotColorFrom, colorTo: snapshotColorTo }
+                        )
+                        setSnapshotColorFrom(palette.colorFrom)
+                        setSnapshotColorTo(palette.colorTo)
+                      }}
+                    >
+                      <Shuffle />
+                      {t('Aléatoire')}
+                    </Button>
+                  </Field>
+                  {snapshotBackground !== 'transparent' && (
+                    <div className="snapshot-colors">
+                      <ColorField
+                        label={snapshotBackground === 'solid' ? 'Couleur' : 'Départ'}
+                        value={snapshotColorFrom}
+                        onChange={setSnapshotColorFrom}
+                      />
+                      {(snapshotBackground === 'linear' || snapshotBackground === 'radial') && (
+                        <ColorField
+                          label="Arrivée"
+                          value={snapshotColorTo}
+                          onChange={setSnapshotColorTo}
+                        />
+                      )}
+                    </div>
+                  )}
+                </InspectorCard>
+
+                <InspectorCard>
+                  <Field className="snapshot-background-field" orientation="horizontal">
+                    <div>
+                      <FieldTitle>{t('Format d’export')}</FieldTitle>
+                      <small>{t('Choisis le type de fichier généré par le mode photo.')}</small>
+                    </div>
+                    <Select
+                      value={snapshotFormat}
+                      items={[
+                        { value: 'png', label: 'PNG' },
+                        { value: 'svg', label: 'SVG' },
+                      ]}
+                      onValueChange={next => next && setSnapshotFormat(next as SnapshotFormat)}
+                    >
+                      <SelectTrigger aria-label={t('Format d’export du mode photo')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="png">PNG</SelectItem>
+                        <SelectItem value="svg">SVG</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Separator className="snapshot-settings-separator" />
+                  <Field className="snapshot-background-field" orientation="horizontal">
+                    <div>
+                      <FieldTitle>{t('Définition')}</FieldTitle>
+                      <small>{t('Dimensions du fichier exporté.')}</small>
+                    </div>
+                    <Select
+                      value={snapshotSize}
+                      items={['512', '1024', '2048'].map(value => ({
+                        value,
+                        label: `${value} px`,
+                      }))}
+                      onValueChange={next => next && setSnapshotSize(next)}
+                    >
+                      <SelectTrigger aria-label={t('Définition du mode photo')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="512">512 px</SelectItem>
+                        <SelectItem value="1024">1024 px</SelectItem>
+                        <SelectItem value="2048">2048 px</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </InspectorCard>
+
+                <Button className="snapshot-export-button" type="button" onClick={takePicture}>
+                  <Camera />
+                  {t('Prendre une photo')}
+                  <span>{snapshotFormat.toUpperCase()}</span>
+                </Button>
+              </div>
+            )}
+
             {!sequenceEditing && !editing && !bodyEditing && mode === 'export' && (
-              <Accordion className="export-panel" defaultValue={['snapshot']}>
+              <Accordion className="export-panel" defaultValue={['avatar']}>
                 <ExportSection
                   value="avatar"
                   title="Exporter l’avatar"
-                  subtitle="Télécharge un composant autonome avec les animations de ton choix."
+                  subtitle="Choisis les animations puis utilise la même définition JSON avec React ou JavaScript."
                 >
                   <InspectorCard>
                     <div className="export-avatar-summary">
@@ -2091,6 +2229,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         avatarEyes={activeAvatarEyes}
                         eyeRenderer={activeAvatar.eyeRenderer}
                         creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
+                        renderStyle={activeAvatar.renderStyle}
                         id={`export-avatar-${activeAvatar.id}`}
                       />
                       <div>
@@ -2100,7 +2239,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                     </div>
                   </InspectorCard>
 
-                  <InspectorCard>
+                  <section className="export-format-section" aria-label={t('Format')}>
                     <PanelTitle
                       title="Format"
                       subtitle="Choisis l’intégration correspondant à ton projet."
@@ -2115,7 +2254,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         <FileCode2 />
                         <span>
                           <strong>React / TypeScript</strong>
-                          <small>{t('Package React local (.zip)')}</small>
+                          <small>{t('JSON runtime + createAvatar')}</small>
                         </span>
                       </Button>
                       <Button
@@ -2126,12 +2265,12 @@ export function StudioInspector({ controller }: { controller: StudioController }
                       >
                         <FileCode2 />
                         <span>
-                          <strong>{t('Module JavaScript')}</strong>
-                          <small>{t('Projet HTML + module JS (.zip)')}</small>
+                          <strong>{t('JavaScript / ESM')}</strong>
+                          <small>{t('JSON runtime + avatar-web')}</small>
                         </span>
                       </Button>
                     </div>
-                  </InspectorCard>
+                  </section>
 
                   <InspectorCard>
                     <div className="preset-header export-animation-header">
@@ -2145,185 +2284,253 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         variant="ghost"
                         size="sm"
                         type="button"
-                        onClick={() =>
-                          setExportAnimationIds(
-                            selectedExportAnimations.length === sequences.length
-                              ? []
-                              : sequences.map(animation => animation.id)
-                          )
-                        }
+                        aria-expanded={exportAnimationsOpen}
+                        onClick={() => setExportAnimationsOpen(open => !open)}
                       >
-                        {t(
-                          selectedExportAnimations.length === sequences.length
-                            ? 'Tout désélectionner'
-                            : 'Tout sélectionner'
-                        )}
+                        {exportAnimationsOpen ? <ChevronUp /> : <ChevronDown />}
+                        {t(exportAnimationsOpen ? 'Masquer la sélection' : 'Personnaliser')}
                       </Button>
                     </div>
-                    <div className="state-buttons export-animation-grid">
-                      {sequences.map(animation => {
-                        const firstStep = animation.steps[0]
-                        const firstExpression = firstStep
-                          ? expressionById.get(firstStep.expressionId)
-                          : undefined
-                        return (
+                    {exportAnimationsOpen && (
+                      <div className="export-animation-picker">
+                        <Button
+                          className="export-animation-select-all"
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() =>
+                            setExportAnimationIds(
+                              selectedExportAnimations.length === sequences.length
+                                ? []
+                                : sequences.map(animation => animation.id)
+                            )
+                          }
+                        >
+                          {t(
+                            selectedExportAnimations.length === sequences.length
+                              ? 'Tout désélectionner'
+                              : 'Tout sélectionner'
+                          )}
+                        </Button>
+                        <div className="state-buttons export-animation-grid">
+                          {sequences.map(animation => {
+                            const firstStep = animation.steps[0]
+                            const firstExpression = firstStep
+                              ? expressionById.get(firstStep.expressionId)
+                              : undefined
+                            return (
+                              <Button
+                                className="expression-card state-card"
+                                variant="outline"
+                                type="button"
+                                key={animation.id}
+                                aria-pressed={exportAnimationIdSet.has(animation.id)}
+                                onClick={() => toggleExportAnimation(animation.id)}
+                              >
+                                <ExpressionPreview
+                                  expression={
+                                    firstExpression ?? expressions[0] ?? defaultExpression
+                                  }
+                                  surface={surface}
+                                  bodyNodes={bodyNodes}
+                                  colors={activeAvatar.colors}
+                                  avatarEyes={activeAvatarEyes}
+                                  renderStyle={activeAvatar.renderStyle}
+                                  id={`export-animation-${animation.id}`}
+                                />
+                                <span>
+                                  {animation.builtIn ? t(animation.name) : animation.name}
+                                </span>
+                              </Button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </InspectorCard>
+
+                  {runtimeExportErrors.length > 0 && (
+                    <InspectorCard>
+                      <div className="runtime-export-error" role="alert">
+                        <div className="runtime-export-error-heading">
+                          <TriangleAlert />
+                          <strong>{t('Export runtime incomplet')}</strong>
+                        </div>
+                        <ul className="runtime-error-list">
+                          {runtimeExportErrors.map((error, index) => (
+                            <li key={`${index}-${error}`}>{error}</li>
+                          ))}
+                        </ul>
+                        <p className="runtime-export-error-help">
+                          {t(
+                            'Corrige les clés signalées dans les éditeurs Expressions ou Animations.'
+                          )}
+                        </p>
+                        <div className="runtime-export-error-actions">
                           <Button
-                            className="expression-card state-card"
-                            variant="outline"
                             type="button"
-                            key={animation.id}
-                            aria-pressed={exportAnimationIdSet.has(animation.id)}
-                            onClick={() => toggleExportAnimation(animation.id)}
+                            variant="outline"
+                            onClick={() => setMode('expressions')}
                           >
-                            <ExpressionPreview
-                              expression={firstExpression ?? expressions[0] ?? defaultExpression}
-                              surface={surface}
-                              bodyNodes={bodyNodes}
-                              colors={activeAvatar.colors}
-                              avatarEyes={activeAvatarEyes}
-                              eyeRenderer={activeAvatar.eyeRenderer}
-                              creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
-                              id={`export-animation-${animation.id}`}
-                            />
-                            <span>{animation.builtIn ? t(animation.name) : animation.name}</span>
+                            {t('Expressions')}
                           </Button>
-                        )
-                      })}
+                          <Button type="button" variant="outline" onClick={() => setMode('states')}>
+                            {t('Animations')}
+                          </Button>
+                        </div>
+                      </div>
+                    </InspectorCard>
+                  )}
+
+                  <InspectorCard className="runtime-quick-start-card">
+                    <div className="runtime-quick-start-heading">
+                      <div>
+                        <p className="eyebrow">{t('Démarrage rapide')}</p>
+                        <h2>{t('Utiliser cet avatar')}</h2>
+                      </div>
+                      <Button type="button" variant="ghost" onClick={() => setGuideOpen(true)}>
+                        {t('Voir le guide complet')}
+                        <ArrowRight />
+                      </Button>
+                    </div>
+
+                    <div className="runtime-quick-start-step">
+                      <span>{t('Installation')}</span>
+                      <code>
+                        <HighlightedRuntimeCode>
+                          {exportFormat === 'react' ? reactQuickStartInstall : webQuickStartInstall}
+                        </HighlightedRuntimeCode>
+                      </code>
+                    </div>
+
+                    <div className="runtime-quick-start-step">
+                      <span>{t('Utilisation minimale')}</span>
+                      <pre tabIndex={0}>
+                        <code>
+                          <HighlightedRuntimeCode>
+                            {exportFormat === 'react'
+                              ? reactQuickStartExample(runtimePreviewAnimation)
+                              : webQuickStartExample(runtimePreviewAnimation)}
+                          </HighlightedRuntimeCode>
+                        </code>
+                      </pre>
                     </div>
                   </InspectorCard>
 
-                  <Button
-                    className="export-download"
-                    type="button"
-                    disabled={!selectedExportAnimations.length}
-                    onClick={downloadAvatarExport}
-                  >
-                    <Download />
-                    {t(
-                      exportFormat === 'react'
-                        ? 'Télécharger le package React'
-                        : 'Télécharger le module'
-                    )}
-                  </Button>
+                  <InspectorCard className="runtime-export-card">
+                    <div className="runtime-export-heading">
+                      <div>
+                        <small>{t('Prêt à exporter')}</small>
+                        <strong>
+                          {selectedExportAnimations.length} {t('animations')} ·{' '}
+                          {runtimeDefinitionResult.ok
+                            ? runtimeDefinitionResult.value.expressionOrder.length
+                            : 0}{' '}
+                          {t('expressions')}
+                        </strong>
+                      </div>
+                      <p className="runtime-export-description">
+                        {t(
+                          exportFormat === 'javascript'
+                            ? 'Le ZIP contient le JSON exporté, une démo index.html et son README. La démo charge avatar-web depuis un CDN.'
+                            : 'Le ZIP contient le JSON exporté et un projet Vite React TypeScript prêt à lancer avec npm install puis npm run dev.'
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="runtime-export-actions">
+                      <Button
+                        className="export-download"
+                        type="button"
+                        disabled={!runtimeDefinitionResult.ok}
+                        onClick={downloadAvatarRuntimeDefinition}
+                      >
+                        <Download />
+                        {t('Télécharger la définition .avatar.json')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!runtimeDefinitionResult.ok}
+                        onClick={downloadAvatarExport}
+                      >
+                        <Download />
+                        {t(
+                          exportFormat === 'javascript'
+                            ? 'Télécharger la démo ESM (.zip)'
+                            : 'Télécharger la démo React (.zip)'
+                        )}
+                      </Button>
+                      <div className="runtime-export-secondary-actions">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!runtimeDefinitionResult.ok}
+                          onClick={() => setRuntimePreviewOpen(true)}
+                        >
+                          <Play />
+                          {t('Preview')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!runtimeDefinitionResult.ok}
+                          onClick={() => void copyAvatarRuntimeDefinition()}
+                        >
+                          <Copy />
+                          {t('Copier le JSON')}
+                        </Button>
+                      </div>
+                    </div>
+                  </InspectorCard>
+                  {runtimeCopyStatus !== 'idle' && (
+                    <p
+                      className="runtime-copy-status"
+                      role={runtimeCopyStatus === 'error' ? 'alert' : 'status'}
+                      aria-live={runtimeCopyStatus === 'error' ? 'assertive' : 'polite'}
+                    >
+                      {t(
+                        runtimeCopyStatus === 'success'
+                          ? 'JSON runtime copié dans le presse-papiers.'
+                          : 'Impossible de copier le JSON runtime.'
+                      )}
+                    </p>
+                  )}
+                  <RuntimePreviewDialog
+                    definition={runtimeDefinitionResult.ok ? runtimeDefinitionResult.value : null}
+                    initialAnimation={runtimePreviewAnimation}
+                    open={runtimePreviewOpen}
+                    onOpenChange={setRuntimePreviewOpen}
+                  />
+                  <RuntimeGuideDialog
+                    animationKey={runtimePreviewAnimation}
+                    integration={exportFormat}
+                    open={guideOpen}
+                    onOpenChange={setGuideOpen}
+                  />
                 </ExportSection>
 
                 <ExportSection
                   value="snapshot"
                   title="Mode photo"
-                  subtitle="Capture une image statique de l’avatar."
+                  subtitle="Prépare une image statique directement dans l’aperçu principal."
                 >
-                  <InspectorCard className="snapshot-preview-card">
-                    <SnapshotPreview
-                      scene={renderedScene}
-                      colors={renderedColors}
-                      background={snapshotBackground}
-                      colorFrom={snapshotColorFrom}
-                      colorTo={snapshotColorTo}
-                    />
-                    <div>
-                      <small>{t('Aperçu du mode photo')}</small>
-                      <strong>{activeAvatar.name}</strong>
-                      <span>
-                        {snapshotSize} × {snapshotSize} px · {snapshotFormat.toUpperCase()}
-                      </span>
+                  <InspectorCard className="photo-mode-launch-card">
+                    <div className="photo-mode-launch-icon" aria-hidden="true">
+                      <Camera />
                     </div>
-                  </InspectorCard>
-
-                  <InspectorCard>
-                    <PanelTitle
-                      title="Arrière-plan"
-                      subtitle="Choisis un fond transparent, uni ou en dégradé."
-                    />
-                    <Field className="snapshot-background-field" orientation="horizontal">
-                      <FieldTitle>{t('Style')}</FieldTitle>
-                      <Select
-                        value={snapshotBackground}
-                        items={[
-                          { value: 'transparent', label: t('Transparent') },
-                          { value: 'solid', label: t('Uni') },
-                          { value: 'linear', label: t('Dégradé linéaire') },
-                          { value: 'radial', label: t('Dégradé radial') },
-                        ]}
-                        onValueChange={next =>
-                          next && setSnapshotBackground(next as SnapshotBackground)
-                        }
-                      >
-                        <SelectTrigger aria-label={t('Style d’arrière-plan')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="transparent">{t('Transparent')}</SelectItem>
-                          <SelectItem value="solid">{t('Uni')}</SelectItem>
-                          <SelectItem value="linear">{t('Dégradé linéaire')}</SelectItem>
-                          <SelectItem value="radial">{t('Dégradé radial')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    {snapshotBackground !== 'transparent' && (
-                      <div className="snapshot-colors">
-                        <ColorField
-                          label={snapshotBackground === 'solid' ? 'Couleur' : 'Départ'}
-                          value={snapshotColorFrom}
-                          onChange={setSnapshotColorFrom}
-                        />
-                        {(snapshotBackground === 'linear' || snapshotBackground === 'radial') && (
-                          <ColorField
-                            label="Arrivée"
-                            value={snapshotColorTo}
-                            onChange={setSnapshotColorTo}
-                          />
+                    <div>
+                      <strong>{t('Composer dans le live preview')}</strong>
+                      <p>
+                        {t(
+                          'Choisis une expression, ajuste la pose et cadre l’avatar dans un espace dédié.'
                         )}
-                      </div>
-                    )}
-                  </InspectorCard>
-
-                  <InspectorCard>
-                    <Field className="snapshot-background-field" orientation="horizontal">
-                      <div>
-                        <FieldTitle>{t('Format d’export')}</FieldTitle>
-                        <small>{t('Choisis le type de fichier généré par le mode photo.')}</small>
-                      </div>
-                      <Select
-                        value={snapshotFormat}
-                        items={[
-                          { value: 'png', label: 'PNG' },
-                          { value: 'svg', label: 'SVG' },
-                        ]}
-                        onValueChange={next => next && setSnapshotFormat(next as SnapshotFormat)}
-                      >
-                        <SelectTrigger aria-label={t('Format d’export du mode photo')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="png">PNG</SelectItem>
-                          <SelectItem value="svg">SVG</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Separator className="snapshot-settings-separator" />
-                    <Field className="snapshot-background-field" orientation="horizontal">
-                      <div>
-                        <FieldTitle>{t('Définition')}</FieldTitle>
-                        <small>{t('Dimensions du fichier exporté.')}</small>
-                      </div>
-                      <Select
-                        value={snapshotSize}
-                        items={['512', '1024', '2048'].map(value => ({
-                          value,
-                          label: `${value} px`,
-                        }))}
-                        onValueChange={next => next && setSnapshotSize(next)}
-                      >
-                        <SelectTrigger aria-label={t('Définition du mode photo')}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="512">512 px</SelectItem>
-                          <SelectItem value="1024">1024 px</SelectItem>
-                          <SelectItem value="2048">2048 px</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
+                      </p>
+                    </div>
+                    <Button type="button" onClick={openPhotoMode}>
+                      {t('Ouvrir le mode photo')}
+                      <ArrowRight />
+                    </Button>
                   </InspectorCard>
                 </ExportSection>
 
@@ -2649,7 +2856,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
             )}
           </motion.div>
         </AnimatePresence>
-        {activeSequence && !editorPageOpen && (
+        {activeSequence && !editorPageOpen && mode !== 'photo' && (
           <motion.footer
             className={`state-playback-footer${statePlayerExpanded ? ' is-expanded' : ''}`}
             style={{ y: playbackFooterY }}
@@ -2713,6 +2920,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                         avatarEyes={activeAvatarEyes}
                         eyeRenderer={activeAvatar.eyeRenderer}
                         creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
+                        renderStyle={activeAvatar.renderStyle}
                         id={`player-${activeSequence.id}-${position}`}
                       />
                       {playbackVisual.position === position && (
@@ -2797,7 +3005,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
             </motion.div>
           </motion.footer>
         )}
-        {!editorPageOpen && (
+        {!editorPageOpen && mode !== 'photo' && (
           <nav className="mobile-mode-tabs" aria-label={t('Mode d’édition')}>
             <Button
               className="mobile-mode-tab mobile-avatar-tab"
@@ -2815,6 +3023,7 @@ export function StudioInspector({ controller }: { controller: StudioController }
                 avatarEyes={activeAvatarEyes}
                 eyeRenderer={activeAvatar.eyeRenderer}
                 creaturePaletteIndex={activeAvatar.creaturePaletteIndex}
+                renderStyle={activeAvatar.renderStyle}
                 id={`active-avatar-tab-${activeAvatar.id}`}
               />
               <span>{activeAvatar.name}</span>
